@@ -7,29 +7,43 @@ const MODAL_ID = 'modal-notifications';
 const OPEN_BUTTON_ID = 'btn-open-notifications-modal';
 
 let initialized = false;
+let loadPromise = null;
 
-export async function ensureNotificationsModalLoaded() {
+export function ensureNotificationsModalLoaded() {
   if (document.getElementById(MODAL_ID)) {
-    return true;
+    return Promise.resolve(true);
   }
-  try {
-    const response = await fetch('components/modals/notifications.html');
-    if (!response.ok) {
-      console.error('[Notifications] Error loading modal partial: HTTP', response.status);
-      return false;
-    }
-    const html = await response.text();
-    if (!document.getElementById(MODAL_ID)) {
-      document.body.insertAdjacentHTML('beforeend', html);
-      if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
-        try { window.lucide.createIcons(); } catch (e) {}
+
+  // Prevent concurrent callers from issuing duplicate fetches.
+  if (loadPromise) {
+    return loadPromise;
+  }
+
+  loadPromise = (async () => {
+    try {
+      const response = await fetch('components/modals/notifications.html');
+      if (!response.ok) {
+        console.error('[Notifications] Error loading modal partial: HTTP', response.status);
+        return false;
       }
+
+      const html = await response.text();
+      if (!document.getElementById(MODAL_ID)) {
+        document.body.insertAdjacentHTML('beforeend', html);
+        if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
+          try { window.lucide.createIcons(); } catch (e) {}
+        }
+      }
+      return Boolean(document.getElementById(MODAL_ID));
+    } catch (err) {
+      console.error('[Notifications] Error loading modal partial:', err);
+      return false;
+    } finally {
+      loadPromise = null;
     }
-    return true;
-  } catch (err) {
-    console.error('[Notifications] Error loading modal partial:', err);
-    return false;
-  }
+  })();
+
+  return loadPromise;
 }
 
 export function ensureNotificationsModal() {
@@ -40,12 +54,17 @@ export function ensureNotificationsModal() {
     }
     return el;
   }
-  ensureNotificationsModalLoaded();
+
+  ensureNotificationsModalLoaded().catch(() => {});
   return document.getElementById(MODAL_ID);
 }
 
 export async function openNotifications() {
-  await ensureNotificationsModalLoaded();
+  const loaded = await ensureNotificationsModalLoaded();
+  if (!loaded) {
+    console.error('[Notifications] ERROR: #modal-notifications gagal dimuat.');
+    return false;
+  }
 
   const modal = document.getElementById(MODAL_ID);
   if (!modal) {
@@ -90,25 +109,34 @@ export function closeNotifications() {
 }
 
 export function initNotificationsModal() {
-  ensureNotificationsModalLoaded();
-
   if (initialized) {
     return;
   }
   initialized = true;
+
+  // Delegation removes the load-order race: the button can be clicked even
+  // when the modal partial is still being fetched.
+  document.addEventListener('click', function (event) {
+    const button = event.target.closest?.(`#${OPEN_BUTTON_ID}`);
+    if (!button) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    openNotifications().catch((err) => {
+      console.warn('[Notifications] Gagal membuka modal:', err);
+    });
+  });
 
   const button = document.getElementById(OPEN_BUTTON_ID);
   if (button) {
     button.type = 'button';
     button.style.pointerEvents = 'auto';
     button.style.cursor = 'pointer';
-
-    button.addEventListener('click', function (event) {
-      event.preventDefault();
-      event.stopPropagation();
-      openNotifications();
-    });
   }
+
+  // Prefetch is deliberately non-blocking; openNotifications() still awaits
+  // the same in-flight promise when the user clicks immediately.
+  ensureNotificationsModalLoaded().catch(() => {});
 
   window.openNotifications = openNotifications;
   window.closeNotifications = closeNotifications;
