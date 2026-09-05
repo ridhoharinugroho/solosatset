@@ -4,7 +4,7 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "build": "node scripts/force-create-table.js || true",
+    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js",
     "migrate": "node scripts/force-create-table.js",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
