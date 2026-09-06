@@ -12,7 +12,6 @@ function getAdminClient() {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST,DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -37,22 +36,20 @@ export default async function handler(req, res) {
       const bucket = (req.method === 'DELETE' ? (req.query?.bucket || body?.bucket) : body?.bucket) || 'avatars';
       const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
       if (!filePath) return res.status(400).json({ success: false, error: 'filePath is required for deletion' });
-      const cleanFileName = String(filePath).replace(/^.*[\\/]([^\\/]+)$/, '$1');
+      const cleanFileName = String(filePath).split('/').filter(Boolean).pop();
+      if (!cleanFileName) return res.status(400).json({ success: false, error: 'Invalid file path.' });
       const { error } = await supabase.storage.from(targetBucket).remove([cleanFileName]);
       if (error) return res.status(500).json({ success: false, error: 'File gagal dihapus dari storage.' });
       return res.status(200).json({ success: true, bucket: targetBucket, file: cleanFileName });
     }
 
-    const { imageData, filePath, bucket = 'product-images' } = body || {};
+    const { imageData, bucket = 'product-images' } = body || {};
     if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
 
     const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
     const randomId = crypto.randomUUID();
-    const userPath = String(authenticatedUser?.sub || 'user').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const generatedFilePath = `${userPath}/${targetBucket === 'avatars' ? 'avatar' : 'image'}_${randomId}.jpg`;
-    const targetFilePath = authenticatedAdmin && filePath
-      ? String(filePath).replace(/[^a-zA-Z0-9_\-./]/g, '_').replace(/\.\./g, '.')
-      : generatedFilePath;
+    const ownerId = String(authenticatedUser?.sub || 'admin').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const generatedFilePath = `${ownerId}/${targetBucket === 'avatars' ? 'avatar' : 'image'}_${randomId}.jpg`;
 
     let buffer;
     let contentType = 'image/jpeg';
@@ -68,10 +65,10 @@ export default async function handler(req, res) {
     if (!buffer.length) return res.status(400).json({ success: false, error: 'Invalid image data.' });
     if (buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Ukuran gambar terlalu besar.' });
 
-    const { error } = await supabase.storage.from(targetBucket).upload(targetFilePath, buffer, { upsert: authenticatedAdmin, contentType, cacheControl: '31536000' });
+    const { error } = await supabase.storage.from(targetBucket).upload(generatedFilePath, buffer, { upsert: false, contentType, cacheControl: '31536000' });
     if (error) return res.status(500).json({ success: false, error: 'File gagal diunggah ke storage.' });
-    const { data: publicUrlData } = supabase.storage.from(targetBucket).getPublicUrl(targetFilePath);
-    return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: targetFilePath, bucket: targetBucket });
+    const { data: publicUrlData } = supabase.storage.from(targetBucket).getPublicUrl(generatedFilePath);
+    return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: generatedFilePath, bucket: targetBucket });
   } catch (error) {
     console.error('[Storage Error]', { name: error.name, message: error.message });
     return res.status(500).json({ success: false, error: 'Storage request failed.' });
