@@ -1,13 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { getUserSessionFromRequest } from '../server/user-session.js';
+import { isAdminRequest } from './admin-auth.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function getAdminClient() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
 export default async function handler(req, res) {
@@ -16,6 +16,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!['POST', 'DELETE'].includes(req.method)) return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+
+  const authenticatedUser = getUserSessionFromRequest(req);
+  const authenticatedAdmin = isAdminRequest(req);
+  if (!authenticatedUser?.sub && !authenticatedAdmin) return res.status(401).json({ success: false, error: 'Authentication required.' });
 
   const supabase = getAdminClient();
   if (!supabase) return res.status(503).json({ success: false, error: 'Storage service is not configured on the server.' });
@@ -27,11 +31,11 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE' || body?.action === 'delete') {
+      if (!authenticatedAdmin) return res.status(403).json({ success: false, error: 'Admin authentication required for storage deletion.' });
       const filePath = req.method === 'DELETE' ? (req.query?.filePath || body?.filePath) : body?.filePath;
       const bucket = (req.method === 'DELETE' ? (req.query?.bucket || body?.bucket) : body?.bucket) || 'avatars';
       const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
       if (!filePath) return res.status(400).json({ success: false, error: 'filePath is required for deletion' });
-
       const cleanFileName = String(filePath).replace(/^.*[\\/]([^\\/]+)$/, '$1');
       const { error } = await supabase.storage.from(targetBucket).remove([cleanFileName]);
       if (error) return res.status(500).json({ success: false, error: 'File gagal dihapus dari storage.' });
@@ -58,16 +62,11 @@ export default async function handler(req, res) {
     } else {
       buffer = Buffer.from(String(imageData), 'base64');
     }
-
     if (!buffer.length) return res.status(400).json({ success: false, error: 'Invalid image data.' });
+    if (buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Ukuran gambar terlalu besar.' });
 
-    const { error } = await supabase.storage.from(targetBucket).upload(targetFilePath, buffer, {
-      upsert: true,
-      contentType,
-      cacheControl: '31536000'
-    });
+    const { error } = await supabase.storage.from(targetBucket).upload(targetFilePath, buffer, { upsert: true, contentType, cacheControl: '31536000' });
     if (error) return res.status(500).json({ success: false, error: 'File gagal diunggah ke storage.' });
-
     const { data: publicUrlData } = supabase.storage.from(targetBucket).getPublicUrl(targetFilePath);
     return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: targetFilePath, bucket: targetBucket });
   } catch (error) {
@@ -77,5 +76,5 @@ export default async function handler(req, res) {
 }
 
 function cryptoRandomId() {
-  return Math.random().toString(36).slice(2, 10);
+  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
