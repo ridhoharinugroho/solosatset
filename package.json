@@ -4,8 +4,8 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js",
-    "sync:reviews": "node scripts/sync-app-reviews.js"
+    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js && node --check js/authProfileModals.js && node --check api/auth-login.js && node --check api/password-reset.js && node --check api/otp.js"
+  ,"sync:reviews": "node scripts/sync-app-reviews.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
