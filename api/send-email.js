@@ -1,192 +1,146 @@
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const SMTP_SECURE = String(process.env.SMTP_SECURE ?? (SMTP_PORT === 465)).toLowerCase() === 'true';
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
+const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'Pusat Jual Beli Solo Raya';
+const MAX_REQUESTS = 5;
+const WINDOW_MS = 10 * 60 * 1000;
+const rateLimiter = new Map();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/**
- * Helper untuk mengambil data konfigurasi SMTP dinamis langsung dari database Supabase
- */
-async function getDynamicSmtpConfig(fallbackPayloadConfig = {}) {
-  let config = { ...fallbackPayloadConfig };
-
-  try {
-    // Ambil dari tabel 'app_smtp_config' (id: 'config')
-    const { data: dbRow, error: dbErr } = await supabase
-      .from('app_smtp_config')
-      .select('settings_json')
-      .eq('id', 'config')
-      .maybeSingle();
-
-    if (!dbErr && dbRow && dbRow.settings_json) {
-      const parsed = typeof dbRow.settings_json === 'string' ? JSON.parse(dbRow.settings_json) : dbRow.settings_json;
-      if (parsed && typeof parsed === 'object') {
-        config = { ...config, ...parsed };
-      }
-    }
-  } catch (err) {
-    console.warn('[SMTP Backend Supabase Fetch Warning]', err);
-  }
-
-  // Sanitasi data
-  const host = (config.host || 'smtp.gmail.com').trim();
-  const port = Number(config.port) || (host === 'smtp.gmail.com' ? 465 : 587);
-  const secure = config.secure !== undefined ? Boolean(config.secure) : (port === 465);
-  const user = (config.user || 'solosatset.soloraya@gmail.com').trim();
-  const pass = (config.pass || '').replace(/\s+/g, '');
-  const fromName = (config.senderName || config.fromName || 'Pusat Jual Beli Solo Raya').trim();
-  const fromEmail = (config.senderEmail || config.from || user || 'no-reply@solosatset.com').trim();
-
-  return {
-    host,
-    port,
-    secure,
-    user,
-    pass,
-    fromName,
-    fromEmail
-  };
+function getAdminClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 }
 
-/**
- * Serverless Email Dispatcher & SMTP Gateway for Pusat Jual Beli Solo Raya
- * Fully Dynamic from Supabase Database 'app_smtp_config' Table
- */
+function clientIp(req) {
+  const forwarded = req.headers?.['x-forwarded-for'];
+  return (Array.isArray(forwarded) ? forwarded[0] : String(forwarded || req.socket?.remoteAddress || 'unknown').split(',')[0]).trim();
+}
+
+function allowRequest(req) {
+  const key = clientIp(req);
+  const now = Date.now();
+  const recent = (rateLimiter.get(key) || []).filter((ts) => now - ts < WINDOW_MS);
+  if (recent.length >= MAX_REQUESTS) return false;
+  recent.push(now);
+  rateLimiter.set(key, recent);
+  return true;
+}
+
+function normalizeEmail(value) {
+  const email = String(value || '').trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254 ? email : '';
+}
+
+function plainText(value, max = 20000) {
+  return typeof value === 'string' ? value.slice(0, max) : '';
+}
+
+function buildTransporter() {
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) return null;
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_SECURE,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+    connectionTimeout: 15000
+  });
+}
+
 export default async function handler(req, res) {
-  // CORS Configuration for Multi-Device & Mobile Access
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  if (!allowRequest(req)) return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan email. Silakan coba lagi nanti.' });
 
-  if (req.method === 'GET') {
-    return res.status(200).json({
-      service: 'Pusat Jual Beli Solo Raya - SMTP Mail Engine (Supabase-driven)',
-      status: 'active',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
-  }
+  const transporter = buildTransporter();
+  if (!transporter) return res.status(503).json({ success: false, error: 'Layanan email belum dikonfigurasi di server.' });
 
   try {
     let body = req.body;
     if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        body = {};
-      }
-    }
-    const { action, to, subject, html, text, type, metadata, smtpConfig } = body || {};
-
-    // Ambil konfigurasi SMTP murni secara dinamis dari tabel app_smtp_config di Supabase
-    const { host, port, secure, user, pass, fromName, fromEmail } = await getDynamicSmtpConfig(smtpConfig);
-
-    // 2. Handle Test Connection Request from Admin Studio
-    if (action === 'test_connection') {
-      if (!pass) {
-        console.warn('[SMTP Verification Warning] Password/App Password belum dikonfigurasi di tabel app_smtp_config Supabase.');
-        return res.status(200).json({
-          success: false,
-          status: 'unconfigured',
-          message: 'Password / App Password SMTP belum diatur di database Supabase (app_smtp_config). Silakan simpan sandi aplikasi melalui panel Admin.'
-        });
-      }
-
-      const testTransporter = nodemailer.createTransport({
-        host,
-        port,
-        secure,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 10000
-      });
-
-      await testTransporter.verify();
-      console.log(`[SMTP Verify Success] Terhubung ke ${host}:${port} dengan user: ${user}`);
-      return res.status(200).json({
-        success: true,
-        status: 'connected',
-        message: `Koneksi SMTP ke ${host}:${port} (${user}) berhasil terverifikasi!`
-      });
+      try { body = JSON.parse(body); } catch { body = {}; }
     }
 
-    // 3. Validation for Sending Email
+    const action = String(body?.type || body?.action || '').trim().toLowerCase();
+    const to = normalizeEmail(body?.to);
+    const subject = plainText(body?.subject, 300);
+    const html = plainText(body?.html, 50000);
+    const text = plainText(body?.text, 20000);
+
+    // SMTP configuration from the request body is deliberately ignored.
+    // Credentials are server-only environment variables.
     if (!to || (!html && !text)) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'Penerima email (to) dan isi pesan (html/text) wajib diisi.' 
-      });
+      return res.status(400).json({ success: false, error: 'Penerima email dan isi pesan wajib diisi.' });
     }
 
-    // 4. Validate Credentials Before Dispatch
-    if (!pass) {
-      console.error('[SMTP Config Error] App Password kosong di tabel app_smtp_config.');
-      return res.status(500).json({
-        success: false,
-        error: 'Konfigurasi SMTP belum lengkap: App Password Gmail belum diatur pada database Supabase (app_smtp_config).'
-      });
+    const supportedTypes = new Set(['registration_welcome', 'password_reset', 'test_smtp']);
+    if (!supportedTypes.has(action)) {
+      return res.status(403).json({ success: false, error: 'Jenis pengiriman email tidak diizinkan.' });
     }
 
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: false },
-      connectionTimeout: 15000
-    });
+    // Legacy compatibility path only. New auth flows send through their own server endpoints.
+    // Validate recipient against an existing active account for auth-related messages.
+    if (action === 'registration_welcome' || action === 'password_reset') {
+      const supabase = getAdminClient();
+      if (!supabase) return res.status(503).json({ success: false, error: 'Layanan email belum terhubung ke database server.' });
+      const { data: user, error } = await supabase
+        .from('users')
+        .select('id,email,status,deleted_at')
+        .eq('email', to)
+        .maybeSingle();
+      if (error) return res.status(500).json({ success: false, error: 'Validasi penerima email gagal.' });
+      if (!user || String(user.status || 'active').toLowerCase() === 'deleted' || user.deleted_at) {
+        return res.status(404).json({ success: false, error: 'Akun penerima tidak ditemukan atau tidak aktif.' });
+      }
+    }
 
-    const mailOptions = {
-      from: `"${fromName}" <${fromEmail}>`,
-      to: to.trim(),
+    // Test messages may only be sent to the configured mailbox to prevent abuse of the legacy route.
+    if (action === 'test_smtp') {
+      const configuredRecipient = normalizeEmail(SMTP_USER);
+      if (!configuredRecipient || to !== configuredRecipient) {
+        return res.status(403).json({ success: false, error: 'Email uji hanya dapat dikirim ke mailbox SMTP yang dikonfigurasi di server.' });
+      }
+    }
+
+    const info = await transporter.sendMail({
+      from: `"${SMTP_FROM_NAME}" <${SMTP_FROM}>`,
+      to,
       subject: subject || 'Pemberitahuan Akun - Pusat Jual Beli Solo Raya',
-      text: text || '',
-      html: html || text
-    };
-
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`[SMTP EMAIL SUCCESS] Sent to: ${to} | MessageID: ${info.messageId}`);
+      text: text || html.replace(/<[^>]*>/g, ' '),
+      html: html || undefined
+    });
 
     return res.status(200).json({
       success: true,
       messageId: info.messageId,
-      message: `Email berhasil dikirim ke ${to}`
+      message: 'Email berhasil dikirim melalui server.'
     });
   } catch (error) {
-    console.error('[SMTP Server Error Details]', {
-      name: error.name,
-      message: error.message,
-      code: error.code,
-      response: error.response,
-      responseCode: error.responseCode,
-      command: error.command
+    const authError = error?.code === 'EAUTH' || error?.responseCode === 535;
+    console.error('[SMTP Server Error]', {
+      name: error?.name,
+      code: error?.code,
+      responseCode: error?.responseCode,
+      message: error?.message
     });
-
-    const isAuthError = error.code === 'EAUTH' || 
-                        error.responseCode === 535 || 
-                        (error.message && (error.message.includes('535') || error.message.includes('Username and Password not accepted') || error.message.includes('BadCredentials')));
-
-    let userFriendlyError = error.message || 'Gagal mengirim email melalui server SMTP.';
-    if (isAuthError) {
-      userFriendlyError = 'Autentikasi SMTP Gagal (Error 535-5.7.8): Kredensial App Password Gmail salah atau sudah kedaluwarsa. Silakan perbarui App Password 16-digit Google pada Environment Variables (SMTP_PASS) tanpa spasi.';
-    }
 
     return res.status(500).json({
       success: false,
-      code: error.code || (isAuthError ? 'EAUTH' : 'SMTP_ERROR'),
-      responseCode: error.responseCode || (isAuthError ? 535 : 500),
-      error: userFriendlyError
+      code: authError ? 'EAUTH' : 'SMTP_ERROR',
+      error: authError ? 'Autentikasi SMTP gagal. Periksa kredensial SMTP pada environment server.' : 'Gagal mengirim email melalui server.'
     });
   }
 }
-
