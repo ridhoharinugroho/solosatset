@@ -27,12 +27,24 @@ function busy(button, isBusy, loadingLabel) {
   }
 }
 
+function sanitizeSessionUser(user) {
+  if (!user || typeof user !== 'object') throw new Error('Data sesi pengguna tidak valid.');
+  const clean = { ...user };
+  delete clean.password;
+  delete clean.password_hash;
+  delete clean.otp_code;
+  delete clean.otp_expires_at;
+  delete clean.resetCode;
+  delete clean.pendingReset;
+  return clean;
+}
+
 async function setSession(user) {
   const auth = await import('./services/auth.js');
   if (typeof auth.setCurrentUser !== 'function') {
     throw new Error('Layanan sesi pengguna tidak tersedia.');
   }
-  auth.setCurrentUser(user);
+  auth.setCurrentUser(sanitizeSessionUser(user));
 }
 
 function show(id, message) {
@@ -100,7 +112,7 @@ function bind() {
         await setSession(result.user);
         form.reset();
         closeAuthModal();
-        window.dispatchEvent(new CustomEvent('authLoginSuccess', { detail: result.user }));
+        window.dispatchEvent(new CustomEvent('authLoginSuccess', { detail: sanitizeSessionUser(result.user) }));
       } catch (error) {
         show('login-error-alert', error.message || 'Login gagal.');
       } finally {
@@ -137,7 +149,7 @@ function bind() {
         await setSession(result.user);
         form.reset();
         closeAuthModal();
-        window.dispatchEvent(new CustomEvent('authRegisterSuccess', { detail: result.user }));
+        window.dispatchEvent(new CustomEvent('authRegisterSuccess', { detail: sanitizeSessionUser(result.user) }));
       } catch (error) {
         show('register-error-alert', error.message || 'Pendaftaran gagal.');
       } finally {
