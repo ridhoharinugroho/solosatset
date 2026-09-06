@@ -1,26 +1,72 @@
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const OTP_TTL_MS = 15 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
+const MAX_CREATE_ATTEMPTS = 3;
+const CREATE_WINDOW_MS = 10 * 60 * 1000;
+const activeCreateLimiter = new Map();
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function getSupabaseAdmin() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
 
-// Server-side in-memory active OTP store (fast cache)
-const activeOtpMemoryStore = new Map();
+function hashOtp(code) {
+  return crypto.createHash('sha256').update(String(code)).digest('hex');
+}
 
-/**
- * Serverless OTP Lifecycle & Multi-Device Synchronization Engine
- */
-export default async function handler(req, res) {
-  // CORS Configuration for Multi-Device & Mobile Access
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+function safeEqualHex(left, right) {
+  try {
+    const a = Buffer.from(String(left), 'hex');
+    const b = Buffer.from(String(right), 'hex');
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  } catch {
+    return false;
   }
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function normalizeOtp(value) {
+  return String(value || '').trim().replace(/\D/g, '');
+}
+
+function normalizePassword(value) {
+  return String(value || '').trim();
+}
+
+function getClientKey(req, email) {
+  const forwarded = req.headers?.['x-forwarded-for'];
+  const ip = Array.isArray(forwarded)
+    ? forwarded[0]
+    : String(forwarded || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
+  return `${ip}:${email}`;
+}
+
+function allowCreate(req, email) {
+  const key = getClientKey(req, email);
+  const now = Date.now();
+  const current = activeCreateLimiter.get(key) || [];
+  const recent = current.filter((ts) => now - ts < CREATE_WINDOW_MS);
+  if (recent.length >= MAX_CREATE_ATTEMPTS) return false;
+  recent.push(now);
+  activeCreateLimiter.set(key, recent);
+  return true;
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
+
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method === 'GET') {
     return res.status(200).json({
@@ -34,208 +80,218 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return res.status(503).json({
+      success: false,
+      error: 'OTP service is not configured on the server.'
+    });
+  }
+
   try {
     let body = req.body;
     if (typeof body === 'string') {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        body = {};
-      }
+      try { body = JSON.parse(body); } catch { body = {}; }
     }
 
     const { action, email, otpCode, newPassword } = body || {};
-    const cleanEmail = (email || '').trim().toLowerCase();
-    const cleanCode = (otpCode || '').toString().trim().replace(/\D/g, '');
+    const cleanEmail = normalizeEmail(email);
+    const cleanCode = normalizeOtp(otpCode);
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
       return res.status(400).json({ success: false, error: 'Alamat email tidak valid.' });
     }
 
-    // ACTION 1: CREATE & STORE OTP TOKEN
     if (action === 'create' || action === 'store') {
-      if (!cleanCode || cleanCode.length < 4) {
-        return res.status(400).json({ success: false, error: 'Kode OTP tidak valid.' });
+      if (!cleanCode || cleanCode.length !== 6) {
+        return res.status(400).json({ success: false, error: 'Kode OTP harus 6 digit.' });
       }
 
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-      const otpRecord = {
-        code: cleanCode,
-        expires_at: expiresAt,
-        created_at: Date.now()
-      };
-
-      // Simpan di memory cache serverless
-      activeOtpMemoryStore.set(cleanEmail, otpRecord);
-
-      // Simpan di Supabase site_settings cloud storage
-      try {
-        const { data } = await supabase
-          .from('site_settings')
-          .select('settings')
-          .eq('id', 'global')
-          .maybeSingle();
-
-        const settings = (data && data.settings) || {};
-        if (!settings.otp_sessions) settings.otp_sessions = {};
-        settings.otp_sessions[cleanEmail] = otpRecord;
-
-        await supabase
-          .from('site_settings')
-          .upsert([{ id: 'global', settings, updated_at: new Date().toISOString() }], { onConflict: 'id' });
-      } catch (e) {
-        console.warn('[OTP Serverless] Supabase site_settings sync error:', e);
+      if (!allowCreate(req, cleanEmail)) {
+        return res.status(429).json({
+          success: false,
+          error: 'Terlalu banyak permintaan kode OTP. Silakan coba lagi beberapa menit lagi.'
+        });
       }
 
-      // Coba simpan ke kolom users jika kolom sudah terpasang
-      try {
-        const { data: userProbe } = await supabase.from('users').select('*').limit(1);
-        if (userProbe && userProbe.length > 0 && ('otp_code' in userProbe[0] || 'otp_expires_at' in userProbe[0])) {
-          await supabase
-            .from('users')
-            .update({
-              otp_code: cleanCode,
-              otp_expires_at: expiresAt,
-              updated_at: new Date().toISOString()
-            })
-            .eq('email', cleanEmail);
-        }
-      } catch (e) {}
+      const { data: user, error: userError } = await supabase
+        .from('users')
+        .select('id, email, status, deleted_at')
+        .eq('email', cleanEmail)
+        .maybeSingle();
+
+      if (userError) {
+        console.error('[OTP Create User Lookup]', userError.message);
+        return res.status(500).json({ success: false, error: 'Gagal memeriksa akun.' });
+      }
+
+      if (!user || (user.status || 'active').toLowerCase() === 'deleted' || user.deleted_at) {
+        // Keep response generic to reduce account enumeration.
+        return res.status(200).json({
+          success: true,
+          message: 'Jika akun ditemukan dan aktif, kode verifikasi telah diproses.',
+          expiresAt: new Date(Date.now() + OTP_TTL_MS).toISOString()
+        });
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + OTP_TTL_MS).toISOString();
+      const codeHash = hashOtp(cleanCode);
+
+      const { error: upsertError } = await supabase
+        .from('otp_sessions')
+        .upsert({
+          email: cleanEmail,
+          code_hash: codeHash,
+          expires_at: expiresAt,
+          attempts: 0,
+          max_attempts: MAX_ATTEMPTS,
+          consumed_at: null,
+          created_at: now.toISOString(),
+          updated_at: now.toISOString()
+        }, { onConflict: 'email' });
+
+      if (upsertError) {
+        console.error('[OTP Create Store]', upsertError.message);
+        return res.status(500).json({ success: false, error: 'Gagal menyimpan sesi OTP.' });
+      }
 
       return res.status(200).json({
         success: true,
-        message: 'Kode OTP berhasil dicatat di serverless memory & database Supabase.',
+        message: 'Kode OTP berhasil dicatat di server.',
         expiresAt
       });
     }
 
-    // ACTION 2: VERIFY OTP TOKEN & UPDATE PASSWORD
     if (action === 'verify' || action === 'reset_password') {
-      if (!cleanCode || cleanCode.length < 4) {
+      if (!cleanCode || cleanCode.length !== 6) {
         return res.status(400).json({ success: false, error: 'Masukkan kode OTP 6 digit.' });
       }
 
-      let isValid = false;
+      const { data: session, error: sessionError } = await supabase
+        .from('otp_sessions')
+        .select('email, code_hash, expires_at, attempts, max_attempts, consumed_at')
+        .eq('email', cleanEmail)
+        .maybeSingle();
 
-      // 1. Cek dari memory cache
-      const memRecord = activeOtpMemoryStore.get(cleanEmail);
-      if (memRecord && memRecord.code === cleanCode) {
-        const exp = memRecord.expires_at ? new Date(memRecord.expires_at).getTime() : 0;
-        if (exp === 0 || Date.now() <= exp) {
-          isValid = true;
-        } else {
-          activeOtpMemoryStore.delete(cleanEmail);
-          return res.status(400).json({ success: false, error: 'Kode OTP telah kadaluarsa (lebih dari 15 menit).' });
-        }
+      if (sessionError) {
+        console.error('[OTP Verify Lookup]', sessionError.message);
+        return res.status(500).json({ success: false, error: 'Gagal memeriksa sesi OTP.' });
       }
 
-      // 2. Cek dari Supabase site_settings cloud storage
-      if (!isValid) {
-        try {
-          const { data } = await supabase
-            .from('site_settings')
-            .select('settings')
-            .eq('id', 'global')
-            .maybeSingle();
-
-          const cloudSession = data?.settings?.otp_sessions?.[cleanEmail];
-          if (cloudSession && cloudSession.code === cleanCode) {
-            const exp = cloudSession.expires_at ? new Date(cloudSession.expires_at).getTime() : 0;
-            if (exp === 0 || Date.now() <= exp) {
-              isValid = true;
-            } else {
-              return res.status(400).json({ success: false, error: 'Kode OTP telah kadaluarsa (lebih dari 15 menit).' });
-            }
-          }
-        } catch (e) {}
-      }
-
-      // 3. Cek dari kolom users Supabase jika kolom tersedia
-      if (!isValid) {
-        try {
-          const { data: userProbe } = await supabase.from('users').select('*').eq('email', cleanEmail).maybeSingle();
-          if (userProbe && userProbe.otp_code && userProbe.otp_code.toString().trim().replace(/\D/g, '') === cleanCode) {
-            const exp = userProbe.otp_expires_at ? new Date(userProbe.otp_expires_at).getTime() : 0;
-            if (exp === 0 || Date.now() <= exp) {
-              isValid = true;
-            } else {
-              return res.status(400).json({ success: false, error: 'Kode OTP telah kadaluarsa (lebih dari 15 menit).' });
-            }
-          }
-        } catch (e) {}
-      }
-
-      if (!isValid) {
+      if (!session || session.consumed_at) {
         return res.status(400).json({
           success: false,
-          error: 'Kode verifikasi yang Anda masukkan salah atau kadaluarsa.'
+          error: 'Kode verifikasi salah, sudah digunakan, atau telah kadaluarsa.'
         });
       }
 
-      // Jika ada permintaan update password sekaligus
-      const cleanNewPass = String(newPassword || '').trim();
-      if (cleanNewPass && cleanNewPass.length >= 5) {
-        try {
-          // Coba update password sekaligus mengosongkan otp_code & otp_expires_at
-          const { error: fullUpdateErr } = await supabase
-            .from('users')
-            .update({
-              password: cleanNewPass,
-              otp_code: null,
-              otp_expires_at: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('email', cleanEmail);
+      const expiresAt = session.expires_at ? new Date(session.expires_at).getTime() : 0;
+      if (!expiresAt || Date.now() > expiresAt) {
+        await supabase
+          .from('otp_sessions')
+          .update({ consumed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('email', cleanEmail)
+          .is('consumed_at', null);
+        return res.status(400).json({
+          success: false,
+          error: 'Kode verifikasi telah kadaluarsa. Silakan minta kode baru.'
+        });
+      }
 
-          if (fullUpdateErr) {
-            // Fallback update kolom password jika kolom OTP belum ada di skema PostgreSQL
-            await supabase
-              .from('users')
-              .update({
-                password: cleanNewPass,
-                updated_at: new Date().toISOString()
-              })
-              .eq('email', cleanEmail);
-          }
-          console.log(`[OTP API Password Update Success] Password updated & OTP columns cleared in Supabase for ${cleanEmail}`);
-        } catch (e) {
-          console.warn('[OTP API Password Update Exception]', e);
+      const attempts = Number.isFinite(Number(session.attempts)) ? Number(session.attempts) : 0;
+      const maxAttempts = Number.isFinite(Number(session.max_attempts)) ? Number(session.max_attempts) : MAX_ATTEMPTS;
+      if (attempts >= maxAttempts) {
+        return res.status(429).json({
+          success: false,
+          error: 'Batas percobaan kode verifikasi telah tercapai. Silakan minta kode baru.'
+        });
+      }
+
+      const suppliedHash = hashOtp(cleanCode);
+      if (!safeEqualHex(suppliedHash, session.code_hash)) {
+        const nextAttempts = attempts + 1;
+        await supabase
+          .from('otp_sessions')
+          .update({ attempts: nextAttempts, updated_at: new Date().toISOString() })
+          .eq('email', cleanEmail)
+          .is('consumed_at', null);
+
+        return res.status(nextAttempts >= maxAttempts ? 429 : 400).json({
+          success: false,
+          error: nextAttempts >= maxAttempts
+            ? 'Batas percobaan kode verifikasi telah tercapai. Silakan minta kode baru.'
+            : 'Kode verifikasi yang Anda masukkan salah atau kadaluarsa.'
+        });
+      }
+
+      // Atomically consume the OTP before any password write. A second concurrent
+      // request must no longer be able to consume the same session.
+      const consumedAt = new Date().toISOString();
+      const { data: consumedRows, error: consumeError } = await supabase
+        .from('otp_sessions')
+        .update({ consumed_at: consumedAt, updated_at: consumedAt })
+        .eq('email', cleanEmail)
+        .eq('code_hash', session.code_hash)
+        .is('consumed_at', null)
+        .select('email');
+
+      if (consumeError || !Array.isArray(consumedRows) || consumedRows.length !== 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Kode verifikasi sudah digunakan atau tidak lagi valid.'
+        });
+      }
+
+      const cleanNewPass = normalizePassword(newPassword);
+      if (action === 'reset_password') {
+        if (cleanNewPass.length < 5) {
+          return res.status(400).json({ success: false, error: 'Password baru minimal 5 karakter.' });
+        }
+
+        const { error: passwordError } = await supabase
+          .from('users')
+          .update({
+            password: cleanNewPass,
+            updated_at: new Date().toISOString()
+          })
+          .eq('email', cleanEmail)
+          .neq('status', 'deleted');
+
+        if (passwordError) {
+          console.error('[OTP Password Update]', passwordError.message);
+          return res.status(500).json({
+            success: false,
+            error: 'Kode benar, tetapi password gagal diperbarui. Silakan minta kode baru.'
+          });
         }
       }
 
-      // Bersihkan memory dan cloud store
-      activeOtpMemoryStore.delete(cleanEmail);
-      try {
-        const { data } = await supabase
-          .from('site_settings')
-          .select('settings')
-          .eq('id', 'global')
-          .maybeSingle();
-
-        const settings = (data && data.settings) || {};
-        if (settings.otp_sessions && settings.otp_sessions[cleanEmail]) {
-          delete settings.otp_sessions[cleanEmail];
-          await supabase
-            .from('site_settings')
-            .upsert([{ id: 'global', settings, updated_at: new Date().toISOString() }], { onConflict: 'id' });
-        }
-      } catch (e) {}
-
       return res.status(200).json({
         success: true,
-        message: 'Kode OTP berhasil diverifikasi dan password berhasil diperbarui.'
+        message: action === 'reset_password'
+          ? 'Kode OTP berhasil diverifikasi dan password berhasil diperbarui.'
+          : 'Kode OTP berhasil diverifikasi.'
       });
     }
 
-    // ACTION 3: CLEAR
     if (action === 'clear') {
-      activeOtpMemoryStore.delete(cleanEmail);
+      await supabase
+        .from('otp_sessions')
+        .update({ consumed_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq('email', cleanEmail)
+        .is('consumed_at', null);
+
       return res.status(200).json({ success: true, message: 'OTP session cleared' });
     }
 
     return res.status(400).json({ success: false, error: 'Action not supported' });
   } catch (error) {
-    console.error('[OTP API Error]', error);
-    return res.status(500).json({ success: false, error: error.message || 'Internal Server Error' });
+    console.error('[OTP API Error]', {
+      name: error.name,
+      code: error.code,
+      message: error.message
+    });
+    return res.status(500).json({ success: false, error: 'Internal Server Error' });
   }
 }
