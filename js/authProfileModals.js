@@ -6,6 +6,7 @@
 // ============================================================
 
 let passwordResetBound = false;
+let loginBound = false;
 let resetEmailInFlight = '';
 
 function getJsonBody(response) {
@@ -32,6 +33,64 @@ function showMessage(elementId, text) {
 function hideMessage(elementId) {
     const box = document.getElementById(elementId);
     if (box) box.classList.add('hidden');
+}
+
+function bindServerAuthoritativeLogin() {
+    if (loginBound) return;
+    loginBound = true;
+
+    document.addEventListener('submit', async (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement) || form.id !== 'login-form') return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const identifier = String(document.getElementById('login-input-identifier')?.value || '').trim();
+        const password = String(document.getElementById('login-input-password')?.value || '');
+        const button = document.getElementById('btn-submit-login');
+
+        hideMessage('login-error-alert');
+        if (!identifier) {
+            showMessage('login-error-alert', 'Nomor WhatsApp, Email, atau Nama Toko harus diisi.');
+            return;
+        }
+        if (!password) {
+            showMessage('login-error-alert', 'Password harus diisi.');
+            return;
+        }
+
+        setFormBusy(button, true, 'Memproses...', 'Masuk');
+        try {
+            const response = await fetch('/api/auth-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ identifier, password })
+            });
+            const result = await getJsonBody(response);
+
+            if (!response.ok || !result.success || !result.user) {
+                throw new Error(result.error || 'Login gagal. Silakan periksa data login Anda.');
+            }
+
+            // Reuse the canonical session writer without importing auth.js at startup.
+            const authModule = await import('./services/auth.js');
+            if (typeof authModule.setCurrentUser !== 'function') {
+                throw new Error('Layanan sesi pengguna tidak tersedia.');
+            }
+            authModule.setCurrentUser(result.user);
+
+            form.reset();
+            hideMessage('login-error-alert');
+            document.getElementById('btn-close-user-auth')?.click();
+            window.dispatchEvent(new CustomEvent('authLoginSuccess', { detail: result.user }));
+        } catch (error) {
+            console.error('[AUTH LOGIN]', error);
+            showMessage('login-error-alert', error.message || 'Login gagal. Silakan coba lagi.');
+        } finally {
+            setFormBusy(button, false, 'Memproses...', 'Masuk');
+        }
+    }, true);
 }
 
 function bindServerAuthoritativePasswordReset() {
@@ -142,6 +201,7 @@ function bindServerAuthoritativePasswordReset() {
 
 export async function ensureAuthProfileModalsLoaded() {
     if (document.getElementById('modal-user-auth')) {
+        bindServerAuthoritativeLogin();
         bindServerAuthoritativePasswordReset();
         return true;
     }
@@ -155,6 +215,7 @@ export async function ensureAuthProfileModalsLoaded() {
                 try { window.lucide.createIcons(); } catch (e) {}
             }
         }
+        bindServerAuthoritativeLogin();
         bindServerAuthoritativePasswordReset();
         return true;
     } catch (err) {
