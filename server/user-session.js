@@ -15,21 +15,14 @@ function timingSafeEqualText(left, right) {
 }
 
 function getSecret() {
-  return process.env.USER_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET || '';
+  return process.env.USER_SESSION_SECRET || '';
 }
 
 export function signUserSession(user) {
   const secret = getSecret();
   if (!secret || !user?.id) return '';
-
   const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    sub: String(user.id),
-    role: 'user',
-    iat: now,
-    exp: now + USER_SESSION_TTL_SECONDS,
-    nonce: crypto.randomBytes(12).toString('hex')
-  };
+  const payload = { sub: String(user.id), role: 'user', iat: now, exp: now + USER_SESSION_TTL_SECONDS, nonce: crypto.randomBytes(12).toString('hex') };
   const body = base64url(JSON.stringify(payload));
   const signature = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   return `${body}.${signature}`;
@@ -38,18 +31,14 @@ export function signUserSession(user) {
 export function getUserSessionFromRequest(req) {
   const secret = getSecret();
   if (!secret) return null;
-
   const header = String(req?.headers?.cookie || '');
   const match = header.split(';').map((part) => part.trim()).find((part) => part.startsWith(`${USER_SESSION_COOKIE}=`));
   if (!match) return null;
-
   const token = match.slice(USER_SESSION_COOKIE.length + 1);
   const [body, signature] = token.split('.');
   if (!body || !signature) return null;
-
   const expected = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   if (!timingSafeEqualText(signature, expected)) return null;
-
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (payload?.role !== 'user' || !payload?.sub) return null;
