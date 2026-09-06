@@ -11,6 +11,12 @@ function getAdminClient() {
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
+function sanitizeStoragePath(value) {
+  const segments = String(value || '').split('/').map((segment) => segment.trim()).filter(Boolean);
+  if (!segments.length || segments.some((segment) => segment === '.' || segment === '..' || !/^[a-zA-Z0-9_.-]+$/.test(segment))) return null;
+  return segments.join('/');
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST,DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
@@ -35,12 +41,11 @@ export default async function handler(req, res) {
       const filePath = req.method === 'DELETE' ? (req.query?.filePath || body?.filePath) : body?.filePath;
       const bucket = (req.method === 'DELETE' ? (req.query?.bucket || body?.bucket) : body?.bucket) || 'avatars';
       const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
-      if (!filePath) return res.status(400).json({ success: false, error: 'filePath is required for deletion' });
-      const cleanFileName = String(filePath).split('/').filter(Boolean).pop();
-      if (!cleanFileName) return res.status(400).json({ success: false, error: 'Invalid file path.' });
-      const { error } = await supabase.storage.from(targetBucket).remove([cleanFileName]);
+      const cleanFilePath = sanitizeStoragePath(filePath);
+      if (!cleanFilePath) return res.status(400).json({ success: false, error: 'Invalid file path.' });
+      const { error } = await supabase.storage.from(targetBucket).remove([cleanFilePath]);
       if (error) return res.status(500).json({ success: false, error: 'File gagal dihapus dari storage.' });
-      return res.status(200).json({ success: true, bucket: targetBucket, file: cleanFileName });
+      return res.status(200).json({ success: true, bucket: targetBucket, file: cleanFilePath });
     }
 
     const { imageData, bucket = 'product-images' } = body || {};
