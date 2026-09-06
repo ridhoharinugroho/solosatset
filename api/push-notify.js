@@ -11,14 +11,18 @@ try {
   console.warn('[Push Dispatcher] Supabase client init warning:', sbInitErr.message);
 }
 
-const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BOMPQQn3bQc9vJt68WlanKbCfTpN-N2HLoTkB34G0348Cqoh1P1SD5wt4aK40fBG090yDkkAoCVBICK0IigZ07Y';
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'EQt1IRRijBEx-zYI7DhuLyjg4EdwhF0XwPObVPC2GFg';
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:solosatset.soloraya@gmail.com';
 
-try {
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
-} catch (vapidErr) {
-  console.warn('[Push Dispatcher] VAPID configuration notice:', vapidErr.message);
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  console.warn('[Push Dispatcher] VAPID configuration is missing. Push dispatch is disabled until VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are configured.');
+} else {
+  try {
+    webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  } catch (vapidErr) {
+    console.warn('[Push Dispatcher] VAPID configuration notice:', vapidErr.message);
+  }
 }
 
 /**
@@ -38,14 +42,21 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     return res.status(200).json({
       service: 'Pusat Jual Beli Solo Raya - Web Push Notification Dispatcher',
-      status: 'active',
-      vapidPublicKey: VAPID_PUBLIC_KEY,
+      status: VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY ? 'active' : 'misconfigured',
+      vapidPublicKey: VAPID_PUBLIC_KEY || null,
       timestamp: new Date().toISOString()
     });
   }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  }
+
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    return res.status(503).json({
+      success: false,
+      error: 'Push notification service is not configured.'
+    });
   }
 
   try {
@@ -58,7 +69,6 @@ export default async function handler(req, res) {
       }
     }
 
-    // Tangani jika body dikirimkan dalam bentuk array objek notifikasi
     let itemPayload = body;
     if (Array.isArray(body)) {
       itemPayload = body.length > 0 ? body[0] : {};
@@ -75,7 +85,6 @@ export default async function handler(req, res) {
     const badge = itemPayload.badge || '/assets/img/app-logo.png?v=2.1';
     const tag = itemPayload.tag || 'solosatset-update';
 
-    // Ekstrak dan sanitasi targetUserIds
     let cleanTargetUserIds = [];
     let isTargetSpecified = false;
 
@@ -101,7 +110,6 @@ export default async function handler(req, res) {
 
     const targetEmail = itemPayload.targetEmail ? String(itemPayload.targetEmail).toLowerCase().trim() : null;
 
-    // Jika target pengguna ditentukan secara eksplisit namun kosong (misal tidak ada user berminat), lewati pengiriman dengan sukses
     if (isTargetSpecified && cleanTargetUserIds.length === 0 && !targetEmail) {
       return res.status(200).json({
         success: true,
@@ -121,11 +129,9 @@ export default async function handler(req, res) {
       timestamp: Date.now()
     });
 
-    // 1. Kumpulkan seluruh langganan push yang aktif
     const subscriptionsMap = new Map();
 
     if (supabase) {
-      // A. Dari tabel push_subscriptions Supabase
       try {
         let query = supabase.from('push_subscriptions').select('*');
         if (cleanTargetUserIds.length > 0) {
@@ -154,7 +160,6 @@ export default async function handler(req, res) {
         console.warn('[Push Dispatcher] DB subscriptions query exception:', e.message);
       }
 
-      // B. Dari fallback site_settings
       try {
         const { data: settingsData } = await supabase.from('site_settings').select('settings').eq('id', 'global').maybeSingle();
         const rawMap = settingsData?.settings?.push_subscriptions || {};
@@ -187,7 +192,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Kirim notifikasi secara concurrent
     const expiredEndpoints = [];
     let sentCount = 0;
     let failedCount = 0;
@@ -208,7 +212,6 @@ export default async function handler(req, res) {
 
     await Promise.allSettled(sendPromises);
 
-    // 3. Bersihkan endpoint yang sudah expired (404/410)
     if (expiredEndpoints.length > 0 && supabase) {
       try {
         for (const ep of expiredEndpoints) {
@@ -235,7 +238,6 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[Push Dispatch Handler Error]', error);
-    // Kembalikan response JSON yang rapi dan aman
     return res.status(200).json({
       success: false,
       error: error.message || 'Internal error occurred during push notification dispatch',
@@ -244,7 +246,6 @@ export default async function handler(req, res) {
   }
 }
 
-// Auto-run when executed directly via "node api/push-notify.js"
 if (process.argv[1] && process.argv[1].replace(/\\/g, '/').includes('api/push-notify')) {
   console.log('--- MENJALANKAN DISPATCHER NOTIFIKASI DARI TERMINAL ---');
   const customTitle = process.argv[2] || "📢 Pembaruan Sistem SoloSatset";
@@ -270,4 +271,3 @@ if (process.argv[1] && process.argv[1].replace(/\\/g, '/').includes('api/push-no
   };
   await handler(mockReq, mockRes);
 }
-
