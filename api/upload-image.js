@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getUserSessionFromRequest } from '../server/user-session.js';
 import { isAdminRequest } from './admin-auth.js';
@@ -46,10 +47,12 @@ export default async function handler(req, res) {
     if (!imageData) return res.status(400).json({ success: false, error: 'imageData is required' });
 
     const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
-    const cleanRandomStr = cryptoRandomId();
-    const targetFilePath = filePath
-      ? String(filePath).replace(/[^a-zA-Z0-9_\-\.]/g, '_')
-      : `${targetBucket === 'avatars' ? 'avatar_' : ''}${Date.now()}_${cleanRandomStr}.jpg`;
+    const randomId = crypto.randomUUID();
+    const userPath = String(authenticatedUser?.sub || 'user').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const generatedFilePath = `${userPath}/${targetBucket === 'avatars' ? 'avatar' : 'image'}_${randomId}.jpg`;
+    const targetFilePath = authenticatedAdmin && filePath
+      ? String(filePath).replace(/[^a-zA-Z0-9_\-./]/g, '_').replace(/\.\./g, '.')
+      : generatedFilePath;
 
     let buffer;
     let contentType = 'image/jpeg';
@@ -65,7 +68,7 @@ export default async function handler(req, res) {
     if (!buffer.length) return res.status(400).json({ success: false, error: 'Invalid image data.' });
     if (buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Ukuran gambar terlalu besar.' });
 
-    const { error } = await supabase.storage.from(targetBucket).upload(targetFilePath, buffer, { upsert: true, contentType, cacheControl: '31536000' });
+    const { error } = await supabase.storage.from(targetBucket).upload(targetFilePath, buffer, { upsert: authenticatedAdmin, contentType, cacheControl: '31536000' });
     if (error) return res.status(500).json({ success: false, error: 'File gagal diunggah ke storage.' });
     const { data: publicUrlData } = supabase.storage.from(targetBucket).getPublicUrl(targetFilePath);
     return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: targetFilePath, bucket: targetBucket });
@@ -73,8 +76,4 @@ export default async function handler(req, res) {
     console.error('[Storage Error]', { name: error.name, message: error.message });
     return res.status(500).json({ success: false, error: 'Storage request failed.' });
   }
-}
-
-function cryptoRandomId() {
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
