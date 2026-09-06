@@ -4,7 +4,7 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js && node --check js/authProfileModals.js && node --check js/authServerBridge.js && node --check js/services/auth.js && node --check js/services/emailService.js && node --check api/auth-login.js && node --check api/auth-register.js && node --check api/password-reset.js && node --check api/admin-auth.js && node --check api/push-subscribe.js && node --check api/push-notify.js && node --check api/send-email.js && node --check api/track-interest.js && node --check api/upload-image.js && node scripts/security-audit.mjs",
+    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js && node --check js/authProfileModals.js && node --check js/authServerBridge.js && node --check js/adminAuthBridge.js && node --check js/services/auth.js && node --check js/services/emailService.js && node --check js/admin.js && node --check api/auth-login.js && node --check api/auth-register.js && node --check api/password-reset.js && node --check api/admin-auth.js && node --check api/push-subscribe.js && node --check api/push-notify.js && node --check api/send-email.js && node --check api/track-interest.js && node --check api/upload-image.js && node scripts/security-audit.mjs",
     "sync:reviews": "node scripts/sync-app-reviews.js",
     "security:audit": "node scripts/security-audit.mjs"
   },
