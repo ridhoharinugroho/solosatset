@@ -10,8 +10,8 @@ function getAdminClient() {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -31,13 +31,14 @@ export default async function handler(req, res) {
     if (!cleanCatId || cleanCatId === 'all') return res.status(400).json({ success: false, error: 'Missing categoryId' });
 
     const userId = String(session.sub).trim().slice(0, 128);
-    const { data: uData, error: uErr } = await supabase.from('users').select('interests').eq('id', userId).maybeSingle();
+    const { data: uData, error: uErr } = await supabase.from('users').select('id,interests').eq('id', userId).maybeSingle();
     if (uErr) {
       console.error('[Serverless Track Interest] users select error:', uErr.message);
       return res.status(500).json({ success: false, error: 'Unable to load user interests.' });
     }
+    if (!uData?.id) return res.status(401).json({ success: false, error: 'Authentication required.' });
 
-    let interests = Array.isArray(uData?.interests) ? [...uData.interests] : [];
+    let interests = Array.isArray(uData.interests) ? [...uData.interests] : [];
     interests = interests.filter((value) => String(value).toLowerCase().trim() !== cleanCatId);
     interests.push(cleanCatId);
     while (interests.length > 3) interests.shift();
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, error: 'Unable to save user interests.' });
     }
 
-    return res.status(200).json({ success: true, userId, categoryId: cleanCatId, interests });
+    return res.status(200).json({ success: true, categoryId: cleanCatId, interests });
   } catch (error) {
     console.error('[Serverless Track Interest Error]', { name: error?.name, message: error?.message });
     if (error?.message === 'Interest service is not configured.') return res.status(503).json({ success: false, error: 'Interest service is not configured.' });
