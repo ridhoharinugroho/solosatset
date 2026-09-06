@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
-import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
+import { createClient } from '@supabase/supabase-js';
 import { signUserSession, userSessionCookie } from '../server/user-session.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -19,12 +19,10 @@ function allowRegistration(req, email) { const key = getRateKey(req, email), now
 const USER_FIELDS = 'id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at,password_hash,password';
 async function findExistingUser(supabase, email, phone, name, storeName) { const queries = [supabase.from('users').select(USER_FIELDS).eq('email', email).limit(1), supabase.from('users').select(USER_FIELDS).eq('name', name).limit(1), supabase.from('users').select(USER_FIELDS).eq('store_name', storeName).limit(1)]; if (phone) queries.push(supabase.from('users').select(USER_FIELDS).eq('phone', phone).limit(1)); const results = await Promise.all(queries); for (const result of results) { if (result.error) throw result.error; if (Array.isArray(result.data) && result.data[0]) return result.data[0]; } return null; }
 function publicUser(user) { return { id: user.id, name: user.name, storeName: user.store_name || user.name, email: user.email, phone: user.phone, region: user.region, district: user.district, avatar: user.avatar ?? null, bio: user.bio ?? '', status: user.status || 'active', deletedAt: user.deleted_at || null, isDemo: user.is_demo || false, createdAt: user.created_at }; }
-function getSmtpSettings(raw) { const settings = raw && typeof raw === 'object' ? raw : {}; return { host: settings.host || process.env.SMTP_HOST, port: Number(settings.port || process.env.SMTP_PORT || 587), secure: Boolean(settings.secure ?? (String(process.env.SMTP_SECURE).toLowerCase() === 'true')), user: settings.user || process.env.SMTP_USER, pass: settings.pass || process.env.SMTP_PASS, from: settings.from || process.env.SMTP_FROM || settings.user || process.env.SMTP_USER }; }
-async function sendWelcomeEmail(supabase, user) { const { data, error } = await supabase.from('app_smtp_config').select('settings_json').limit(1).maybeSingle(); if (error) { console.warn('[Auth Register SMTP]', error.message); return; } const smtp = getSmtpSettings(data?.settings_json); if (!smtp.host || !smtp.user || !smtp.pass || !smtp.from || !user.email) return; try { const transporter = nodemailer.createTransport({ host: smtp.host, port: smtp.port, secure: smtp.secure, auth: { user: smtp.user, pass: smtp.pass } }); await transporter.sendMail({ from: smtp.from, to: user.email, subject: 'Selamat datang di Pusat Jual Beli Solo Raya', text: `Halo ${user.name || 'Penjual'}, akun Anda berhasil dibuat. Selamat mulai berjualan di Pusat Jual Beli Solo Raya.`, html: `<p>Halo ${user.name || 'Penjual'},</p><p>Akun Anda berhasil dibuat. Selamat mulai berjualan di Pusat Jual Beli Solo Raya.</p>` }); } catch (error) { console.warn('[Auth Register SMTP]', error.message); } }
+function getSmtpSettings() { const host = normalize(process.env.SMTP_HOST); const port = Number(process.env.SMTP_PORT || 587); const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465; const user = normalize(process.env.SMTP_USER); const pass = String(process.env.SMTP_PASS || '').replace(/\s+/g, ''); const fromName = normalize(process.env.SMTP_FROM_NAME || 'Pusat Jual Beli Solo Raya'); const fromEmail = normalize(process.env.SMTP_FROM || user); if (!host || !Number.isInteger(port) || port < 1 || port > 65535 || !user || !pass || !fromEmail) return null; return { host, port, secure, user, pass, fromName, fromEmail }; }
+async function sendWelcomeEmail(user) { const smtp = getSmtpSettings(); if (!smtp || !user.email) return; try { const transporter = nodemailer.createTransport({ host: smtp.host, port: smtp.port, secure: smtp.secure, auth: { user: smtp.user, pass: smtp.pass }, connectionTimeout: 15000 }); await transporter.sendMail({ from: `"${smtp.fromName}" <${smtp.fromEmail}>`, to: user.email, subject: 'Selamat datang di Pusat Jual Beli Solo Raya', text: `Halo ${user.name || 'Penjual'}, akun Anda berhasil dibuat. Selamat mulai berjualan di Pusat Jual Beli Solo Raya.`, html: `<p>Halo ${user.name || 'Penjual'},</p><p>Akun Anda berhasil dibuat. Selamat mulai berjualan di Pusat Jual Beli Solo Raya.</p>` }); } catch (error) { console.warn('[Auth Register SMTP]', error.message); } }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*'); res.setHeader('Access-Control-Allow-Methods', 'OPTIONS,POST'); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
-  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   const supabase = getAdminClient();
   if (!supabase) return res.status(503).json({ success: false, error: 'Authentication service is not configured on the server.' });
@@ -49,7 +47,7 @@ export default async function handler(req, res) {
       const { data: created, error } = await supabase.from('users').insert(user).select('id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at').single();
       if (error) throw error; data = created;
     }
-    await sendWelcomeEmail(supabase, data);
+    await sendWelcomeEmail(data);
     const sessionToken = signUserSession(data);
     if (!sessionToken) return res.status(503).json({ success: false, error: 'User session service is not configured on the server.' });
     res.setHeader('Set-Cookie', userSessionCookie(sessionToken));
