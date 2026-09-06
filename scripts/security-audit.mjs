@@ -13,7 +13,9 @@ const forbiddenPatterns = [
   { name: 'legacy users endpoint reference', re: /\/api\/users(?:\.js)?\b/g },
   { name: 'hardcoded SMTP password assignment', re: /(?:SMTP_PASS|smtpConfig\.pass)\s*[:=]\s*['"][^'"]+['"]/g },
   { name: 'client SMTP password persistence', re: /localStorage\.(?:setItem|getItem)\([^)]*(?:smtp|password)[^)]*/gi },
-  { name: 'plain credential field in client auth data', re: /\b(?:password|password_hash|otp_code|otp_expires_at)\s*:/g }
+  { name: 'plain credential field in client auth data', re: /\b(?:password|password_hash|otp_code|otp_expires_at)\s*:/g },
+  { name: 'browser-side admin credential object', re: /\bADMIN_CREDENTIALS\s*=\s*\{/g },
+  { name: 'hardcoded admin password assignment', re: /\b(?:adminPassword|ADMIN_PASSWORD|password)\s*[:=]\s*['"][^'"]+['"]/gi }
 ];
 
 function walk(dir) {
