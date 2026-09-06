@@ -62,19 +62,22 @@ function allowRegistration(req, email) {
   return true;
 }
 
-async function userExists(supabase, email, phone, name, storeName) {
-  const checks = [
-    supabase.from('users').select('id').eq('email', email).maybeSingle(),
-    supabase.from('users').select('id').eq('name', name).maybeSingle(),
-    supabase.from('users').select('id').eq('store_name', storeName).maybeSingle()
+const USER_FIELDS = 'id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at,password_hash,password';
+
+async function findExistingUser(supabase, email, phone, name, storeName) {
+  const queries = [
+    supabase.from('users').select(USER_FIELDS).eq('email', email).limit(1),
+    supabase.from('users').select(USER_FIELDS).eq('name', name).limit(1),
+    supabase.from('users').select(USER_FIELDS).eq('store_name', storeName).limit(1)
   ];
-  if (phone) checks.push(supabase.from('users').select('id').eq('phone', phone).maybeSingle());
-  const results = await Promise.all(checks);
+  if (phone) queries.push(supabase.from('users').select(USER_FIELDS).eq('phone', phone).limit(1));
+
+  const results = await Promise.all(queries);
   for (const result of results) {
     if (result.error) throw result.error;
-    if (result.data) return true;
+    if (Array.isArray(result.data) && result.data[0]) return result.data[0];
   }
-  return false;
+  return null;
 }
 
 function publicUser(user) {
@@ -163,33 +166,68 @@ export default async function handler(req, res) {
     if (!region || !district) return res.status(400).json({ success: false, error: 'Kabupaten/Kota dan kecamatan wajib dipilih.' });
     if (!allowRegistration(req, email)) return res.status(429).json({ success: false, error: 'Terlalu banyak percobaan pendaftaran. Silakan coba lagi beberapa menit lagi.' });
 
-    if (await userExists(supabase, email, phone, name, storeName)) {
+    const existing = await findExistingUser(supabase, email, phone, name, storeName);
+    const existingStatus = String(existing?.status || '').toLowerCase();
+    const isDeleted = Boolean(existing?.deleted_at) || existingStatus === 'deleted';
+
+    if (existing && !isDeleted) {
       return res.status(409).json({ success: false, error: 'Email, nomor WhatsApp, nama lengkap, atau nama toko sudah digunakan.' });
     }
 
     const now = new Date().toISOString();
-    const user = {
-      id: `user-${Date.now()}-${crypto.randomInt(1000, 10000)}`,
-      name,
-      store_name: storeName,
-      email,
-      phone,
-      region,
-      district,
-      password_hash: hashPassword(password),
-      password: null,
-      status: 'active',
-      deleted_at: null,
-      is_demo: false,
-      created_at: now,
-      updated_at: now
-    };
+    const passwordHash = hashPassword(password);
+    let data;
 
-    const { data, error } = await supabase.from('users').insert(user).select('id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at').single();
-    if (error) throw error;
+    if (existing && isDeleted) {
+      const { data: restored, error } = await supabase
+        .from('users')
+        .update({
+          name,
+          store_name: storeName,
+          email,
+          phone,
+          region,
+          district,
+          password_hash: passwordHash,
+          password: null,
+          status: 'active',
+          deleted_at: null,
+          updated_at: now
+        })
+        .eq('id', existing.id)
+        .select('id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at')
+        .single();
+      if (error) throw error;
+      data = restored;
+    } else {
+      const user = {
+        id: `user-${Date.now()}-${crypto.randomInt(1000, 10000)}`,
+        name,
+        store_name: storeName,
+        email,
+        phone,
+        region,
+        district,
+        password_hash: passwordHash,
+        password: null,
+        status: 'active',
+        deleted_at: null,
+        is_demo: false,
+        created_at: now,
+        updated_at: now
+      };
+
+      const { data: created, error } = await supabase
+        .from('users')
+        .insert(user)
+        .select('id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at')
+        .single();
+      if (error) throw error;
+      data = created;
+    }
 
     await sendWelcomeEmail(supabase, data);
-    return res.status(201).json({ success: true, user: publicUser(data) });
+    return res.status(existing ? 200 : 201).json({ success: true, user: publicUser(data) });
   } catch (error) {
     console.error('[Auth Register Error]', { name: error.name, message: error.message });
     if (String(error.code || '') === '23505') return res.status(409).json({ success: false, error: 'Data akun sudah digunakan.' });
