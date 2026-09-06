@@ -9,7 +9,7 @@
 
 import crypto from 'node:crypto';
 
-const SESSION_COOKIE = 'solosatset_admin_session';
+export const SESSION_COOKIE = 'solosatset_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
 const MAX_LOGIN_ATTEMPTS = 5;
 const WINDOW_MS = 10 * 60 * 1000;
@@ -29,14 +29,11 @@ function parseCookies(header = '') {
     if (index < 0) continue;
     const key = part.slice(0, index).trim();
     const value = part.slice(index + 1).trim();
-    if (key) cookies[key] = decodeURIComponent(value);
+    if (key) {
+      try { cookies[key] = decodeURIComponent(value); } catch { cookies[key] = value; }
+    }
   }
   return cookies;
-}
-
-function getClientIp(req) {
-  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-  return forwarded || req.socket?.remoteAddress || 'unknown';
 }
 
 function timingSafeEqualText(left, right) {
@@ -77,10 +74,19 @@ function verifyToken(token) {
   }
 }
 
+export function getAdminSessionFromRequest(req) {
+  const cookies = parseCookies(req?.headers?.cookie);
+  return verifyToken(cookies[SESSION_COOKIE]);
+}
+
+export function isAdminRequest(req) {
+  return Boolean(getAdminSessionFromRequest(req));
+}
+
 function parsePasswordHash(value) {
   const parts = String(value || '').split('$');
   if (parts.length !== 4 || parts[0] !== 'scrypt') return null;
-  const [method, saltBase64, keyBase64, params] = parts;
+  const [, saltBase64, keyBase64, params] = parts;
   const [N, r, p] = params.split(',').map(Number);
   if (!saltBase64 || !keyBase64 || !N || !r || !p) return null;
   return {
@@ -153,8 +159,7 @@ export default async function handler(req, res) {
   }
 
   if (action === 'session' && method === 'GET') {
-    const cookies = parseCookies(req.headers.cookie);
-    const session = verifyToken(cookies[SESSION_COOKIE]);
+    const session = getAdminSessionFromRequest(req);
     if (!session) return json(res, 401, { ok: false, authenticated: false });
     return json(res, 200, {
       ok: true,
@@ -171,7 +176,8 @@ export default async function handler(req, res) {
     return json(res, 400, { ok: false, error: 'Unsupported admin authentication action.' });
   }
 
-  const ip = getClientIp(req);
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const ip = forwarded || req.socket?.remoteAddress || 'unknown';
   if (isRateLimited(ip)) {
     return json(res, 429, { ok: false, error: 'Terlalu banyak percobaan login. Coba lagi beberapa menit lagi.' });
   }
@@ -186,10 +192,8 @@ export default async function handler(req, res) {
 
   const username = String(body.username || '').trim();
   const password = String(body.password || '');
-
   const valid = username.length > 0 && password.length > 0 &&
-    timingSafeEqualText(username, process.env.ADMIN_USERNAME) &&
-    verifyPassword(password);
+    timingSafeEqualText(username, process.env.ADMIN_USERNAME) && verifyPassword(password);
 
   if (!valid) {
     recordFailedAttempt(ip);
