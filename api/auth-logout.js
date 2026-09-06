@@ -8,8 +8,6 @@ export default function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
 
-  return res.status(200).json(
-    { success: true },
-    { 'Set-Cookie': clearUserSessionCookie() }
-  );
+  res.setHeader('Set-Cookie', clearUserSessionCookie());
+  return res.status(200).json({ success: true });
 }
