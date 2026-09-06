@@ -1,8 +1,6 @@
 /**
  * Admin authentication bridge.
- *
- * Keeps the legacy admin dashboard UI intact while moving credential
- * verification to the server. The browser never receives the password hash.
+ * Credential verification and session authority remain server-side.
  */
 
 const ADMIN_AUTH_KEY = 'pusat_barkas_admin_auth';
@@ -61,55 +59,4 @@ window.__solosatsetAdminAuth = Object.freeze({
   login: loginAdmin,
   logout: logoutAdmin,
   authKey: ADMIN_AUTH_KEY
-});
-
-window.addEventListener('DOMContentLoaded', async () => {
-  const loginView = document.getElementById('admin-login-view');
-  const dashboardView = document.getElementById('admin-dashboard-view');
-  const loginForm = document.getElementById('form-admin-login');
-  const logoutButton = document.getElementById('btn-admin-logout');
-
-  const session = await getAdminSession();
-  if (!session) {
-    sessionStorage.removeItem(ADMIN_AUTH_KEY);
-    if (dashboardView) dashboardView.classList.add('hidden');
-    if (loginView) loginView.classList.remove('hidden');
-  } else {
-    sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
-  }
-
-  loginForm?.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    const username = document.getElementById('admin-username')?.value?.trim() || '';
-    const password = document.getElementById('admin-password')?.value || '';
-    const submit = loginForm.querySelector('button[type="submit"]');
-    const original = submit?.innerHTML;
-
-    if (submit) {
-      submit.disabled = true;
-      submit.innerHTML = '<span>Memverifikasi...</span>';
-    }
-
-    try {
-      await loginAdmin(username, password);
-      loginForm.reset();
-      if (loginView) loginView.classList.add('hidden');
-      if (dashboardView) dashboardView.classList.remove('hidden');
-      window.dispatchEvent(new CustomEvent('adminAuthenticated'));
-    } catch (error) {
-      const alert = document.getElementById('login-error-alert');
-      const message = document.getElementById('login-error-msg');
-      if (alert) alert.classList.remove('hidden');
-      if (message) message.textContent = error.message || 'Username atau Password salah.';
-    } finally {
-      if (submit) {
-        submit.disabled = false;
-        submit.innerHTML = original || '<span>Masuk ke Panel Admin</span>';
-      }
-    }
-  }, true);
-
-  logoutButton?.addEventListener('click', () => {
-    void logoutAdmin();
-  }, true);
 });
