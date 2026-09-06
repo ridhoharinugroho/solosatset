@@ -1,28 +1,35 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-export const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BOMPQQn3bQc9vJt68WlanKbCfTpN-N2HLoTkB34G0348Cqoh1P1SD5wt4aK40fBG090yDkkAoCVBICK0IigZ07Y';
+function getAdminClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Server push storage is not configured.');
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
 
 /**
  * Serverless Push Subscription Handler
- * Saves & manages W3C Web Push subscriptions in Supabase
+ * Saves & manages W3C Web Push subscriptions in Supabase.
+ * Credentials are server-only; there are no embedded credential fallbacks.
  */
 export default async function handler(req, res) {
-  // CORS Configuration
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(204).end();
 
   if (req.method === 'GET') {
+    if (!VAPID_PUBLIC_KEY) {
+      return res.status(503).json({ success: false, error: 'Push service is not configured.' });
+    }
     return res.status(200).json({
       service: 'Pusat Jual Beli Solo Raya - Web Push Subscription Engine',
       vapidPublicKey: VAPID_PUBLIC_KEY,
@@ -35,94 +42,75 @@ export default async function handler(req, res) {
   }
 
   try {
+    const supabase = getAdminClient();
     let body = req.body;
     if (typeof body === 'string') {
       try {
         body = JSON.parse(body);
-      } catch (e) {
-        body = {};
+      } catch {
+        return res.status(400).json({ success: false, error: 'Invalid JSON body.' });
       }
     }
 
     const { action = 'subscribe', subscription, userId, userEmail } = body || {};
-
-    if (!subscription || !subscription.endpoint) {
+    if (!subscription || typeof subscription.endpoint !== 'string' || !subscription.endpoint.trim()) {
       return res.status(400).json({ success: false, error: 'Subscription data with endpoint is required.' });
     }
 
-    const endpoint = subscription.endpoint;
-    const p256dh = subscription.keys?.p256dh || '';
-    const auth = subscription.keys?.auth || '';
-    const userAgent = req.headers['user-agent'] || 'unknown';
+    const endpoint = subscription.endpoint.trim();
+    const p256dh = typeof subscription.keys?.p256dh === 'string' ? subscription.keys.p256dh.trim() : '';
+    const auth = typeof subscription.keys?.auth === 'string' ? subscription.keys.auth.trim() : '';
+    const safeUserId = userId == null ? null : String(userId).trim().slice(0, 128) || null;
+    const safeUserEmail = userEmail == null ? null : String(userEmail).trim().toLowerCase().slice(0, 320) || null;
+    const userAgent = String(req.headers['user-agent'] || 'unknown').slice(0, 500);
 
     if (action === 'unsubscribe') {
-      // 1. Remove from push_subscriptions table
-      try {
-        await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint);
-      } catch (e) {}
-
-      // 2. Remove from site_settings fallback
-      try {
-        const { data } = await supabase.from('site_settings').select('settings').eq('id', 'global').maybeSingle();
-        const settings = (data && data.settings) || {};
-        if (settings.push_subscriptions && settings.push_subscriptions[endpoint]) {
-          delete settings.push_subscriptions[endpoint];
-          await supabase.from('site_settings').upsert([{ id: 'global', settings, updated_at: new Date().toISOString() }], { onConflict: 'id' });
-        }
-      } catch (e) {}
-
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .delete()
+        .eq('endpoint', endpoint);
+      if (error) {
+        console.error('[Push Subscribe] Unsubscribe error:', error.message);
+        return res.status(500).json({ success: false, error: 'Unable to unsubscribe device.' });
+      }
       return res.status(200).json({ success: true, message: 'Unsubscribed successfully.' });
     }
 
-    // ACTION: SUBSCRIBE
-    if (!p256dh || !auth) {
-      return res.status(400).json({ success: false, error: 'Invalid subscription keys (p256dh and auth are required).' });
+    if (action !== 'subscribe') {
+      return res.status(400).json({ success: false, error: 'Unsupported subscription action.' });
     }
 
-    const subRecord = {
-      endpoint,
-      p256dh,
-      auth,
-      user_id: userId || null,
-      user_email: userEmail || null,
-      user_agent: userAgent,
-      updated_at: new Date().toISOString()
-    };
+    if (!p256dh || !auth) {
+      return res.status(400).json({ success: false, error: 'Invalid subscription keys.' });
+    }
 
-    // 1. Try to save into push_subscriptions table
-    let savedToTable = false;
-    try {
-      const { error: upsertErr } = await supabase
-        .from('push_subscriptions')
-        .upsert([subRecord], { onConflict: 'endpoint' });
+    const { error } = await supabase
+      .from('push_subscriptions')
+      .upsert([{
+        endpoint,
+        p256dh,
+        auth,
+        user_id: safeUserId,
+        user_email: safeUserEmail,
+        user_agent: userAgent,
+        updated_at: new Date().toISOString()
+      }], { onConflict: 'endpoint' });
 
-      if (!upsertErr) savedToTable = true;
-    } catch (e) {}
-
-    // 2. Save into site_settings cloud storage fallback
-    try {
-      const { data } = await supabase.from('site_settings').select('settings').eq('id', 'global').maybeSingle();
-      const settings = (data && data.settings) || {};
-      if (!settings.push_subscriptions) settings.push_subscriptions = {};
-      settings.push_subscriptions[endpoint] = {
-        ...subRecord,
-        created_at: settings.push_subscriptions[endpoint]?.created_at || new Date().toISOString()
-      };
-
-      await supabase
-        .from('site_settings')
-        .upsert([{ id: 'global', settings, updated_at: new Date().toISOString() }], { onConflict: 'id' });
-    } catch (e) {
-      console.warn('[Push Subscribe] site_settings sync notice:', e);
+    if (error) {
+      console.error('[Push Subscribe] Subscription save error:', error.message);
+      return res.status(500).json({ success: false, error: 'Unable to save push subscription.' });
     }
 
     return res.status(200).json({
       success: true,
       message: 'Perangkat Anda berhasil terdaftar untuk menerima Notifikasi Web Push SoloSatSet.',
-      savedToTable
+      savedToTable: true
     });
   } catch (error) {
     console.error('[Push Subscribe Handler Error]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    if (error?.message === 'Server push storage is not configured.') {
+      return res.status(503).json({ success: false, error: 'Push service is not configured.' });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 }
