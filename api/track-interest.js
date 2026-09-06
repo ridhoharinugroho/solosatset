@@ -1,84 +1,93 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function getAdminClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Interest service is not configured.');
+  }
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
 
 /**
- * Serverless User Interest Tracking & Upsert Endpoint
+ * Serverless User Interest Tracking Endpoint
+ * Uses server-only Supabase service credentials.
+ * NOTE: user authorization must be supplied by a trusted server session/token before production use.
  */
 export default async function handler(req, res) {
-  // CORS Configuration
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
+  if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, error: 'Method Not Allowed' });
   }
 
   try {
+    const supabase = getAdminClient();
+
     let body = req.body;
     if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({ success: false, error: 'Invalid JSON body.' });
+      }
     }
 
-    const { userId, categoryId, scoreIncrement = 1 } = body || {};
-    if (!userId || !categoryId || categoryId === 'all') {
+    const { userId, categoryId } = body || {};
+    const cleanUserId = userId == null ? '' : String(userId).trim().slice(0, 128);
+    const cleanCatId = categoryId == null ? '' : String(categoryId).trim().toLowerCase().slice(0, 128);
+
+    if (!cleanUserId || !cleanCatId || cleanCatId === 'all') {
       return res.status(400).json({ success: false, error: 'Missing userId or categoryId' });
     }
 
-    const cleanCatId = String(categoryId).toLowerCase().trim();
+    // Authorization is intentionally not guessed here: the current app uses a client-managed
+    // custom session rather than a server-verifiable auth token. Keep this endpoint isolated
+    // from client credentials until a trusted session mechanism is introduced.
+    const { data: uData, error: uErr } = await supabase
+      .from('users')
+      .select('interests')
+      .eq('id', cleanUserId)
+      .maybeSingle();
 
-    // 1. Ambil array interests pengguna saat ini dari tabel users
-    let uInterests = [];
-    try {
-      const { data: uData, error: uErr } = await supabase
-        .from('users')
-        .select('interests')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (uErr) {
-        console.warn('[Serverless Track Interest] users select warning:', uErr.message);
-      }
-      uInterests = Array.isArray(uData?.interests) ? [...uData.interests] : [];
-    } catch (e) {}
-
-    // 2. Hapus kategori lama jika ada dan push ke urutan paling baru
-    uInterests = uInterests.filter(c => String(c).toLowerCase().trim() !== cleanCatId);
-    uInterests.push(cleanCatId);
-
-    // 3. Batasi maksimal 3 item (geser item terlama jika > 3)
-    while (uInterests.length > 3) {
-      uInterests.shift();
+    if (uErr) {
+      console.error('[Serverless Track Interest] users select error:', uErr.message);
+      return res.status(500).json({ success: false, error: 'Unable to load user interests.' });
     }
 
-    // 4. Simpan kembali ke kolom interests pada tabel users
+    let interests = Array.isArray(uData?.interests) ? [...uData.interests] : [];
+    interests = interests.filter((value) => String(value).toLowerCase().trim() !== cleanCatId);
+    interests.push(cleanCatId);
+    while (interests.length > 3) interests.shift();
+
     const { error: updError } = await supabase
       .from('users')
-      .update({ interests: uInterests })
-      .eq('id', userId);
+      .update({ interests })
+      .eq('id', cleanUserId);
 
     if (updError) {
-      console.error('[Serverless Track Interest] Update error:', updError.message);
-      return res.status(200).json({ success: false, error: updError.message });
+      console.error('[Serverless Track Interest] update error:', updError.message);
+      return res.status(500).json({ success: false, error: 'Unable to save user interests.' });
     }
 
     return res.status(200).json({
       success: true,
-      userId,
+      userId: cleanUserId,
       categoryId: cleanCatId,
-      interests: uInterests
+      interests
     });
   } catch (error) {
     console.error('[Serverless Track Interest Error]', error);
-    return res.status(200).json({ success: false, error: error.message });
+    if (error?.message === 'Interest service is not configured.') {
+      return res.status(503).json({ success: false, error: 'Interest service is not configured.' });
+    }
+    return res.status(500).json({ success: false, error: 'Internal server error.' });
   }
 }
