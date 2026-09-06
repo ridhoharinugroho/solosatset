@@ -23,7 +23,9 @@ function normalizeEmail(value) {
 }
 
 function normalizePhone(value) {
-  return String(value || '').replace(/\D/g, '');
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.startsWith('62')) return `0${digits.slice(2)}`;
+  return digits;
 }
 
 function constantTimeStringEqual(a, b) {
@@ -90,41 +92,33 @@ function allowLogin(req, identifier) {
   return true;
 }
 
+const USER_FIELDS = 'id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at,password_hash,password';
+
 async function findUser(supabase, identifier) {
   const clean = normalizeIdentifier(identifier);
-  const lower = clean.toLowerCase();
-  const digits = normalizePhone(clean);
+  const email = normalizeEmail(clean);
+  const phone = normalizePhone(clean);
+  const candidates = [];
 
-  const queries = [
-    supabase.from('users').select('*').eq('email', normalizeEmail(clean)).maybeSingle(),
-    supabase.from('users').select('*').eq('name', clean).maybeSingle(),
-    supabase.from('users').select('*').eq('store_name', clean).maybeSingle()
+  const exactQueries = [
+    supabase.from('users').select(USER_FIELDS).eq('email', email).limit(1),
+    supabase.from('users').select(USER_FIELDS).eq('name', clean).limit(1),
+    supabase.from('users').select(USER_FIELDS).eq('store_name', clean).limit(1)
   ];
 
-  if (digits.length >= 7) {
-    queries.push(supabase.from('users').select('*').eq('phone', clean).maybeSingle());
-    queries.push(supabase.from('users').select('*').eq('phone', digits).maybeSingle());
+  if (phone.length >= 7) {
+    exactQueries.push(supabase.from('users').select(USER_FIELDS).eq('phone', clean).limit(1));
+    exactQueries.push(supabase.from('users').select(USER_FIELDS).eq('phone', phone).limit(1));
   }
 
-  const results = await Promise.all(queries);
+  const results = await Promise.all(exactQueries);
   for (const result of results) {
     if (result.error) throw result.error;
-    if (result.data) return result.data;
+    if (Array.isArray(result.data) && result.data[0]) candidates.push(result.data[0]);
   }
 
-  // Fallback for minor casing/phone formatting differences without exposing the table to the browser.
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .limit(500);
-  if (error) throw error;
-  return (data || []).find((u) => {
-    if (u.email && String(u.email).toLowerCase() === lower) return true;
-    if (u.name && String(u.name).toLowerCase() === lower) return true;
-    if (u.store_name && String(u.store_name).toLowerCase() === lower) return true;
-    if (digits.length >= 7 && u.phone && normalizePhone(u.phone) === digits) return true;
-    return false;
-  }) || null;
+  if (candidates.length === 0) return null;
+  return candidates.find((user) => !user.deleted_at && String(user.status || 'active').toLowerCase() !== 'deleted') || candidates[0];
 }
 
 function publicUser(user) {
@@ -180,7 +174,6 @@ export default async function handler(req, res) {
     if (user.password_hash) {
       valid = verifyPassword(password, user.password_hash);
     } else if (user.password) {
-      // Compatibility migration: verify legacy credential only on the server, then upgrade it.
       valid = constantTimeStringEqual(user.password, password);
       needsLegacyMigration = valid;
     }
@@ -195,7 +188,6 @@ export default async function handler(req, res) {
         .eq('id', user.id);
       if (upgradeError) {
         console.error('[Auth Migration]', upgradeError.message);
-        // Do not block an otherwise valid legacy login during the compatibility window.
       }
     }
 
