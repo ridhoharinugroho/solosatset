@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer';
-import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const SMTP_SECURE = String(process.env.SMTP_SECURE ?? (SMTP_PORT === 465)).toLowerCase() === 'true';
@@ -10,16 +7,9 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'Pusat Jual Beli Solo Raya';
-const MAX_REQUESTS = 5;
+const MAX_REQUESTS = 3;
 const WINDOW_MS = 10 * 60 * 1000;
 const rateLimiter = new Map();
-
-function getAdminClient() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
-}
 
 function clientIp(req) {
   const forwarded = req.headers?.['x-forwarded-for'];
@@ -39,10 +29,6 @@ function allowRequest(req) {
 function normalizeEmail(value) {
   const email = String(value || '').trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && email.length <= 254 ? email : '';
-}
-
-function plainText(value, max = 20000) {
-  return typeof value === 'string' ? value.slice(0, max) : '';
 }
 
 function buildTransporter() {
@@ -76,49 +62,29 @@ export default async function handler(req, res) {
 
     const action = String(body?.type || body?.action || '').trim().toLowerCase();
     const to = normalizeEmail(body?.to);
-    const subject = plainText(body?.subject, 300);
-    const html = plainText(body?.html, 50000);
-    const text = plainText(body?.text, 20000);
+    const subject = String(body?.subject || '').slice(0, 300);
+    const html = typeof body?.html === 'string' ? body.html.slice(0, 50000) : '';
+    const text = typeof body?.text === 'string' ? body.text.slice(0, 20000) : '';
 
-    // SMTP configuration from the request body is deliberately ignored.
-    // Credentials are server-only environment variables.
+    // Generic/legacy mail dispatch is intentionally disabled. Registration and password-reset
+    // mail are sent from their dedicated server endpoints. This route is kept only for SMTP tests.
+    if (action !== 'test_smtp') {
+      return res.status(403).json({ success: false, error: 'Jenis pengiriman email tidak diizinkan.' });
+    }
+
     if (!to || (!html && !text)) {
       return res.status(400).json({ success: false, error: 'Penerima email dan isi pesan wajib diisi.' });
     }
 
-    const supportedTypes = new Set(['registration_welcome', 'password_reset', 'test_smtp']);
-    if (!supportedTypes.has(action)) {
-      return res.status(403).json({ success: false, error: 'Jenis pengiriman email tidak diizinkan.' });
-    }
-
-    // Legacy compatibility path only. New auth flows send through their own server endpoints.
-    // Validate recipient against an existing active account for auth-related messages.
-    if (action === 'registration_welcome' || action === 'password_reset') {
-      const supabase = getAdminClient();
-      if (!supabase) return res.status(503).json({ success: false, error: 'Layanan email belum terhubung ke database server.' });
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('id,email,status,deleted_at')
-        .eq('email', to)
-        .maybeSingle();
-      if (error) return res.status(500).json({ success: false, error: 'Validasi penerima email gagal.' });
-      if (!user || String(user.status || 'active').toLowerCase() === 'deleted' || user.deleted_at) {
-        return res.status(404).json({ success: false, error: 'Akun penerima tidak ditemukan atau tidak aktif.' });
-      }
-    }
-
-    // Test messages may only be sent to the configured mailbox to prevent abuse of the legacy route.
-    if (action === 'test_smtp') {
-      const configuredRecipient = normalizeEmail(SMTP_USER);
-      if (!configuredRecipient || to !== configuredRecipient) {
-        return res.status(403).json({ success: false, error: 'Email uji hanya dapat dikirim ke mailbox SMTP yang dikonfigurasi di server.' });
-      }
+    const configuredRecipient = normalizeEmail(SMTP_USER);
+    if (!configuredRecipient || to !== configuredRecipient) {
+      return res.status(403).json({ success: false, error: 'Email uji hanya dapat dikirim ke mailbox SMTP yang dikonfigurasi di server.' });
     }
 
     const info = await transporter.sendMail({
       from: `"${SMTP_FROM_NAME}" <${SMTP_FROM}>`,
       to,
-      subject: subject || 'Pemberitahuan Akun - Pusat Jual Beli Solo Raya',
+      subject: subject || 'Uji Coba SMTP - Pusat Jual Beli Solo Raya',
       text: text || html.replace(/<[^>]*>/g, ' '),
       html: html || undefined
     });
@@ -126,7 +92,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       messageId: info.messageId,
-      message: 'Email berhasil dikirim melalui server.'
+      message: 'Email uji berhasil dikirim melalui server.'
     });
   } catch (error) {
     const authError = error?.code === 'EAUTH' || error?.responseCode === 535;
