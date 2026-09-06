@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { isAdminRequest } from './admin-auth.js';
 
 const SMTP_HOST = process.env.SMTP_HOST;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  if (!isAdminRequest(req)) return res.status(401).json({ success: false, error: 'Admin authentication required.' });
   if (!allowRequest(req)) return res.status(429).json({ success: false, error: 'Terlalu banyak permintaan email. Silakan coba lagi nanti.' });
 
   const transporter = buildTransporter();
@@ -66,12 +68,9 @@ export default async function handler(req, res) {
     const html = typeof body?.html === 'string' ? body.html.slice(0, 50000) : '';
     const text = typeof body?.text === 'string' ? body.text.slice(0, 20000) : '';
 
-    // Generic/legacy mail dispatch is intentionally disabled. Registration and password-reset
-    // mail are sent from their dedicated server endpoints. This route is kept only for SMTP tests.
     if (action !== 'test_smtp') {
       return res.status(403).json({ success: false, error: 'Jenis pengiriman email tidak diizinkan.' });
     }
-
     if (!to || (!html && !text)) {
       return res.status(400).json({ success: false, error: 'Penerima email dan isi pesan wajib diisi.' });
     }
@@ -102,7 +101,6 @@ export default async function handler(req, res) {
       responseCode: error?.responseCode,
       message: error?.message
     });
-
     return res.status(500).json({
       success: false,
       code: authError ? 'EAUTH' : 'SMTP_ERROR',
