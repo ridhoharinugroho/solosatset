@@ -134,10 +134,6 @@ export function getRegisteredUsers() {
   return inMemoryRegisteredUsers;
 }
 
-/**
- * Legacy compatibility facade. Authentication data is now server-authoritative;
- * this helper only refreshes the in-memory profile cache and never writes credentials.
- */
 export async function syncRegisteredUsersToSupabase(users) {
   if (Array.isArray(users)) inMemoryRegisteredUsers = users.map(stripCredentialFields);
   return inMemoryRegisteredUsers;
@@ -162,7 +158,6 @@ export async function syncUsersFromCloud() {
 }
 
 export async function cleanupAndDeduplicateUsers() {
-  // Intentionally disabled on the client. Destructive reconciliation belongs on an authenticated admin/server job.
   return;
 }
 
@@ -313,7 +308,6 @@ export async function registerUser({ name, storeName, phone, email, region, dist
 }
 
 export async function deactivateUser(userIdOrEmail) {
-  // Account deletion still requires an authenticated, server-side account management endpoint.
   if (!userIdOrEmail) throw new Error('Pengguna tidak ditemukan.');
   throw new Error('Fitur penonaktifan akun harus diproses melalui endpoint akun terautentikasi.');
 }
@@ -436,6 +430,16 @@ export async function removeUserAvatar(userId) {
 }
 
 export async function logout() {
+  try {
+    await fetch('/api/auth-logout', {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+      keepalive: true
+    });
+  } catch (error) {
+    console.warn('[Auth Logout] Server session cleanup failed:', error);
+  }
+
   inMemoryActiveUser = null;
   try {
     localStorage.setItem('solosatset_logged_out', 'true');
