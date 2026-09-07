@@ -11,6 +11,12 @@ function getConfig() {
   return { username, password, secret };
 }
 
+function safeEqual(left, right) {
+  const a = Buffer.from(String(left));
+  const b = Buffer.from(String(right));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
 function sign(payload, secret) {
   const encoded = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const signature = crypto.createHmac('sha256', secret).update(encoded).digest('base64url');
@@ -21,9 +27,7 @@ function verify(token, secret) {
   if (!token || !token.includes('.')) return null;
   const [encoded, signature] = token.split('.');
   const expected = crypto.createHmac('sha256', secret).update(encoded).digest('base64url');
-  const a = Buffer.from(signature);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  if (!safeEqual(signature, expected)) return null;
   try {
     const payload = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
     if (!payload?.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
@@ -82,15 +86,11 @@ export default async function handler(req, res) {
 
   const username = String(body.username || '').trim();
   const password = String(body.password || '');
-  const validUser = crypto.timingSafeEqual(Buffer.from(username), Buffer.from(config.username));
-  const validPassword = crypto.timingSafeEqual(Buffer.from(password), Buffer.from(config.password));
-  if (!validUser || !validPassword) return json(res, 401, { authenticated: false, error: 'Invalid credentials.' });
+  if (!safeEqual(username, config.username) || !safeEqual(password, config.password)) {
+    return json(res, 401, { authenticated: false, error: 'Invalid credentials.' });
+  }
 
-  const payload = {
-    username: config.username,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
-  };
-  const token = sign(payload, config.secret);
+  const now = Math.floor(Date.now() / 1000);
+  const token = sign({ username: config.username, iat: now, exp: now + MAX_AGE_SECONDS }, config.secret);
   return json(res, 200, { authenticated: true, username: config.username }, { 'Set-Cookie': cookieHeader(token, MAX_AGE_SECONDS) });
 }
