@@ -1761,32 +1761,32 @@ function renderListings() {
             </div>
 
             <!-- Content Section (New Ordered Sequence) -->
-            <div class="p-3 sm:p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+            <div class="p-2.5 sm:p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
 
-              <div class="space-y-1.5">
+              <div class="space-y-1">
                 <!-- 1. BARIS HARGA (Hanya Nominal Harga Saja) -->
                 <div>
-                  <span class="text-sm sm:text-base md:text-[17px] font-black text-rose-900 leading-tight tracking-tight">${priceFormatted}</span>
+                  <span class="text-xs min-[360px]:text-sm sm:text-base md:text-[17px] font-black text-rose-900 leading-tight tracking-tight">${priceFormatted}</span>
                 </div>
 
                 <!-- 2. STATUS TIPE HARGA & METODE PEMBAYARAN & BADGE BU (Di Baris Bawah Harga) -->
-                <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <div class="flex items-center gap-1 flex-wrap pt-0.5">
                   ${isItemBu ? `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
                       <span>🔥 BU</span>
                     </span>
                   ` : ''}
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
                     ${item.negoType === 'pas' ? 'Nett' : 'Nego'}
                   </span>
 
                   ${paymentType === 'cod' ? `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs">
                       <i data-lucide="handshake" class="w-3 h-3 text-emerald-600"></i>
                       <span>COD</span>
                     </span>
                   ` : `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200/90 shadow-2xs">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-sky-50 text-sky-800 border border-sky-200/90 shadow-2xs">
                       <i data-lucide="store" class="w-3 h-3 text-sky-600"></i>
                       <span>In Store</span>
                     </span>
@@ -1794,31 +1794,31 @@ function renderListings() {
                 </div>
 
                 <!-- 3. JUDUL PRODUK -->
-                <h3 class="text-xs sm:text-[13px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-snug pt-0.5" title="${item.title}">
+                <h3 class="text-[11px] min-[360px]:text-xs sm:text-[13px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-snug pt-0.5" title="${item.title}">
                   ${item.title}
                 </h3>
               </div>
 
               <!-- 4. NAMA PENJUAL & KETERANGAN WAKTU + TOMBOL AKSI -->
-              <div class="pt-2 border-t border-slate-100/90 space-y-2">
-                <div class="flex items-center justify-between text-[10.5px] sm:text-xs text-slate-500 gap-1.5">
+              <div class="pt-1.5 border-t border-slate-100/90 space-y-1.5">
+                <div class="flex items-center justify-between text-[9.5px] min-[360px]:text-[10px] sm:text-xs text-slate-500 gap-1">
                   ${(() => {
             const isVer = isSellerVerified(item.seller?.id || item.seller);
             return `
-                      <div class="flex items-center gap-1.5 truncate min-w-0" title="${isVer ? 'Penjual Terverifikasi: ' : 'Penjual: '}${sellerName}">
-                        <i data-lucide="${isVer ? 'shield-check' : 'user'}" class="w-3.5 h-3.5 ${isVer ? 'text-emerald-600' : 'text-slate-400'} flex-shrink-0"></i>
+                      <div class="flex items-center gap-1 truncate min-w-0" title="${isVer ? 'Penjual Terverifikasi: ' : 'Penjual: '}${sellerName}">
+                        <i data-lucide="${isVer ? 'shield-check' : 'user'}" class="w-3 h-3 ${isVer ? 'text-emerald-600' : 'text-slate-400'} flex-shrink-0"></i>
                         <span class="${isVer ? 'font-bold text-slate-800' : 'font-semibold text-slate-700'} truncate">${sellerName}</span>
                       </div>
                     `;
           })()}
-                  <span class="text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
+                  <span class="text-[9px] min-[360px]:text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
                 </div>
 
-                <div class="flex items-center gap-1.5 pt-0.5">
+                <div class="flex items-center gap-1 pt-0.5">
                   ${(item.isSold || item.status === 'sold') ? `
                     <button
                       disabled
-                      class="flex-1 flex items-center justify-center gap-1 bg-slate-200 text-slate-500 font-bold py-1.5 px-2 rounded-xl text-[10.5px] sm:text-xs cursor-not-allowed opacity-80"
+                      class="flex-1 flex items-center justify-center gap-1 bg-slate-200 text-slate-500 font-bold py-1 px-1.5 rounded-xl text-[9.5px] min-[360px]:text-[10.5px] sm:text-xs cursor-not-allowed opacity-80"
                     >
                       <span>Terjual</span>
                     </button>
@@ -1828,10 +1828,10 @@ function renderListings() {
                       target="_blank"
                       rel="noopener noreferrer"
                       data-action="whatsapp"
-                      class="flex-1 flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold py-1.5 px-2 rounded-xl text-[10.5px] sm:text-xs transition-colors shadow-2xs"
+                      class="flex-1 flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold py-1 px-1.5 rounded-xl text-[9.5px] min-[360px]:text-[10.5px] sm:text-xs transition-colors shadow-2xs"
                       title="Chat Penjual via WhatsApp"
                     >
-                      <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                      <i data-lucide="message-circle" class="w-3 h-3"></i>
                       <span>${chatWaText}</span>
                     </a>
                   `}
@@ -1839,10 +1839,10 @@ function renderListings() {
                   <button
                     data-action="view-detail"
                     data-id="${item.id}"
-                    class="p-1.5 sm:p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+                    class="p-1 sm:p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
                     title="Lihat Detail"
                   >
-                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="eye" class="w-3 h-3"></i>
                   </button>
                 </div>
 
