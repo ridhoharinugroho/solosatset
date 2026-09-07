@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+const STRICT = process.argv.includes('--strict');
 const SCAN_PATHS = ['index.html', 'admin.html', 'js', 'api', 'scripts'];
 const SKIP = new Set(['node_modules', '.git', '.vercel']);
 
@@ -63,6 +64,7 @@ for (const file of files) {
 }
 
 console.log('=== solosatset security pattern audit ===');
+console.log(`Mode: ${STRICT ? 'strict' : 'informational'}`);
 console.log(`Files scanned: ${files.length}`);
 console.log(`Findings: ${findings.length}`);
 
@@ -70,5 +72,6 @@ for (const finding of findings) {
   console.warn(`[${finding.id}] ${finding.file}:${finding.line} — ${finding.description}`);
 }
 
-// Informational-only by design. This audit must never alter or block application runtime.
-process.exitCode = 0;
+// Default mode is informational so the existing application remains non-blocking.
+// Strict mode is opt-in for CI/release gates after findings have been remediated or approved.
+process.exitCode = STRICT && findings.length > 0 ? 1 : 0;
