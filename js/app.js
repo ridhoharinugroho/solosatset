@@ -1711,12 +1711,12 @@ function renderListings() {
             </div>
 
             <!-- Content Section (New Ordered Sequence) -->
-            <div class="p-2 sm:p-2.5 space-y-1 flex-1 flex flex-col justify-between">
+            <div class="p-1 sm:p-1.5 space-y-0.5 flex-1 flex flex-col justify-between">
 
               <div class="space-y-0.5">
                 <!-- 1. BARIS HARGA (Hanya Nominal Harga Saja) -->
                 <div>
-                  <span class="text-[11px] min-[360px]:text-xs sm:text-sm md:text-base font-black text-rose-900 leading-none tracking-tight">${priceFormatted}</span>
+                  <span class="text-[10px] min-[360px]:text-[11px] sm:text-xs md:text-sm font-black text-rose-900 leading-none tracking-tight">${priceFormatted}</span>
                 </div>
 
                 <!-- 2. STATUS TIPE HARGA & METODE PEMBAYARAN & BADGE BU (Di Baris Bawah Harga) -->
@@ -1744,7 +1744,7 @@ function renderListings() {
                 </div>
 
                 <!-- 3. JUDUL PRODUK -->
-                <h3 class="text-[10px] min-[360px]:text-[11px] sm:text-xs font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-tight pt-0.5" title="${item.title}">
+                <h3 class="text-[9px] min-[360px]:text-[10px] sm:text-[11px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-none pt-0.5" title="${item.title}">
                   ${item.title}
                 </h3>
               </div>
