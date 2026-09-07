@@ -1761,12 +1761,12 @@ function renderListings() {
             </div>
 
             <!-- Content Section (New Ordered Sequence) -->
-            <div class="p-2.5 sm:p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
+            <div class="p-2 sm:p-2.5 space-y-1 flex-1 flex flex-col justify-between">
 
-              <div class="space-y-1">
+              <div class="space-y-0.5">
                 <!-- 1. BARIS HARGA (Hanya Nominal Harga Saja) -->
                 <div>
-                  <span class="text-xs min-[360px]:text-sm sm:text-base md:text-[17px] font-black text-rose-900 leading-tight tracking-tight">${priceFormatted}</span>
+                  <span class="text-[11px] min-[360px]:text-xs sm:text-sm md:text-base font-black text-rose-900 leading-none tracking-tight">${priceFormatted}</span>
                 </div>
 
                 <!-- 2. STATUS TIPE HARGA & METODE PEMBAYARAN & BADGE BU (Di Baris Bawah Harga) -->
@@ -1794,13 +1794,13 @@ function renderListings() {
                 </div>
 
                 <!-- 3. JUDUL PRODUK -->
-                <h3 class="text-[11px] min-[360px]:text-xs sm:text-[13px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-snug pt-0.5" title="${item.title}">
+                <h3 class="text-[10px] min-[360px]:text-[11px] sm:text-xs font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-tight pt-0.5" title="${item.title}">
                   ${item.title}
                 </h3>
               </div>
 
               <!-- 4. NAMA PENJUAL & KETERANGAN WAKTU + TOMBOL AKSI -->
-              <div class="pt-1.5 border-t border-slate-100/90 space-y-1.5">
+              <div class="pt-1 border-t border-slate-100/90 space-y-1">
                 <div class="flex items-center justify-between text-[9.5px] min-[360px]:text-[10px] sm:text-xs text-slate-500 gap-1">
                   ${(() => {
             const isVer = isSellerVerified(item.seller?.id || item.seller);
@@ -1814,7 +1814,7 @@ function renderListings() {
                   <span class="text-[9px] min-[360px]:text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
                 </div>
 
-                <div class="flex items-center gap-1 pt-0.5">
+                <div class="flex items-center gap-1 pt-0">
                   ${(item.isSold || item.status === 'sold') ? `
                     <button
                       disabled
