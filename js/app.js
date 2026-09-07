@@ -1361,9 +1361,35 @@ function initHeroBannerCarousel() {
     refreshIcons();
   });
 
-  // Seamless Infinite Looping on Scroll End / Settlement
+  // Seamless Infinite Looping & Real-time Dots Updating on Scroll
   let scrollTimeout = null;
+  let scrollRaf = null;
+
+  function updateDotsOnScroll() {
+    const currentScroll = carousel.scrollLeft;
+    let closestIdx = 1;
+    let minDiff = Infinity;
+    allSlides.forEach((slide, idx) => {
+      const diff = Math.abs(currentScroll - getSlideOffset(idx));
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+    if (closestIdx !== currentIndex) {
+      currentIndex = closestIdx;
+      updateDots();
+    }
+  }
+
   carousel.addEventListener('scroll', () => {
+    if (!scrollRaf) {
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = null;
+        updateDotsOnScroll();
+      });
+    }
+
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       if (isTransitioning) return;
@@ -1394,7 +1420,7 @@ function initHeroBannerCarousel() {
         scrollToSlide(1, false);
         setTimeout(() => { isTransitioning = false; }, 60);
       }
-    }, 120);
+    }, 60);
   }, { passive: true });
 
   // Smooth Next / Prev functions
