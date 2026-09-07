@@ -1,8 +1,7 @@
 // sync-users.js – temporary script to upsert default users to Supabase
-import supabase from '../js/lib/supabase.js';
+import 'dotenv/config';
+import { createClient } from '@supabase/supabase-js';
 import { DEFAULT_REGISTERED_USERS } from '../js/services/auth.js';
-
-dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
