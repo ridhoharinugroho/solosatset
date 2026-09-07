@@ -1,6 +1,6 @@
 /**
  * Pusat Jual Beli Solo Raya - Admin Panel Controller
- * Protected Admin Panel (Username: ratakanan, Password: 280995)
+ * Protected Admin Panel - credentials verified server-side
  */
 
 import { SOLO_RAYA_REGIONS, getRegionById } from './data/regions.js';
@@ -13,11 +13,6 @@ import {
 import { getSmtpConfig, saveSmtpConfig, sendTestEmail } from './services/emailService.js';
 import { logout } from './services/auth.js';
 import { CURRENT_SW_VERSION } from './utils/runtime.js';
-
-const ADMIN_CREDENTIALS = {
-  username: 'ratakanan',
-  password: '280995'
-};
 
 const ADMIN_AUTH_KEY = 'pusat_barkas_admin_auth';
 
@@ -59,53 +54,65 @@ document.addEventListener('DOMContentLoaded', () => {
 // -------------------------------------------------------------
 // AUTHENTICATION MANAGEMENT
 // -------------------------------------------------------------
-function checkAuth() {
-  const isAuth = sessionStorage.getItem(ADMIN_AUTH_KEY) === 'true';
+async function checkAuth() {
   const loginView = document.getElementById('admin-login-view');
   const dashboardView = document.getElementById('admin-dashboard-view');
-
-  if (isAuth) {
-    loginView.classList.add('hidden');
-    dashboardView.classList.remove('hidden');
-    loadDashboard();
-  } else {
+  try {
+    const response = await fetch('/api/admin-auth', { credentials: 'same-origin', cache: 'no-store' });
+    const result = await response.json();
+    if (result.authenticated) {
+      loginView.classList.add('hidden');
+      dashboardView.classList.remove('hidden');
+      loadDashboard();
+    } else {
+      loginView.classList.remove('hidden');
+      dashboardView.classList.add('hidden');
+    }
+  } catch {
     loginView.classList.remove('hidden');
     dashboardView.classList.add('hidden');
   }
-
   if (window.lucide) window.lucide.createIcons();
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const usernameInput = document.getElementById('admin-username').value.trim();
-  const passwordInput = document.getElementById('admin-password').value.trim();
+  const passwordInput = document.getElementById('admin-password').value;
   const errorAlert = document.getElementById('login-error-alert');
   const errorMsg = document.getElementById('login-error-msg');
-
-  if (usernameInput === ADMIN_CREDENTIALS.username && passwordInput === ADMIN_CREDENTIALS.password) {
+  try {
+    const response = await fetch('/api/admin-auth', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: usernameInput, password: passwordInput })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.authenticated) throw new Error('invalid');
     errorAlert.classList.add('hidden');
-    sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
-    showToast("Login Admin Berhasil! Selamat datang, ratakanan.", "success");
-    checkAuth();
-  } else {
+    showToast('Login Admin Berhasil!', 'success');
+    await checkAuth();
+  } catch {
     errorAlert.classList.remove('hidden');
-    errorMsg.textContent = "Username atau Password salah! Periksa kembali kredensial Anda.";
+    errorMsg.textContent = 'Username atau Password salah! Periksa kembali kredensial Anda.';
     if (window.lucide) window.lucide.createIcons();
   }
 }
 
-function handleLogout() {
-  logout();
-  sessionStorage.removeItem(ADMIN_AUTH_KEY);
+async function handleLogout() {
   try {
-    sessionStorage.clear();
-  } catch (e) {}
-  showToast("Anda telah keluar dari Panel Admin.", "info");
-  checkAuth();
-  setTimeout(() => {
-    window.location.href = 'admin.html';
-  }, 300);
+    await fetch('/api/admin-auth', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'logout' })
+    });
+  } catch {}
+  logout();
+  showToast('Anda telah keluar dari Panel Admin.', 'info');
+  await checkAuth();
+  setTimeout(() => { window.location.href = 'admin.html'; }, 300);
 }
 
 // -------------------------------------------------------------
@@ -555,7 +562,7 @@ function initAdminEventListeners() {
     if (e.data && (e.data.type === 'LIVE_STUDIO_SYNC' || e.data.type === 'LIVE_STUDIO_SAVED')) {
       const desktopFrame = document.getElementById('desktop-preview-frame');
       if (desktopFrame && desktopFrame.contentWindow) {
-        desktopFrame.contentWindow.postMessage(e.data, '*');
+        desktopFrame.contentWindow.postMessage(e.data, window.location.origin);
       }
     }
   });

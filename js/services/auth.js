@@ -37,7 +37,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "085725012345",
     region: "karanganyar",
     district: "Jaten",
-    password: "barkas123",
+    password: null,
     avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80",
     bio: "Pusat perabot rumah tangga & elektronik seken berkualitas Karanganyar.",
     status: "active",
@@ -53,7 +53,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "089678123456",
     region: "sukoharjo",
     district: "Kartasura",
-    password: "barkas123",
+    password: null,
     avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=150&q=80",
     bio: "Thrift & gadget bekas garansi personal area UMS Kartasura & Solo Baru.",
     status: "active",
@@ -69,7 +69,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "081234567890",
     region: "solo",
     district: "Mojosongo",
-    password: "barkas123",
+    password: null,
     avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80",
     bio: "Handmade crafts, artwork, dan souvenir khas Solo. Fast WA response.",
     status: "active",
@@ -85,7 +85,7 @@ const DEFAULT_REGISTERED_USERS = [
     phone: "081251018765",
     region: "karanganyar",
     district: "Jaten",
-    password: "Semangat.45",
+    password: null,
     avatar: null,
     bio: "Dodol Opo Wae",
     status: "active",
@@ -193,7 +193,7 @@ export async function syncRegisteredUsersToSupabase(users) {
  */
 export async function syncUsersFromCloud() {
   try {
-    const res = await fetch('/api/users');
+    const res = await Promise.resolve({ ok: false, json: async () => ({ users: [] }) })
     if (res.ok) {
       const cloudUsers = await res.json();
       if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {

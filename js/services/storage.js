@@ -627,7 +627,7 @@ export async function seedListingsToSupabaseIfEmpty() {
         district: l.seller.district || l.district || 'Banjarsari',
         avatar: l.seller.avatar || null,
         bio: (DEFAULT_REGISTERED_USERS.find(u => u.id === l.seller.id)?.bio) || `Penjual Resmi ${l.seller.storeName || l.seller.name}`,
-        password: 'demo123password',
+        password: null,
         is_demo: true,
         updated_at: new Date().toISOString()
       }));
