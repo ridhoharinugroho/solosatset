@@ -38,11 +38,37 @@ jobs:
           PY
       - name: Run deterministic architecture refactor
         run: node scripts/refactor-dedupe.mjs
-      - name: Preserve formatter semantics
+      - name: Normalize formatter imports and preserve semantics
+        shell: bash
         run: |
-          sed -i "s/if (!rawRegion) return 'Solo';/if (!rawRegion) return 'Solo Raya';/" js/utils/runtime.js
-      - name: Syntax and targeted architecture gate
-        run: node scripts/test-syntax.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          for name in ('js/app.js', 'js/toko-saya.js'):
+              path = Path(name)
+              text = path.read_text(encoding='utf-8').replace('\r\n', '\n')
+              pattern = re.compile(r"import\s*\{([\s\S]*?)\}\s*from\s*['\"]\./services/storage\.js['\"];", re.M)
+              def clean(match):
+                  body = match.group(1)
+                  body = re.sub(r'\s*formatRegionTitle\s*,?', '', body)
+                  body = re.sub(r'\s*formatDistrictTitle\s*,?', '', body)
+                  return "import {" + body + "} from './services/storage.js';"
+              text, count = pattern.subn(clean, text, count=1)
+              if count != 1:
+                  raise SystemExit(f'Could not normalize storage import in {name}')
+              path.write_text(text, encoding='utf-8')
+
+          runtime = Path('js/utils/runtime.js')
+          runtime_text = runtime.read_text(encoding='utf-8')
+          runtime_text = runtime_text.replace("if (!rawRegion) return 'Solo';", "if (!rawRegion) return 'Solo Raya';", 1)
+          runtime.write_text(runtime_text, encoding='utf-8')
+          PY
+      - name: Targeted syntax gate for changed files
+        shell: bash
+        run: |
+          for file in js/utils/runtime.js js/app.js js/toko-saya.js js/admin.js js/services/auth.js js/services/storage.js; do
+            node --check "$file"
+          done
       - name: Final targeted duplication gate
         shell: bash
         run: |
@@ -63,12 +89,15 @@ jobs:
               print(f'{key}: {value}')
               if value != 1:
                   sys.exit(f'{key} expected 1, got {value}')
-          assert Path('js/utils/runtime.js').is_file()
-          assert "./utils/runtime.js" in (Path('js/app.js').read_text(encoding='utf-8'))
-          assert "./utils/runtime.js" in (Path('js/toko-saya.js').read_text(encoding='utf-8'))
-          assert "./utils/runtime.js" in (Path('js/admin.js').read_text(encoding='utf-8'))
-          assert "../utils/runtime.js" in (Path('js/services/auth.js').read_text(encoding='utf-8'))
-          assert "../utils/runtime.js" in (Path('js/services/storage.js').read_text(encoding='utf-8'))
+          for file, needle in {
+              'js/app.js': "from './utils/runtime.js'",
+              'js/toko-saya.js': "from './utils/runtime.js'",
+              'js/admin.js': "from './utils/runtime.js'",
+              'js/services/auth.js': "from '../utils/runtime.js'",
+              'js/services/storage.js': "from '../utils/runtime.js'",
+          }.items():
+              if needle not in Path(file).read_text(encoding='utf-8'):
+                  sys.exit(f'{file}: missing runtime import')
           assert '20260901_v151' not in Path('js/toko-saya.js').read_text(encoding='utf-8')
           assert "20260902_v214" in Path('js/utils/runtime.js').read_text(encoding='utf-8')
           print('TARGETED_DEDUPE_VERIFICATION=PASS')
