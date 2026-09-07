@@ -21,8 +21,5 @@ jobs:
         with:
           node-version: 22
 
-      - name: Run formatting regressions
-        run: node scripts/test-formatting.js
-
-      - name: Run JavaScript syntax audit
-        run: node scripts/test-syntax.js
+      - name: Run project test suite
+        run: npm test
