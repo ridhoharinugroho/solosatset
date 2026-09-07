@@ -9,14 +9,11 @@ const SMTP_USER = process.env.SMTP_USER;
 const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM = process.env.SMTP_FROM || SMTP_USER;
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'Pusat Jual Beli Solo Raya';
+const EMAIL_API_TOKEN = process.env.EMAIL_API_TOKEN;
 
 function getBearerToken(req) {
   const header = req.headers?.authorization || req.headers?.Authorization || '';
   return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-}
-
-function isAdminTokenConfigured() {
-  return Boolean(process.env.ADMIN_SESSION_SECRET);
 }
 
 export default async function handler(req, res) {
@@ -27,18 +24,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
 
-  // Email dispatch is an administrative/server capability. Never accept SMTP credentials from the browser.
-  if (!isAdminTokenConfigured()) {
+  if (!EMAIL_API_TOKEN || !SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
     return res.status(503).json({ success: false, error: 'Server email configuration is incomplete.' });
   }
 
   const token = getBearerToken(req);
-  if (!token || token !== process.env.ADMIN_API_TOKEN) {
+  if (!token || token !== EMAIL_API_TOKEN) {
     return res.status(401).json({ success: false, error: 'Authentication required.' });
-  }
-
-  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS || !SMTP_FROM) {
-    return res.status(503).json({ success: false, error: 'SMTP configuration is incomplete.' });
   }
 
   try {
