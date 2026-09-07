@@ -460,9 +460,27 @@ function initAdminEventListeners() {
     showToast('Memuat ulang simulasi HP & Pratinjau Desktop...', 'info');
   });
   window.addEventListener('message', (e) => {
-    if (e.data && (e.data.type === 'LIVE_STUDIO_SYNC' || e.data.type === 'LIVE_STUDIO_SAVED')) {
-      const desktopFrame = document.getElementById('desktop-preview-frame');
-      if (desktopFrame && desktopFrame.contentWindow) desktopFrame.contentWindow.postMessage(e.data, '*');
+    const mobileFrame = document.getElementById('mobile-editor-frame');
+    const desktopFrame = document.getElementById('desktop-preview-frame');
+
+    if (
+      !mobileFrame ||
+      !desktopFrame ||
+      e.source !== mobileFrame.contentWindow ||
+      e.origin !== window.location.origin
+    ) {
+      return;
+    }
+
+    if (
+      e.data &&
+      (e.data.type === 'LIVE_STUDIO_SYNC' ||
+        e.data.type === 'LIVE_STUDIO_SAVED')
+    ) {
+      desktopFrame.contentWindow.postMessage(
+        e.data,
+        window.location.origin
+      );
     }
   });
   document.getElementById('admin-search-input')?.addEventListener('input', (e) => {
