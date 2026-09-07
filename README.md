@@ -1,4 +1,4 @@
-﻿# solosatset - Pusat Jual Beli Solo Raya 🛍️✨
+# solosatset - Pusat Jual Beli Solo Raya 🛍️✨
 
 Platform marketplace web barang skala regional berbasis komunitas terpercaya untuk **7 wilayah Solo Raya**:
 - Kota Surakarta (Solo)
@@ -22,15 +22,15 @@ Platform marketplace web barang skala regional berbasis komunitas terpercaya unt
 2. **Hubungi Penjual Langsung via WhatsApp (Instant CTA)**:
    - Integrasi langsung ke WhatsApp penjual dengan pesan terformat otomatis (*Judul barang, harga, jenis nego, lokasi wilayah/kecamatan, rekomendasi titik COD, dan nama calon pembeli*).
 
-3. **Sistem Autentikasi Google Login**:
-   - Masuk cepat menggunakan akun Google.
-   - Pengaturan wajib *Nama Akun / Nama Tampilan Publik (Display Name)* dan nomor WhatsApp yang otomatis tertera di setiap iklan.
+3. **Autentikasi & Session Server-Side**:
+   - Alur autentikasi dikelola oleh server dengan session cookie HttpOnly.
+   - OTP digunakan untuk alur yang memerlukannya sesuai konfigurasi production.
 
 4. **Kelola Iklan Saya**:
    - Penjual dapat menandai status barang (*Tersedia / Terjual*) atau menghapus iklan miliknya secara mandiri.
 
 5. **Panel Admin Terproteksi & Moderasi Produk**:
-   - Login terproteksi khusus (**Username**: `ratakanan`, **Password**: `280995`).
+   - Akses admin tidak didokumentasikan dengan kredensial di repository.
    - Moderasi iklan (*Sembunyikan/Tampilkan ke publik, Tandai Terjual, Hapus Permanen*).
    - Statistik real-time iklan aktif, disembunyikan, dan terjual.
 
@@ -63,7 +63,7 @@ Buka peramban di: `http://localhost:5500`
 ```text
 solosatset/
 ├── index.html              # Halaman Utama Marketplace Publik
-├── admin.html              # Panel Admin Terproteksi (Hidden Trigger)
+├── admin.html              # Panel Admin Terproteksi
 ├── server.ps1              # Local Web Server
 ├── README.md               # Dokumentasi Proyek
 ├── .gitignore              # Konfigurasi Git Ignore
@@ -72,18 +72,16 @@ solosatset/
 └── js/
     ├── app.js              # Controller Utama Aplikasi Publik
     ├── admin.js            # Controller Panel Admin & Text Editor
-    ├── data/
-    │   ├── regions.js      # Data 7 Wilayah & Kecamatan Solo Raya
-    │   ├── categories.js   # Data Kategori, Kondisi & Nego
-    │   └── sampleListings.js # Data Awal Contoh Iklan Barang
-    └── services/
-        ├── auth.js         # Google Auth & Display Name Manager
-        ├── storage.js      # Database Storage & Site Settings
-        └── whatsapp.js     # Generator Pesan & Format WhatsApp
+    └── services/           # Service layer aplikasi
 ```
+
+---
+
+## 🔐 Security
+
+Jangan commit password, API secret, SMTP credential, VAPID private key, session secret, atau credential admin ke repository. Gunakan environment variables pada deployment production.
 
 ---
 
 ## 📜 Lisensi
 MIT License © 2026 solosatset - Pusat Jual Beli Solo Raya.
-
