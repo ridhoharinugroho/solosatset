@@ -83,8 +83,7 @@ async function handleLogin(e) {
   const errorMsg = document.getElementById('login-error-msg');
   try {
     const response = await fetch('/api/admin-auth', {
-      method: 'POST',
-      credentials: 'same-origin',
+      method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: usernameInput, password: passwordInput })
     });
@@ -103,8 +102,7 @@ async function handleLogin(e) {
 async function handleLogout() {
   try {
     await fetch('/api/admin-auth', {
-      method: 'POST',
-      credentials: 'same-origin',
+      method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'logout' })
     });
