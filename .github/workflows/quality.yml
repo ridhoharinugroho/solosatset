@@ -19,6 +19,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Prepare utility directory
+        run: mkdir -p js/utils
       - name: Run deterministic architecture refactor
         run: node scripts/refactor-dedupe.mjs
       - name: Syntax gate
