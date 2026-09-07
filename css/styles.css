@@ -102,10 +102,10 @@ input[type="search"]::-ms-reveal {
    ======================================================== */
 #hero-banner-section {
   contain: layout style;
-  min-height: 195px;
+  min-height: 146.64px;
 }
 @media (min-width: 400px) {
-  #hero-banner-section { min-height: 215px; }
+  #hero-banner-section { min-height: 146.64px; }
 }
 @media (min-width: 640px) {
   #hero-banner-section { min-height: 255px; }
@@ -119,10 +119,12 @@ input[type="search"]::-ms-reveal {
 
 #hero-banner-carousel {
   contain: layout;
-  min-height: 160px;
+  min-height: 146.64px;
+  display: flex;
+  align-items: center;
 }
 @media (min-width: 400px) {
-  #hero-banner-carousel { min-height: 175px; }
+  #hero-banner-carousel { min-height: 146.64px; }
 }
 @media (min-width: 640px) {
   #hero-banner-carousel { min-height: 210px; }
@@ -135,8 +137,30 @@ input[type="search"]::-ms-reveal {
 }
 
 .hero-carousel-slide {
-  aspect-ratio: 16 / 9;
+  width: 293.28px;
+  min-width: 293.28px;
+  max-width: 293.28px;
+  height: 146.64px;
+  min-height: 146.64px;
+  max-height: 146.64px;
+  flex: 0 0 293.28px;
+  aspect-ratio: auto;
   contain: layout paint;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (min-width: 640px) {
+  .hero-carousel-slide {
+    width: min(75vw, 760px);
+    min-width: unset;
+    max-width: unset;
+    height: auto;
+    min-height: unset;
+    max-height: unset;
+    flex: 0 0 auto;
+    aspect-ratio: 16 / 9;
+  }
 }
 
 #region-filter-section {
