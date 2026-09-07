@@ -13,10 +13,9 @@ CREATE INDEX IF NOT EXISTS idx_users_password_hash
 -- Browser clients must not be able to read credential columns or mutate account rows.
 -- Authentication, profile, registration and interest writes are server-authoritative.
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "users_insert_all" ON public.users;
-DROP POLICY IF EXISTS "users_update_own" ON public.users;
-DROP POLICY IF EXISTS "users_delete_own" ON public.users;
 
+-- Keep existing policies intact for compatibility; revoke browser privileges instead.
+-- This does not delete rows, columns, tables, or policies.
 REVOKE SELECT ON TABLE public.users FROM anon, authenticated;
 GRANT SELECT (
   id,
