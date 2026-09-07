@@ -1,111 +1,92 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const ALLOWED_BUCKETS = new Set(['product-images', 'avatars']);
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+function unauthorized(res) {
+  return res.status(401).json({ success: false, error: 'Authentication required.' });
+}
 
-/**
- * Serverless Upload & Delete Image Endpoint
- * Accepts base64 image data and uploads directly to Supabase Storage 'product-images' or 'avatars'
- * Also supports DELETE action to remove physical files from storage.
- */
+function getSessionToken(req) {
+  const header = req.headers?.authorization || '';
+  return header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({ success: false, error: 'Storage service is not configured.' });
+  }
+
+  const token = getSessionToken(req);
+  if (!token) return unauthorized(res);
+
+  const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  let sessionUser;
+  try {
+    const { data, error } = await admin.auth.getUser(token);
+    if (error || !data?.user) return unauthorized(res);
+    sessionUser = data.user;
+  } catch {
+    return unauthorized(res);
   }
 
   try {
-    let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
-    }
-
-    // Support DELETE method or POST with action: 'delete'
-    if (req.method === 'DELETE' || (body && body.action === 'delete')) {
-      const filePath = req.method === 'DELETE' ? (req.query?.filePath || body?.filePath) : body?.filePath;
-      const bucket = (req.method === 'DELETE' ? (req.query?.bucket || body?.bucket) : body?.bucket) || 'avatars';
-      const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
-
-      if (!filePath) {
-        return res.status(400).json({ success: false, error: 'filePath is required for deletion' });
+    if (req.method === 'DELETE') {
+      const bucket = String(req.query?.bucket || 'product-images');
+      const filePath = String(req.query?.filePath || '');
+      if (!ALLOWED_BUCKETS.has(bucket) || !filePath || filePath.includes('..') || filePath.startsWith('/')) {
+        return res.status(400).json({ success: false, error: 'Invalid storage path.' });
       }
-
-      // Extract filename only
-      const cleanFileName = String(filePath).replace(/^.*[\/\\]([^\/\\]+)$/, '$1');
-      const { data: delData, error: delError } = await supabase.storage
-        .from(targetBucket)
-        .remove([cleanFileName]);
-
-      if (delError) {
-        console.warn(`[Serverless Storage Delete Notice] ${targetBucket}/${cleanFileName}:`, delError.message || delError);
-        return res.status(500).json({ success: false, error: delError.message });
+      const ownerPrefix = `${sessionUser.id}/`;
+      if (!filePath.startsWith(ownerPrefix)) {
+        return res.status(403).json({ success: false, error: 'You can only delete your own files.' });
       }
-
-      return res.status(200).json({
-        success: true,
-        message: 'File berhasil dihapus dari storage',
-        bucket: targetBucket,
-        file: cleanFileName,
-        data: delData
-      });
+      const { data, error } = await admin.storage.from(bucket).remove([filePath]);
+      if (error) return res.status(500).json({ success: false, error: 'Storage deletion failed.' });
+      return res.status(200).json({ success: true, data });
     }
 
-    if (req.method !== 'POST') {
-      return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+    if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+
+    const { imageData, bucket = 'product-images', filePath } = req.body || {};
+    if (!ALLOWED_BUCKETS.has(bucket) || typeof imageData !== 'string') {
+      return res.status(400).json({ success: false, error: 'Invalid upload request.' });
     }
 
-    const { imageData, filePath, bucket = 'product-images' } = body || {};
-    if (!imageData) {
-      return res.status(400).json({ success: false, error: 'imageData is required' });
+    const match = imageData.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+    if (!match) return res.status(400).json({ success: false, error: 'Only JPEG, PNG and WebP images are allowed.' });
+
+    const contentType = match[1];
+    const buffer = Buffer.from(match[2], 'base64');
+    if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
+      return res.status(413).json({ success: false, error: 'Image must be smaller than 8 MB.' });
     }
+    if (!ALLOWED_TYPES.has(contentType)) return res.status(400).json({ success: false, error: 'Unsupported image type.' });
 
-    const targetBucket = bucket === 'avatars' ? 'avatars' : 'product-images';
-    const cleanRandomStr = Math.random().toString(36).substring(2, 10);
-    const targetFilePath = filePath ? String(filePath).replace(/[^a-zA-Z0-9_\-\.]/g, '_') : `${targetBucket === 'avatars' ? 'avatar_' : ''}${Date.now()}_${cleanRandomStr}.jpg`;
-
-    let buffer;
-    let contentType = 'image/jpeg';
-
-    if (imageData.startsWith('data:')) {
-      const parts = imageData.split(';base64,');
-      contentType = parts[0].replace('data:', '') || 'image/jpeg';
-      buffer = Buffer.from(parts[1], 'base64');
-    } else {
-      buffer = Buffer.from(imageData, 'base64');
-    }
-
-    const { data, error } = await supabase.storage
-      .from(targetBucket)
-      .upload(targetFilePath, buffer, {
-        upsert: true,
-        contentType: contentType,
-        cacheControl: '31536000'
-      });
-
-    if (error) {
-      console.error(`[Serverless Storage Upload Error] ${targetBucket}/${targetFilePath}:`, error.message || error);
-      return res.status(500).json({ success: false, error: error.message });
-    }
-
-    const { data: publicUrlData } = supabase.storage
-      .from(targetBucket)
-      .getPublicUrl(targetFilePath);
-
-    return res.status(200).json({
-      success: true,
-      publicUrl: publicUrlData.publicUrl,
-      filePath: targetFilePath,
-      bucket: targetBucket
+    const safeName = String(filePath || `${Date.now()}.jpg`).split('/').pop().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const targetFilePath = `${sessionUser.id}/${safeName}`;
+    const { data, error } = await admin.storage.from(bucket).upload(targetFilePath, buffer, {
+      upsert: true,
+      contentType,
+      cacheControl: '31536000'
     });
-  } catch (err) {
-    console.error('[Serverless Storage Exception]:', err.message || err);
-    return res.status(500).json({ success: false, error: err.message });
+    if (error) return res.status(500).json({ success: false, error: 'Storage upload failed.' });
+
+    const { data: publicUrlData } = admin.storage.from(bucket).getPublicUrl(targetFilePath);
+    return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: data?.path || targetFilePath, bucket });
+  } catch (error) {
+    console.error('[Storage API]', error);
+    return res.status(500).json({ success: false, error: 'Storage operation failed.' });
   }
 }
