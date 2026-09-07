@@ -28,3 +28,6 @@ jobs:
       - name: Run duplication audit
         continue-on-error: true
         run: npm run audit:duplication
+
+      - name: Run local asset integrity audit
+        run: node scripts/test-asset-integrity.js
