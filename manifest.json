@@ -4,8 +4,8 @@
   "description": "Pusat Jual Beli Barang Solo Raya - Pantau Cocok Bayar, Nego Langsung WA",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#58111a",
-  "theme_color": "#58111a",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
   "icons": [
     {

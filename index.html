@@ -16,7 +16,9 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/img/app-logo.png?v=20260828">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/app-logo.png?v=20260828">
   <link rel="manifest" href="manifest.json?v=20260828">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: dark)">
   <meta name="msapplication-TileImage" content="assets/img/app-logo.png?v=20260829_v21">
   <meta name="msapplication-TileColor" content="#ffffff">
 
@@ -116,14 +118,16 @@
       })();
   </script>
 
-  <!-- STICKY TOP APP SECTION (LOGO + ACTIONS + SEARCH + STICKY SUB-BAR) -->
+  <!-- STICKY TOP APP SECTION (LOGO + ACTIONS + SEARCH BELOW BRAND ON MOBILE) -->
   <div id="sticky-top-app-wrapper"
-    class="sticky-top-app-bar sticky top-0 z-30 w-full bg-[#ffffff] shadow-xs min-h-[96px] md:min-h-[64px]">
+    class="sticky-top-app-bar sticky top-0 z-30 w-full bg-[#ffffff] shadow-xs min-h-[88px] md:min-h-[64px] flex flex-col justify-center">
 
     <!-- 2. TOP APP HEADER & SEARCH BAR -->
     <header class="w-full max-w-full overflow-hidden">
-      <div class="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6">
-        <div class="flex items-center justify-between h-14 sm:h-16 gap-2 sm:gap-4 py-1">
+      <div class="max-w-7xl mx-auto px-3.5 sm:px-4 lg:px-6">
+
+        <!-- Row 1: Brand Logo, Tagline, & Action Buttons -->
+        <div class="flex items-center justify-between h-12 sm:h-16 gap-2 sm:gap-4 pt-1.5 pb-0.5 sm:py-1">
 
           <!-- Brand Logo & Header -->
           <div id="brand-header" class="flex items-center gap-2 group flex-shrink min-w-0 select-none">
@@ -145,7 +149,7 @@
             </div>
           </div>
 
-          <!-- Desktop Search Bar -->
+          <!-- Desktop Search Bar (Hidden on Mobile) -->
           <div id="desktop-search-container" class="hidden md:flex flex-1 max-w-lg mx-2 lg:mx-4">
             <form id="desktop-search-form" action="javascript:void(0)" role="search" class="relative w-full">
               <i data-lucide="search"
@@ -189,17 +193,17 @@
 
         </div>
 
-        <!-- Mobile Search Bar -->
-        <div class="md:hidden pt-0 pb-0">
+        <!-- Row 2: Mobile Search Bar (Positioned directly below brand header on mobile) -->
+        <div id="mobile-search-container" class="md:hidden pt-0.5 pb-2">
           <form id="mobile-search-form" action="javascript:void(0)" role="search" class="relative w-full">
             <i data-lucide="search"
               class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
             <input type="search" id="mobile-search-input" data-text-key="search_placeholder"
               placeholder="Cari barang se-Solo Raya..." enterkeyhint="search" autocapitalize="none" autocorrect="off"
               spellcheck="false"
-              class="w-full pl-10 pr-8 py-2.5 bg-white text-slate-800 border border-slate-200 rounded-xl text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:bg-white shadow-xs [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden">
+              class="w-full pl-10 pr-8 py-2 bg-slate-50 text-slate-800 border border-slate-200 rounded-xl text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:bg-white shadow-xs [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden">
             <button type="button" id="mobile-search-clear"
-              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
               <i data-lucide="x" class="w-4 h-4"></i>
             </button>
           </form>
@@ -212,11 +216,11 @@
   </div>
   <!-- MAIN CONTENT CONTAINER -->
   <main id="main-content-container"
-    class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-4 lg:px-6 pt-0 pb-3.5 sm:pb-4">
+    class="flex-1 max-w-7xl w-full mx-auto px-0 pt-[10px] pb-3.5 sm:pb-4">
 
     <!-- 1. BANNER CAROUSEL (RASIO 16:9 • PEEK-A-BOO STYLE • INFINITE LOOP) -->
     <section id="hero-banner-section"
-      class="relative overflow-hidden group -mt-[4px] pt-0 pb-0 mb-0 w-full">
+      class="relative overflow-hidden group mt-0 pt-0 pb-0 mb-0 w-full">
 
 
       <!-- Left & Right Nav Buttons (Desktop & Hover) -->
@@ -234,10 +238,10 @@
 
       <!-- Carousel Track with Peek-a-boo Snapping -->
       <div id="hero-banner-carousel"
-        class="relative z-10 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-2.5 px-[5%] pt-0 pb-0 scroll-smooth w-full items-center">
+        class="relative z-10 flex overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 px-[calc(50%-146.64px)] pt-0 pb-0 scroll-smooth w-full items-center">
         <!-- Slide 1: Welcome & Hub Solo Raya -->
         <div data-slide="0"
-          class="hero-carousel-slide snap-center shrink-0 w-[90%] max-w-lg rounded-2xl overflow-hidden aspect-[2/1] relative bg-gradient-to-br from-rose-950 via-rose-900 to-amber-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none">
+          class="hero-carousel-slide snap-center flex-none w-[293.28px] min-w-[293.28px] max-w-[293.28px] h-[146.64px] min-h-[146.64px] max-h-[146.64px] overflow-hidden rounded-xl relative bg-gradient-to-br from-rose-950 via-rose-900 to-amber-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none sm:w-[min(75vw,760px)] sm:h-auto sm:aspect-video sm:min-w-0 sm:max-w-none sm:min-h-0 sm:max-h-none sm:rounded-2xl">
           <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none">
           </div>
           <div class="relative z-10 space-y-1 sm:space-y-1.5">
@@ -268,7 +272,7 @@
 
         <!-- Slide 2: Panduan Transaksi Aman COD -->
         <div data-slide="1"
-          class="hero-carousel-slide snap-center shrink-0 w-[90%] max-w-lg rounded-2xl overflow-hidden aspect-[2/1] relative bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none">
+          class="hero-carousel-slide snap-center flex-none w-[293.28px] min-w-[293.28px] max-w-[293.28px] h-[146.64px] min-h-[146.64px] max-h-[146.64px] overflow-hidden rounded-xl relative bg-gradient-to-br from-slate-950 via-slate-900 to-rose-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none sm:w-[min(75vw,760px)] sm:h-auto sm:aspect-video sm:min-w-0 sm:max-w-none sm:min-h-0 sm:max-h-none sm:rounded-2xl">
           <div
             class="absolute -right-8 -bottom-8 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none">
           </div>
@@ -298,7 +302,7 @@
 
         <!-- Slide 3: 7 Wilayah Solo Raya -->
         <div data-slide="2"
-          class="hero-carousel-slide snap-center shrink-0 w-[90%] max-w-lg rounded-2xl overflow-hidden aspect-[2/1] relative bg-gradient-to-br from-amber-950 via-rose-950 to-slate-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none">
+          class="hero-carousel-slide snap-center flex-none w-[293.28px] min-w-[293.28px] max-w-[293.28px] h-[146.64px] min-h-[146.64px] max-h-[146.64px] overflow-hidden rounded-xl relative bg-gradient-to-br from-amber-950 via-rose-950 to-slate-950 text-white p-4 sm:p-5 shadow-md flex flex-col justify-between gap-1 select-none sm:w-[min(75vw,760px)] sm:h-auto sm:aspect-video sm:min-w-0 sm:max-w-none sm:min-h-0 sm:max-h-none sm:rounded-2xl">
           <div class="absolute -right-8 -bottom-8 w-40 h-40 bg-rose-500/10 rounded-full blur-2xl pointer-events-none">
           </div>
           <div class="relative z-10 space-y-1 sm:space-y-1.5">
@@ -327,7 +331,7 @@
 
       <!-- Carousel Pagination Dots -->
       <div id="hero-carousel-dots"
-        class="relative z-10 flex items-center justify-center gap-1.5 -mt-[4px] mb-0 h-auto py-0 leading-none">
+        class="relative z-10 flex items-center justify-center gap-1.5 mt-2 mb-0 h-auto py-0 leading-none">
         <span class="hero-dot w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-700 transition-all duration-300 cursor-pointer shadow-xs scale-110"
           data-slide-index="0"></span>
         <span class="hero-dot w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-rose-300/60 transition-all duration-300 cursor-pointer scale-100"
@@ -338,10 +342,10 @@
     </section>
 
     <!-- 7 REGIONS HORIZONTAL FILTER PILLS -->
-    <section id="region-filter-section" class="relative z-10 py-0 -mt-[30px]">
+    <section id="region-filter-section" class="relative z-10 py-0 mt-1">
       <!-- Horizontal Scrollable Pills -->
       <div id="region-pills-container"
-        class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0 items-center -mx-1 px-1 relative z-10">
+        class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0 items-center px-3.5 sm:px-4 lg:px-6 relative z-10">
 
         <button type="button" data-region="all"
           class="region-pill flex-shrink-0 flex items-center gap-1 h-6 px-2.5 py-1 rounded-lg text-[10px] font-semibold border transition-all select-none shadow-2xs cursor-pointer bg-slate-800 text-white border-slate-800">
@@ -387,7 +391,7 @@
 
     <!-- SORTING BAR (BETWEEN REGIONS AND CATEGORIES) -->
     <section id="sort-filter-section" class="py-0 relative z-10 mt-0">
-      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 relative z-10">
+      <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar py-0.5 px-3.5 sm:px-4 lg:px-6 relative z-10">
         <button type="button" data-sort-val="newest"
           class="sort-option-pill flex-shrink-0 flex items-center gap-1 h-6 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border transition-all select-none shadow-2xs cursor-pointer bg-rose-900 text-white border-rose-900 ring-2 ring-rose-900/20">
           <i data-lucide="arrow-up-down" class="w-2.5 h-2.5 pointer-events-none text-amber-300"></i>
@@ -416,7 +420,7 @@
     <!-- CATEGORIES & ACTIVE FILTERS BAR -->
     <section class="mt-1">
       <div id="category-pills-container"
-        class="flex items-start gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 scroll-smooth min-h-[76px] min-[380px]:min-h-[82px] sm:min-h-[92px]">
+        class="flex items-start gap-1.5 sm:gap-2.5 overflow-x-auto no-scrollbar py-0.5 px-3.5 sm:px-4 lg:px-6 scroll-smooth min-h-[76px] min-[380px]:min-h-[82px] sm:min-h-[92px]">
         <button type="button" data-category="all"
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Semua Kategori">
@@ -432,7 +436,7 @@
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Elektronik & Gadget">
           <div
-            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105">
+            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105">
             <i data-lucide="smartphone"
               class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
           </div>
@@ -444,7 +448,7 @@
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Kendaraan & Otomotif">
           <div
-            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105">
+            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105">
             <i data-lucide="bike"
               class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
           </div>
@@ -456,7 +460,7 @@
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Perabot & Rumah Tangga">
           <div
-            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105">
+            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105">
             <i data-lucide="armchair"
               class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
           </div>
@@ -468,7 +472,7 @@
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Pakaian & Aksesoris">
           <div
-            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105">
+            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105">
             <i data-lucide="shirt"
               class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
           </div>
@@ -480,7 +484,7 @@
           class="category-pill flex flex-col items-center justify-start flex-shrink-0 w-[52px] min-[380px]:w-[58px] sm:w-[68px] group cursor-pointer text-center select-none"
           title="Makanan & Minuman">
           <div
-            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105">
+            class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105">
             <i data-lucide="utensils"
               class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
           </div>
@@ -496,7 +500,7 @@
     <!-- PRODUCT LISTINGS CONTAINER (2-COLUMN GRID) -->
     <section class="mt-1">
       <div id="listings-grid"
-        class="listings-grid-container grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4.5 transition-all min-h-[320px]">
+        class="listings-grid-container grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5 px-3.5 sm:px-4 lg:px-6 transition-all min-h-[320px]">
         <!-- Initial Skeleton Loading Cards to prevent CLS layout shift -->
         <div class="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-200/80 shadow-2xs space-y-2.5 animate-pulse">
           <div class="w-full aspect-[4/3] bg-slate-200/70 rounded-xl"></div>
@@ -727,7 +731,7 @@
           id="nav-btn-traktir"
           title="Traktir Kopi / Apresiasi"
           aria-label="Traktir Pengembang"
-          class="relative z-50 flex items-center justify-center -mt-5 bg-gradient-to-r from-amber-600 via-rose-800 to-rose-900 hover:from-amber-500 hover:to-rose-700 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all border-4 border-slate-900 cursor-pointer pointer-events-auto"
+          class="relative z-50 flex items-center justify-center -mt-5 bg-gradient-to-r from-amber-600 via-rose-800 to-rose-900 hover:from-amber-500 hover:to-rose-700 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all border-4 border-white cursor-pointer pointer-events-auto"
       >
           <i
               data-lucide="coffee"

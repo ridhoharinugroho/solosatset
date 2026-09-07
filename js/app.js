@@ -37,56 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ========================================================
-// HIGH-PERFORMANCE NON-BLOCKING INP OPTIMIZATIONS
-// ========================================================
-const iconRefreshQueue = new Set();
-let iconRefreshScheduled = false;
 
-function refreshIcons(root = null) {
-  if (typeof window === 'undefined' || !window.lucide || typeof window.lucide.createIcons !== 'function') return;
-
-  if (root && root instanceof HTMLElement) {
-    iconRefreshQueue.add(root);
-  } else {
-    iconRefreshQueue.add(document.body || document.documentElement);
-  }
-
-  if (iconRefreshScheduled) return;
-  iconRefreshScheduled = true;
-
-  const run = () => {
-    iconRefreshScheduled = false;
-    const roots = Array.from(iconRefreshQueue);
-    iconRefreshQueue.clear();
-
-    const hasGlobal = roots.some(r => r === document.body || r === document.documentElement);
-    if (hasGlobal) {
-      try { window.lucide.createIcons(); } catch (e) { }
-    } else {
-      roots.forEach(r => {
-        try { window.lucide.createIcons({ root: r }); } catch (e) { }
-      });
-    }
-  };
-
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(run, { timeout: 60 });
-  } else {
-    setTimeout(run, 1);
-  }
-}
-window.refreshIcons = refreshIcons;
-
-function deferTask(fn, timeout = 50) {
-  if (typeof fn !== 'function') return;
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(() => fn(), { timeout });
-  } else {
-    setTimeout(() => fn(), 0);
-  }
-}
-window.deferTask = deferTask;
+import { refreshIcons, deferTask, CURRENT_SW_VERSION, formatRegionTitle, formatDistrictTitle } from './utils/runtime.js';
 /**
  * Pusat Jual Beli Solo Raya - Main Application Controller
  * Pasang & Cari Barang di 7 Wilayah Solo Raya
@@ -113,8 +65,7 @@ import {
   getSellerReviews, addSellerReview, getSellerRatingStats,
   checkSellerVerification, isSellerVerified,
   toggleHideSellerReview, deleteSellerReview,
-  getAppReviews, fetchAppReviewsFromSupabase, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview, getAppRatingStats,
-  formatRegionTitle, formatDistrictTitle
+  getAppReviews, fetchAppReviewsFromSupabase, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview, getAppRatingStats
 } from './services/storage.js';
 import { initLiveActivityWidget, notifyUserJustLoggedIn, getLiveOnlineCount } from './services/liveActivity.js';
 import {
@@ -169,7 +120,6 @@ function cleanupNotificationsRealtime() {
   }
 }
 window.cleanupNotificationsRealtime = cleanupNotificationsRealtime;
-const CURRENT_SW_VERSION = '20260902_v214';
 
 function showHomeLoadingSkeleton() {
   const grid = document.getElementById('listings-grid') || document.getElementById('listings-container');
@@ -1144,7 +1094,7 @@ function renderRegionPills() {
       data-region="all"
       class="region-pill flex-shrink-0 flex items-center gap-1 h-6 px-2.5 py-0.5 rounded-lg text-[10px] font-semibold border transition-all select-none shadow-2xs cursor-pointer ${state.selectedRegion === 'all'
       ? 'bg-rose-900 text-white border-rose-900 ring-2 ring-rose-900/20'
-      : 'bg-slate-800 text-white border-slate-800'
+      : 'bg-white text-slate-700 border-slate-200/90 hover:bg-slate-50 hover:border-slate-300'
     }"
     >
       <span class="pointer-events-none">🌟 Semua</span>
@@ -1221,7 +1171,7 @@ function renderCategoryPills() {
       >
         <div class="w-[44px] h-[44px] min-[380px]:w-[48px] min-[380px]:h-[48px] sm:w-[56px] sm:h-[56px] rounded-xl sm:rounded-2xl flex items-center justify-center transition-all duration-200 ${isSelected
         ? 'bg-rose-900 text-amber-300 shadow-sm ring-2 ring-rose-900/25 scale-105 border-2 border-rose-800'
-        : 'bg-[#edf2f9] text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-[#e4ebf5] group-hover:border-rose-300 group-hover:scale-105'
+        : 'bg-white text-rose-900 border border-[#e2e8f2]/90 shadow-2xs group-hover:bg-slate-50 group-hover:border-rose-300 group-hover:scale-105'
       }">
           <i data-lucide="${cat.icon}" class="w-5 h-5 min-[380px]:w-5.5 min-[380px]:h-5.5 sm:w-6.5 sm:h-6.5 transition-transform group-hover:scale-110"></i>
         </div>
@@ -1361,9 +1311,35 @@ function initHeroBannerCarousel() {
     refreshIcons();
   });
 
-  // Seamless Infinite Looping on Scroll End / Settlement
+  // Seamless Infinite Looping & Real-time Dots Updating on Scroll
   let scrollTimeout = null;
+  let scrollRaf = null;
+
+  function updateDotsOnScroll() {
+    const currentScroll = carousel.scrollLeft;
+    let closestIdx = 1;
+    let minDiff = Infinity;
+    allSlides.forEach((slide, idx) => {
+      const diff = Math.abs(currentScroll - getSlideOffset(idx));
+      if (diff < minDiff) {
+        minDiff = diff;
+        closestIdx = idx;
+      }
+    });
+    if (closestIdx !== currentIndex) {
+      currentIndex = closestIdx;
+      updateDots();
+    }
+  }
+
   carousel.addEventListener('scroll', () => {
+    if (!scrollRaf) {
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = null;
+        updateDotsOnScroll();
+      });
+    }
+
     clearTimeout(scrollTimeout);
     scrollTimeout = setTimeout(() => {
       if (isTransitioning) return;
@@ -1394,7 +1370,7 @@ function initHeroBannerCarousel() {
         scrollToSlide(1, false);
         setTimeout(() => { isTransitioning = false; }, 60);
       }
-    }, 120);
+    }, 60);
   }, { passive: true });
 
   // Smooth Next / Prev functions
@@ -1474,7 +1450,7 @@ function renderListings() {
   if (isListView) {
     grid.className = "flex flex-col gap-3 transition-all feed-fade-in";
   } else {
-    grid.className = "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4.5 transition-all feed-fade-in";
+    grid.className = "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5 px-3.5 sm:px-4 lg:px-6 transition-all feed-fade-in";
   }
 
   // Ambil produk publik (selalu terisi data fallback SAMPLE_LISTINGS jika lokal/cloud kosong)
@@ -1735,32 +1711,32 @@ function renderListings() {
             </div>
 
             <!-- Content Section (New Ordered Sequence) -->
-            <div class="p-3 sm:p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+            <div class="p-1 sm:p-1.5 space-y-0.5 flex-1 flex flex-col justify-between">
 
-              <div class="space-y-1.5">
+              <div class="space-y-0.5">
                 <!-- 1. BARIS HARGA (Hanya Nominal Harga Saja) -->
                 <div>
-                  <span class="text-sm sm:text-base md:text-[17px] font-black text-rose-900 leading-tight tracking-tight">${priceFormatted}</span>
+                  <span class="text-[10px] min-[360px]:text-[11px] sm:text-xs md:text-sm font-black text-rose-900 leading-none tracking-tight">${priceFormatted}</span>
                 </div>
 
                 <!-- 2. STATUS TIPE HARGA & METODE PEMBAYARAN & BADGE BU (Di Baris Bawah Harga) -->
-                <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+                <div class="flex items-center gap-1 flex-wrap pt-0.5">
                   ${isItemBu ? `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
                       <span>🔥 BU</span>
                     </span>
                   ` : ''}
-                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
+                  <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
                     ${item.negoType === 'pas' ? 'Nett' : 'Nego'}
                   </span>
 
                   ${paymentType === 'cod' ? `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/90 shadow-2xs">
                       <i data-lucide="handshake" class="w-3 h-3 text-emerald-600"></i>
                       <span>COD</span>
                     </span>
                   ` : `
-                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-bold bg-sky-50 text-sky-800 border border-sky-200/90 shadow-2xs">
+                    <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-sky-50 text-sky-800 border border-sky-200/90 shadow-2xs">
                       <i data-lucide="store" class="w-3 h-3 text-sky-600"></i>
                       <span>In Store</span>
                     </span>
@@ -1768,31 +1744,31 @@ function renderListings() {
                 </div>
 
                 <!-- 3. JUDUL PRODUK -->
-                <h3 class="text-xs sm:text-[13px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-snug pt-0.5" title="${item.title}">
+                <h3 class="text-[9px] min-[360px]:text-[10px] sm:text-[11px] font-bold text-slate-800 group-hover:text-rose-900 transition-colors line-clamp-2 leading-none pt-0.5" title="${item.title}">
                   ${item.title}
                 </h3>
               </div>
 
               <!-- 4. NAMA PENJUAL & KETERANGAN WAKTU + TOMBOL AKSI -->
-              <div class="pt-2 border-t border-slate-100/90 space-y-2">
-                <div class="flex items-center justify-between text-[10.5px] sm:text-xs text-slate-500 gap-1.5">
+              <div class="pt-1 border-t border-slate-100/90 space-y-1">
+                <div class="flex items-center justify-between text-[9.5px] min-[360px]:text-[10px] sm:text-xs text-slate-500 gap-1">
                   ${(() => {
             const isVer = isSellerVerified(item.seller?.id || item.seller);
             return `
-                      <div class="flex items-center gap-1.5 truncate min-w-0" title="${isVer ? 'Penjual Terverifikasi: ' : 'Penjual: '}${sellerName}">
-                        <i data-lucide="${isVer ? 'shield-check' : 'user'}" class="w-3.5 h-3.5 ${isVer ? 'text-emerald-600' : 'text-slate-400'} flex-shrink-0"></i>
+                      <div class="flex items-center gap-1 truncate min-w-0" title="${isVer ? 'Penjual Terverifikasi: ' : 'Penjual: '}${sellerName}">
+                        <i data-lucide="${isVer ? 'shield-check' : 'user'}" class="w-3 h-3 ${isVer ? 'text-emerald-600' : 'text-slate-400'} flex-shrink-0"></i>
                         <span class="${isVer ? 'font-bold text-slate-800' : 'font-semibold text-slate-700'} truncate">${sellerName}</span>
                       </div>
                     `;
           })()}
-                  <span class="text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
+                  <span class="text-[9px] min-[360px]:text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
                 </div>
 
-                <div class="flex items-center gap-1.5 pt-0.5">
+                <div class="flex items-center gap-1 pt-0">
                   ${(item.isSold || item.status === 'sold') ? `
                     <button
                       disabled
-                      class="flex-1 flex items-center justify-center gap-1 bg-slate-200 text-slate-500 font-bold py-1.5 px-2 rounded-xl text-[10.5px] sm:text-xs cursor-not-allowed opacity-80"
+                      class="flex-1 flex items-center justify-center gap-1 bg-slate-200 text-slate-500 font-bold py-1 px-1.5 rounded-xl text-[9.5px] min-[360px]:text-[10.5px] sm:text-xs cursor-not-allowed opacity-80"
                     >
                       <span>Terjual</span>
                     </button>
@@ -1802,10 +1778,10 @@ function renderListings() {
                       target="_blank"
                       rel="noopener noreferrer"
                       data-action="whatsapp"
-                      class="flex-1 flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold py-1.5 px-2 rounded-xl text-[10.5px] sm:text-xs transition-colors shadow-2xs"
+                      class="flex-1 flex items-center justify-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 hover:border-emerald-600 font-bold py-1 px-1.5 rounded-xl text-[9.5px] min-[360px]:text-[10.5px] sm:text-xs transition-colors shadow-2xs"
                       title="Chat Penjual via WhatsApp"
                     >
-                      <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                      <i data-lucide="message-circle" class="w-3 h-3"></i>
                       <span>${chatWaText}</span>
                     </a>
                   `}
@@ -1813,10 +1789,10 @@ function renderListings() {
                   <button
                     data-action="view-detail"
                     data-id="${item.id}"
-                    class="p-1.5 sm:p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+                    class="p-1 sm:p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
                     title="Lihat Detail"
                   >
-                    <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                    <i data-lucide="eye" class="w-3 h-3"></i>
                   </button>
                 </div>
 

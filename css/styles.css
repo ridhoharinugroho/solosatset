@@ -97,48 +97,6 @@ input[type="search"]::-ms-reveal {
   transform: translateY(-2px);
 }
 
-/* ========================================================
-   CUMULATIVE LAYOUT SHIFT (CLS) ELIMINATION & SIZE LOCKING
-   ======================================================== */
-#hero-banner-section {
-  contain: layout style;
-  min-height: 195px;
-}
-@media (min-width: 400px) {
-  #hero-banner-section { min-height: 215px; }
-}
-@media (min-width: 640px) {
-  #hero-banner-section { min-height: 255px; }
-}
-@media (min-width: 768px) {
-  #hero-banner-section { min-height: 295px; }
-}
-@media (min-width: 1024px) {
-  #hero-banner-section { min-height: 315px; }
-}
-
-#hero-banner-carousel {
-  contain: layout;
-  min-height: 160px;
-}
-@media (min-width: 400px) {
-  #hero-banner-carousel { min-height: 175px; }
-}
-@media (min-width: 640px) {
-  #hero-banner-carousel { min-height: 210px; }
-}
-@media (min-width: 768px) {
-  #hero-banner-carousel { min-height: 245px; }
-}
-@media (min-width: 1024px) {
-  #hero-banner-carousel { min-height: 265px; }
-}
-
-.hero-carousel-slide {
-  aspect-ratio: 16 / 9;
-  contain: layout paint;
-}
-
 #region-filter-section {
   contain: layout;
   min-height: 36px;
