@@ -1,84 +1,74 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+function getBearerToken(req) {
+  const header = req.headers?.authorization || req.headers?.Authorization || '';
+  return header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+}
 
-/**
- * Serverless User Interest Tracking & Upsert Endpoint
- */
 export default async function handler(req, res) {
-  // CORS Configuration
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(503).json({ success: false, error: 'Database configuration is incomplete.' });
   }
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
-  }
+  const token = getBearerToken(req);
+  if (!token) return res.status(401).json({ success: false, error: 'Authentication required.' });
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 
   try {
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData?.user?.id) {
+      return res.status(401).json({ success: false, error: 'Invalid authentication token.' });
+    }
+
+    const authenticatedUserId = authData.user.id;
     let body = req.body;
     if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (e) { body = {}; }
+      try { body = JSON.parse(body); } catch { body = {}; }
     }
 
-    const { userId, categoryId, scoreIncrement = 1 } = body || {};
-    if (!userId || !categoryId || categoryId === 'all') {
-      return res.status(400).json({ success: false, error: 'Missing userId or categoryId' });
+    const { categoryId } = body || {};
+    if (!categoryId || categoryId === 'all') {
+      return res.status(400).json({ success: false, error: 'Missing categoryId.' });
     }
 
-    const cleanCatId = String(categoryId).toLowerCase().trim();
+    const cleanCatId = String(categoryId).toLowerCase().trim().slice(0, 100);
+    if (!cleanCatId) return res.status(400).json({ success: false, error: 'Invalid categoryId.' });
 
-    // 1. Ambil array interests pengguna saat ini dari tabel users
-    let uInterests = [];
-    try {
-      const { data: uData, error: uErr } = await supabase
-        .from('users')
-        .select('interests')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (uErr) {
-        console.warn('[Serverless Track Interest] users select warning:', uErr.message);
-      }
-      uInterests = Array.isArray(uData?.interests) ? [...uData.interests] : [];
-    } catch (e) {}
-
-    // 2. Hapus kategori lama jika ada dan push ke urutan paling baru
-    uInterests = uInterests.filter(c => String(c).toLowerCase().trim() !== cleanCatId);
-    uInterests.push(cleanCatId);
-
-    // 3. Batasi maksimal 3 item (geser item terlama jika > 3)
-    while (uInterests.length > 3) {
-      uInterests.shift();
-    }
-
-    // 4. Simpan kembali ke kolom interests pada tabel users
-    const { error: updError } = await supabase
+    const { data: uData, error: readError } = await supabase
       .from('users')
-      .update({ interests: uInterests })
-      .eq('id', userId);
+      .select('interests')
+      .eq('id', authenticatedUserId)
+      .maybeSingle();
 
-    if (updError) {
-      console.error('[Serverless Track Interest] Update error:', updError.message);
-      return res.status(200).json({ success: false, error: updError.message });
-    }
+    if (readError) return res.status(500).json({ success: false, error: 'Unable to read user interests.' });
 
-    return res.status(200).json({
-      success: true,
-      userId,
-      categoryId: cleanCatId,
-      interests: uInterests
-    });
+    let interests = Array.isArray(uData?.interests) ? [...uData.interests] : [];
+    interests = interests.filter((item) => String(item).toLowerCase().trim() !== cleanCatId);
+    interests.push(cleanCatId);
+    while (interests.length > 3) interests.shift();
+
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ interests })
+      .eq('id', authenticatedUserId);
+
+    if (updateError) return res.status(500).json({ success: false, error: 'Unable to save interests.' });
+
+    return res.status(200).json({ success: true, categoryId: cleanCatId, interests });
   } catch (error) {
-    console.error('[Serverless Track Interest Error]', error);
-    return res.status(200).json({ success: false, error: error.message });
+    console.error('[Track Interest]', error);
+    return res.status(500).json({ success: false, error: 'Interest tracking failed.' });
   }
 }
