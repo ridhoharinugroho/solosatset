@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-import { refreshIcons, deferTask, CURRENT_SW_VERSION,} from './utils/runtime.js';
+import { refreshIcons, deferTask, CURRENT_SW_VERSION, formatRegionTitle, formatDistrictTitle } from './utils/runtime.js';
 /**
  * Pusat Jual Beli Solo Raya - Main Application Controller
  * Pasang & Cari Barang di 7 Wilayah Solo Raya

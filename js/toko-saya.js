@@ -2,7 +2,7 @@ import './traktirModal.js';
 import './notificationModal.js';
 
 
-import { refreshIcons, deferTask, CURRENT_SW_VERSION,} from './utils/runtime.js';
+import { refreshIcons, deferTask, CURRENT_SW_VERSION, formatRegionTitle, formatDistrictTitle } from './utils/runtime.js';
 /**
  * Toko Saya Standalone Page Controller
  * Pusat Jual Beli Solo Raya 7 Wilayah
