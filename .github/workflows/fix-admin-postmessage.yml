@@ -1,0 +1,55 @@
+name: One-time admin postMessage hardening
+
+on:
+  push:
+    branches: [security/otp-hardening]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: security/otp-hardening
+          fetch-depth: 0
+
+      - name: Harden admin postMessage and remove this workflow
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('js/admin.js')
+          text = path.read_text(encoding='utf-8')
+
+          old = """  window.addEventListener('message', (e) => {\n    if (e.data && (e.data.type === 'LIVE_STUDIO_SYNC' || e.data.type === 'LIVE_STUDIO_SAVED')) {\n      const desktopFrame = document.getElementById('desktop-preview-frame');\n      if (desktopFrame && desktopFrame.contentWindow) desktopFrame.contentWindow.postMessage(e.data, '*');\n    }\n  });"""
+
+          new = """  window.addEventListener('message', (e) => {\n    const mobileFrame = document.getElementById('mobile-editor-frame');\n    const desktopFrame = document.getElementById('desktop-preview-frame');\n\n    if (\n      !mobileFrame ||\n      !desktopFrame ||\n      e.source !== mobileFrame.contentWindow ||\n      e.origin !== window.location.origin\n    ) {\n      return;\n    }\n\n    if (\n      e.data &&\n      (e.data.type === 'LIVE_STUDIO_SYNC' ||\n        e.data.type === 'LIVE_STUDIO_SAVED')\n    ) {\n      desktopFrame.contentWindow.postMessage(\n        e.data,\n        window.location.origin\n      );\n    }\n  });"""
+
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one vulnerable block, found {text.count(old)}')
+
+          path.write_text(text.replace(old, new), encoding='utf-8', newline='')
+
+          workflow = Path('.github/workflows/fix-admin-postmessage.yml')
+          workflow.unlink()
+
+      - name: Verify hardening
+        run: |
+          ! grep -n "postMessage(e.data, '\*')" js/admin.js
+          grep -n "e.source !== mobileFrame.contentWindow" js/admin.js
+          grep -n "e.origin !== window.location.origin" js/admin.js
+          grep -n "desktopFrame.contentWindow.postMessage" js/admin.js
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/admin.js .github/workflows/fix-admin-postmessage.yml
+          git diff --cached --check
+          git commit -m "security: restrict admin studio postMessage origin"
+          git push origin HEAD:security/otp-hardening
