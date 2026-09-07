@@ -6,107 +6,29 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  quality:
+  javascript-quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Prepare utility directory
-        run: mkdir -p js/utils
-      - name: Centralize admin SW version source
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('js/admin.js')
-          text = path.read_text(encoding='utf-8').replace('\r\n', '\n')
-          text = text.replace("const CURRENT_SW_VERSION = '20260902_v214';\n", '', 1)
-          if "from './utils/runtime.js'" not in text:
-              marker = "import { logout } from './services/auth.js';\n"
-              if marker not in text:
-                  raise SystemExit('admin.js import marker not found')
-              text = text.replace(marker, marker + "import { CURRENT_SW_VERSION } from './utils/runtime.js';\n", 1)
-          path.write_text(text, encoding='utf-8')
-          PY
-      - name: Run deterministic architecture refactor
-        run: node scripts/refactor-dedupe.mjs
-      - name: Normalize formatter imports and preserve semantics
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re
-          for name in ('js/app.js', 'js/toko-saya.js'):
-              path = Path(name)
-              text = path.read_text(encoding='utf-8').replace('\r\n', '\n')
-              pattern = re.compile(r"import\s*\{([\s\S]*?)\}\s*from\s*['\"]\./services/storage\.js['\"];", re.M)
-              def clean(match):
-                  body = match.group(1)
-                  body = re.sub(r'\s*formatRegionTitle\s*,?', '', body)
-                  body = re.sub(r'\s*formatDistrictTitle\s*,?', '', body)
-                  return "import {" + body + "} from './services/storage.js';"
-              text, count = pattern.subn(clean, text, count=1)
-              if count != 1:
-                  raise SystemExit(f'Could not normalize storage import in {name}')
-              path.write_text(text, encoding='utf-8')
 
-          runtime = Path('js/utils/runtime.js')
-          runtime_text = runtime.read_text(encoding='utf-8')
-          runtime_text = runtime_text.replace("if (!rawRegion) return 'Solo';", "if (!rawRegion) return 'Solo Raya';", 1)
-          runtime.write_text(runtime_text, encoding='utf-8')
-          PY
-      - name: Targeted syntax gate for changed files
-        shell: bash
-        run: |
-          for file in js/utils/runtime.js js/app.js js/toko-saya.js js/admin.js js/services/auth.js js/services/storage.js; do
-            node --check "$file"
-          done
-      - name: Final targeted duplication gate
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re, sys
-          root = Path('js')
-          files = list(root.rglob('*.js'))
-          text = '\n'.join(p.read_text(encoding='utf-8') for p in files)
-          checks = {
-              'refreshIcons definitions': len(re.findall(r'function\s+refreshIcons\s*\(', text)),
-              'deferTask definitions': len(re.findall(r'function\s+deferTask\s*\(', text)),
-              'CURRENT_SW_VERSION assignments': len(re.findall(r'CURRENT_SW_VERSION\s*=\s*[\'\"]', text)),
-              'formatRegionTitle definitions': len(re.findall(r'(?:export\s+)?function\s+formatRegionTitle\s*\(', text)),
-              'formatDistrictTitle definitions': len(re.findall(r'(?:export\s+)?function\s+formatDistrictTitle\s*\(', text)),
-          }
-          for key, value in checks.items():
-              print(f'{key}: {value}')
-              if value != 1:
-                  sys.exit(f'{key} expected 1, got {value}')
-          for file, needle in {
-              'js/app.js': "from './utils/runtime.js'",
-              'js/toko-saya.js': "from './utils/runtime.js'",
-              'js/admin.js': "from './utils/runtime.js'",
-              'js/services/auth.js': "from '../utils/runtime.js'",
-              'js/services/storage.js': "from '../utils/runtime.js'",
-          }.items():
-              if needle not in Path(file).read_text(encoding='utf-8'):
-                  sys.exit(f'{file}: missing runtime import')
-          assert '20260901_v151' not in Path('js/toko-saya.js').read_text(encoding='utf-8')
-          assert "20260902_v214" in Path('js/utils/runtime.js').read_text(encoding='utf-8')
-          print('TARGETED_DEDUPE_VERIFICATION=PASS')
-          PY
-      - name: Commit refactor
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add js/app.js js/toko-saya.js js/admin.js js/services/auth.js js/services/storage.js js/utils/runtime.js
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'REFACTOR: Centralize runtime helpers, formatters and SW version'
-          git push origin main
+      - name: Run project test suite
+        run: npm test
+
+      - name: Run combined audit
+        continue-on-error: true
+        run: npm run audit:all
