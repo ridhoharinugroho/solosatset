@@ -9,6 +9,7 @@
     "test": "node scripts/test-formatting.js && node scripts/test-syntax.js",
     "test:syntax": "node scripts/test-syntax.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
+    "audit:assets": "node scripts/test-asset-integrity.js",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
   "dependencies": {
