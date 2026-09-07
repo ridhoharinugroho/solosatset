@@ -21,6 +21,8 @@ jobs:
           node-version: 22
       - name: Prepare utility directory
         run: mkdir -p js/utils
+      - name: Show SW version assignments
+        run: grep -RniE "CURRENT_SW_VERSION[[:space:]]*=" js --include='*.js' || true
       - name: Run deterministic architecture refactor
         run: node scripts/refactor-dedupe.mjs
       - name: Syntax gate
