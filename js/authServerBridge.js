@@ -97,7 +97,12 @@ function bind() {
       hide('login-field-error-msg');
 
       if (!identifier || !password) {
-        show('login-error-alert', !identifier ? 'Nomor WhatsApp, Email, atau Nama Pengguna harus diisi.' : 'Password harus diisi.');
+        show(
+          'login-error-alert',
+          !identifier
+            ? 'Nomor WhatsApp, Email, atau Nama Pengguna harus diisi.'
+            : 'Password harus diisi.'
+        );
         return;
       }
 
@@ -198,14 +203,20 @@ function bind() {
         show('forgot-confirm-error-alert', 'Masukkan kode verifikasi 6 digit.');
         return;
       }
-      if (newPassword.length < 8) {
-        show('forgot-confirm-error-alert', 'Password baru minimal 8 karakter.');
+      if (newPassword.trim().length < 5) {
+        show('forgot-confirm-error-alert', 'Password baru minimal 5 karakter.');
         return;
       }
 
       busy(button, true, 'Menyimpan...');
       try {
-        await postJson('/api/password-reset', { action: 'reset', email, otpCode, newPassword });
+        await postJson('/api/password-reset', {
+          action: 'reset',
+          email,
+          otpCode,
+          newPassword
+        });
+
         resetEmailInFlight = '';
         form.reset();
         document.getElementById('forgot-input-email')?.removeAttribute('readonly');
