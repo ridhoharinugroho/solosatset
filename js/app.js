@@ -37,56 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ========================================================
-// HIGH-PERFORMANCE NON-BLOCKING INP OPTIMIZATIONS
-// ========================================================
-const iconRefreshQueue = new Set();
-let iconRefreshScheduled = false;
 
-function refreshIcons(root = null) {
-  if (typeof window === 'undefined' || !window.lucide || typeof window.lucide.createIcons !== 'function') return;
-
-  if (root && root instanceof HTMLElement) {
-    iconRefreshQueue.add(root);
-  } else {
-    iconRefreshQueue.add(document.body || document.documentElement);
-  }
-
-  if (iconRefreshScheduled) return;
-  iconRefreshScheduled = true;
-
-  const run = () => {
-    iconRefreshScheduled = false;
-    const roots = Array.from(iconRefreshQueue);
-    iconRefreshQueue.clear();
-
-    const hasGlobal = roots.some(r => r === document.body || r === document.documentElement);
-    if (hasGlobal) {
-      try { window.lucide.createIcons(); } catch (e) { }
-    } else {
-      roots.forEach(r => {
-        try { window.lucide.createIcons({ root: r }); } catch (e) { }
-      });
-    }
-  };
-
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(run, { timeout: 60 });
-  } else {
-    setTimeout(run, 1);
-  }
-}
-window.refreshIcons = refreshIcons;
-
-function deferTask(fn, timeout = 50) {
-  if (typeof fn !== 'function') return;
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(() => fn(), { timeout });
-  } else {
-    setTimeout(() => fn(), 0);
-  }
-}
-window.deferTask = deferTask;
+import { refreshIcons, deferTask, CURRENT_SW_VERSION,} from './utils/runtime.js';
 /**
  * Pusat Jual Beli Solo Raya - Main Application Controller
  * Pasang & Cari Barang di 7 Wilayah Solo Raya
@@ -113,8 +65,7 @@ import {
   getSellerReviews, addSellerReview, getSellerRatingStats,
   checkSellerVerification, isSellerVerified,
   toggleHideSellerReview, deleteSellerReview,
-  getAppReviews, fetchAppReviewsFromSupabase, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview, getAppRatingStats,
-  formatRegionTitle, formatDistrictTitle
+  getAppReviews, fetchAppReviewsFromSupabase, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview, getAppRatingStats
 } from './services/storage.js';
 import { initLiveActivityWidget, notifyUserJustLoggedIn, getLiveOnlineCount } from './services/liveActivity.js';
 import {
@@ -169,7 +120,6 @@ function cleanupNotificationsRealtime() {
   }
 }
 window.cleanupNotificationsRealtime = cleanupNotificationsRealtime;
-const CURRENT_SW_VERSION = '20260902_v214';
 
 function showHomeLoadingSkeleton() {
   const grid = document.getElementById('listings-grid') || document.getElementById('listings-container');

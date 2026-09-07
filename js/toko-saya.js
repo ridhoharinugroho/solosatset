@@ -1,56 +1,8 @@
 import './traktirModal.js';
 import './notificationModal.js';
 
-// ========================================================
-// HIGH-PERFORMANCE NON-BLOCKING INP OPTIMIZATIONS
-// ========================================================
-const iconRefreshQueue = new Set();
-let iconRefreshScheduled = false;
 
-function refreshIcons(root = null) {
-  if (typeof window === 'undefined' || !window.lucide || typeof window.lucide.createIcons !== 'function') return;
-
-  if (root && root instanceof HTMLElement) {
-    iconRefreshQueue.add(root);
-  } else {
-    iconRefreshQueue.add(document.body || document.documentElement);
-  }
-
-  if (iconRefreshScheduled) return;
-  iconRefreshScheduled = true;
-
-  const run = () => {
-    iconRefreshScheduled = false;
-    const roots = Array.from(iconRefreshQueue);
-    iconRefreshQueue.clear();
-
-    const hasGlobal = roots.some(r => r === document.body || r === document.documentElement);
-    if (hasGlobal) {
-      try { window.lucide.createIcons(); } catch (e) { }
-    } else {
-      roots.forEach(r => {
-        try { window.lucide.createIcons({ root: r }); } catch (e) { }
-      });
-    }
-  };
-
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(run, { timeout: 60 });
-  } else {
-    setTimeout(run, 1);
-  }
-}
-window.refreshIcons = refreshIcons;
-
-function deferTask(fn, timeout = 50) {
-  if (typeof fn !== 'function') return;
-  if ('requestIdleCallback' in window) {
-    window.requestIdleCallback(() => fn(), { timeout });
-  } else {
-    setTimeout(() => fn(), 0);
-  }
-}
-window.deferTask = deferTask;
+import { refreshIcons, deferTask, CURRENT_SW_VERSION,} from './utils/runtime.js';
 /**
  * Toko Saya Standalone Page Controller
  * Pusat Jual Beli Solo Raya 7 Wilayah
@@ -70,8 +22,6 @@ import {
   deleteListing,
   toggleHideSellerReview,
   deleteSellerReview,
-  formatRegionTitle,
-  formatDistrictTitle,
   fetchAppReviewsFromSupabase
 } from './services/storage.js';
 import { sbUploadMultipleImages, sbGetMyListings, sbUploadAvatar, sbUpdateUserAvatar, sbBroadcastBuNotification, updateUserInterest } from './services/supabaseDB.js';
@@ -104,7 +54,6 @@ import {
 
 import { supabase } from './lib/supabase.js';
 
-const CURRENT_SW_VERSION = '20260901_v151';
 
 let activeStoreFilter = 'all';
 let currentUser = null;

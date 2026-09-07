@@ -12,6 +12,7 @@ import {
 } from './services/storage.js';
 import { getSmtpConfig, saveSmtpConfig, sendTestEmail } from './services/emailService.js';
 import { logout } from './services/auth.js';
+import { CURRENT_SW_VERSION } from './utils/runtime.js';
 
 const ADMIN_CREDENTIALS = {
   username: 'ratakanan',
@@ -20,7 +21,6 @@ const ADMIN_CREDENTIALS = {
 
 const ADMIN_AUTH_KEY = 'pusat_barkas_admin_auth';
 
-const CURRENT_SW_VERSION = '20260902_v214';
 
 // Admin State
 const adminState = {

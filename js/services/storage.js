@@ -6,6 +6,8 @@
 import { SAMPLE_LISTINGS } from '../data/sampleListings.js';
 import { getCurrentUser, getUserById, getUserByReviewAuthor, DEFAULT_REGISTERED_USERS } from './auth.js';
 import { supabase } from '../lib/supabase.js';
+import { formatRegionTitle, formatDistrictTitle } from '../utils/runtime.js';
+export { formatRegionTitle, formatDistrictTitle };
 import { sbUploadMultipleImages, sbDeleteAvatar, sbBroadcastBuNotification, updateUserInterest } from './supabaseDB.js';
 export { sbDeleteAvatar };
 
@@ -67,30 +69,6 @@ const STORAGE_KEY_SETTINGS = 'pusat_barkas_site_settings';
 const STORAGE_KEY_TEXTS = 'pusat_barkas_custom_texts';
 const STORAGE_KEY_REVIEWS = 'pusat_barkas_seller_reviews';
 
-export function formatRegionTitle(rawRegion) {
-  if (!rawRegion) return 'Solo Raya';
-  const reg = rawRegion.toString().trim().toLowerCase();
-  const map = {
-    'solo': 'Solo',
-    'surakarta': 'Solo',
-    'karanganyar': 'Karanganyar',
-    'sukoharjo': 'Sukoharjo',
-    'wonogiri': 'Wonogiri',
-    'sragen': 'Sragen',
-    'boyolali': 'Boyolali',
-    'klaten': 'Klaten',
-    'soloraya': 'Solo Raya',
-    'solo raya': 'Solo Raya'
-  };
-  if (map[reg]) return map[reg];
-  return reg.charAt(0).toUpperCase() + reg.slice(1);
-}
-
-export function formatDistrictTitle(rawDistrict) {
-  if (!rawDistrict) return '';
-  const clean = rawDistrict.toString().trim().replace(/^Kec\.?\s*/i, '').replace(/\.+$/, '');
-  return clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-}
 
 // Default Sample Reviews for Initial Trust & Moderation
 // Default Sample Reviews for Initial Trust & Moderation (22+ Positive Reviews for Seed Verified Seller)
