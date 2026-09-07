@@ -12,6 +12,7 @@ permissions:
 jobs:
   javascript-quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,3 +24,7 @@ jobs:
 
       - name: Run project test suite
         run: npm test
+
+      - name: Run duplication audit
+        continue-on-error: true
+        run: npm run audit:duplication
