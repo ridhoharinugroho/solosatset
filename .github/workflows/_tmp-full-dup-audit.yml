@@ -1,0 +1,48 @@
+name: _tmp Full Duplication Audit
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Full static duplication scan
+        shell: bash
+        run: |
+          set +e
+          echo '=== FILE INVENTORY ==='
+          find js scripts api -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \) | sort
+          echo '=== DUPLICATE FUNCTION NAMES ==='
+          grep -RhoE '(export[[:space:]]+)?(async[[:space:]]+)?function[[:space:]]+[A-Za-z_$][A-Za-z0-9_$]*[[:space:]]*\\(' js scripts api 2>/dev/null | sed -E 's/.*function[[:space:]]+([A-Za-z_$][A-Za-z0-9_$]*).*/\\1/' | sort | uniq -c | awk '$1>1'
+          echo '=== DUPLICATE CLASS NAMES ==='
+          grep -RhoE 'class[[:space:]]+[A-Za-z_$][A-Za-z0-9_$]*' js scripts api 2>/dev/null | sed -E 's/class[[:space:]]+//' | sort | uniq -c | awk '$1>1'
+          echo '=== STORAGE KEYS USED IN MULTIPLE FILES ==='
+          for k in $(grep -RhoE '(localStorage|sessionStorage)\\.(getItem|setItem|removeItem)[[:space:]]*\\([[:space:]]*["\x27][^"\x27]+["\x27]' js scripts api 2>/dev/null | sed -E 's/.*["\x27]([^"\x27]+)["\x27].*/\\1/' | sort -u); do n=$(grep -RIlE "(localStorage|sessionStorage)\\.(getItem|setItem|removeItem)[[:space:]]*\\([[:space:]]*[\"\x27]$k[\"\x27]" js scripts api 2>/dev/null | wc -l); [ "$n" -gt 1 ] && echo "$n $k"; done
+          echo '=== SW/VERSION LITERALS ==='
+          grep -RniE '20260[0-9]{4}_v[0-9]+|CACHE_NAME|SW_VERSION|CURRENT_SW_VERSION' js sw.js manifest.json 2>/dev/null
+          echo '=== EVENT LISTENER REGISTRATION COUNTS BY EVENT ==='
+          grep -RhoE 'addEventListener\\([[:space:]]*["\x27][^"\x27]+["\x27]' js 2>/dev/null | sed -E 's/.*["\x27]([^"\x27]+)["\x27].*/\\1/' | sort | uniq -c | sort -nr | head -80
+          echo '=== SUPABASE DIRECT ACCESS LOCATIONS ==='
+          grep -RniE '(from\(["\x27]|supabase\\.|createClient\\()' js/services js/app.js js/toko-saya.js api 2>/dev/null | head -300
+          echo '=== AVATAR STORAGE LOGIC LOCATIONS ==='
+          grep -RniE 'deleteAvatarFile|sbDeleteAvatar|storage\.from\(["\x27]avatars|upload.*avatar|avatar.*upload' js api 2>/dev/null
+          echo '=== IMAGE PROCESSING LOCATIONS ==='
+          grep -RniE 'compress|canvas|toDataURL|toBlob|resize.*image|process.*Image|upload.*Image' js 2>/dev/null | head -300
+          echo '=== CLOUD SYNC LOCATIONS ==='
+          grep -RniE 'broadcastToCloud|fetchLatestCloudState|initCloudRealtimeSync|CustomEvent\(["\x27][^"\x27]*(Changed|Updated|Sync)' js 2>/dev/null | head -300
+          echo '=== POSSIBLE DUPLICATE DOM READY REGISTRATIONS ==='
+          grep -RniE 'DOMContentLoaded|document\.ready' js 2>/dev/null
+          echo '=== IDENTICAL ASSETS BY BLOB HASH ==='
+          for p in $(find assets public -type f 2>/dev/null | sort); do printf '%s  ' "$p"; sha256sum "$p" | cut -d' ' -f1; done | sort -k2,2 | awk 'BEGIN{prev="";n=0} {if($2==prev){if(n==0)print last; print $0;n++} else {prev=$2;last=$0;n=0}}'
+          echo '=== REPEATED IMPORT SOURCES ==='
+          grep -RhoE 'from[[:space:]]+["\x27][.][.]/[^"\x27]+["\x27]|from[[:space:]]+["\x27][.]/[^"\x27]+["\x27]' js 2>/dev/null | sort | uniq -c | sort -nr | head -100
+          echo '=== EXISTING DUPLICATION AUDIT ==='
+          node scripts/duplicate-audit.js
