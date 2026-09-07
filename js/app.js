@@ -1500,7 +1500,7 @@ function renderListings() {
   if (isListView) {
     grid.className = "flex flex-col gap-3 transition-all feed-fade-in";
   } else {
-    grid.className = "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4.5 transition-all feed-fade-in";
+    grid.className = "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5 px-3.5 sm:px-4 lg:px-6 transition-all feed-fade-in";
   }
 
   // Ambil produk publik (selalu terisi data fallback SAMPLE_LISTINGS jika lokal/cloud kosong)
