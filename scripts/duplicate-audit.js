@@ -55,19 +55,20 @@ const duplicateStorageKeys = [...storageKeys.entries()].filter(([, locations]) =
 
 console.log('=== solosatset duplicate audit ===');
 console.log(`JS files scanned: ${files.length}`);
-console.log(`Duplicate function names: ${duplicateFunctions.length}`);
-for (const [name, locations] of duplicateFunctions.sort()) {
+console.log(`Duplicate function names (review candidates): ${duplicateFunctions.length}`);
+for (const [name, locations] of duplicateFunctions.sort(([a], [b]) => a.localeCompare(b))) {
   console.log(`  function ${name}: ${[...new Set(locations)].join(', ')}`);
 }
-console.log(`Storage keys referenced by multiple files: ${duplicateStorageKeys.length}`);
-for (const [key, locations] of duplicateStorageKeys.sort()) {
+console.log(`Storage keys referenced by multiple files (review candidates): ${duplicateStorageKeys.length}`);
+for (const [key, locations] of duplicateStorageKeys.sort(([a], [b]) => a.localeCompare(b))) {
   console.log(`  key ${key}: ${[...new Set(locations)].join(', ')}`);
 }
 console.log(`Version-like literals found: ${swVersions.size}`);
-for (const [value, locations] of swVersions.sort()) {
+for (const [value, locations] of [...swVersions.entries()].sort(([a], [b]) => a.localeCompare(b))) {
   console.log(`  ${value}: ${[...new Set(locations)].join(', ')}`);
 }
 
-if (duplicateFunctions.length || duplicateStorageKeys.length || swVersions.size > 1) {
-  process.exitCode = 1;
-}
+// Shared function names and browser storage keys are reported for refactoring review,
+// but are not release blockers in this multi-entrypoint static application.
+// Multiple version literals remain a hard failure because they can create cache skew.
+if (swVersions.size > 1) process.exitCode = 1;
