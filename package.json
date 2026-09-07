@@ -10,6 +10,7 @@
     "test:syntax": "node scripts/test-syntax.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
     "audit:assets": "node scripts/test-asset-integrity.js",
+    "audit:all": "npm run audit:duplication && npm run audit:assets",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
   "dependencies": {
