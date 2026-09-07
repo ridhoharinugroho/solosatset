@@ -1,5 +1,5 @@
 import supabase from '../../js/lib/supabase.js';
-import listingsDemo from '../../db/listings.json' assert { type: 'json' };
+import listingsDemo from '../../db/listings.json' with { type: 'json' };
 
 /**
  * Insert demo users & listings if tables are empty.
