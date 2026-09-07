@@ -1,0 +1,127 @@
+name: One-shot auth hardening v2
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply deterministic auth hardening
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          admin = Path('js/admin.js')
+          text = admin.read_text()
+          text = text.replace(" * Protected Admin Panel (Username: ratakanan, Password: 280995)", " * Protected Admin Panel - credentials verified server-side")
+          text = re.sub(r"const ADMIN_CREDENTIALS\s*=\s*\{.*?\};\s*", "", text, count=1, flags=re.S)
+
+          check_auth = '''async function checkAuth() {
+            const loginView = document.getElementById('admin-login-view');
+            const dashboardView = document.getElementById('admin-dashboard-view');
+            try {
+              const response = await fetch('/api/admin-auth', { credentials: 'same-origin', cache: 'no-store' });
+              const result = await response.json();
+              if (result.authenticated) {
+                loginView.classList.add('hidden');
+                dashboardView.classList.remove('hidden');
+                loadDashboard();
+              } else {
+                loginView.classList.remove('hidden');
+                dashboardView.classList.add('hidden');
+              }
+            } catch {
+              loginView.classList.remove('hidden');
+              dashboardView.classList.add('hidden');
+            }
+            if (window.lucide) window.lucide.createIcons();
+          }
+
+          '''
+          text, n = re.subn(r"(?:async\s+)?function checkAuth\(\)\s*\{.*?\n\}\n\nfunction handleLogin", check_auth + "function handleLogin", text, count=1, flags=re.S)
+          if n != 1: raise SystemExit('checkAuth replacement failed')
+
+          handle_login = '''async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('admin-username').value.trim();
+            const passwordInput = document.getElementById('admin-password').value;
+            const errorAlert = document.getElementById('login-error-alert');
+            const errorMsg = document.getElementById('login-error-msg');
+            try {
+              const response = await fetch('/api/admin-auth', {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: usernameInput, password: passwordInput })
+              });
+              const result = await response.json();
+              if (!response.ok || !result.authenticated) throw new Error('invalid');
+              errorAlert.classList.add('hidden');
+              showToast('Login Admin Berhasil!', 'success');
+              await checkAuth();
+            } catch {
+              errorAlert.classList.remove('hidden');
+              errorMsg.textContent = 'Username atau Password salah! Periksa kembali kredensial Anda.';
+              if (window.lucide) window.lucide.createIcons();
+            }
+          }
+
+          '''
+          text, n = re.subn(r"function handleLogin\(e\)\s*\{.*?\n\}\n\nfunction handleLogout", handle_login + "function handleLogout", text, count=1, flags=re.S)
+          if n != 1: raise SystemExit('handleLogin replacement failed')
+
+          handle_logout = '''async function handleLogout() {
+            try {
+              await fetch('/api/admin-auth', {
+                method: 'POST', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'logout' })
+              });
+            } catch {}
+            logout();
+            showToast('Anda telah keluar dari Panel Admin.', 'info');
+            await checkAuth();
+            setTimeout(() => { window.location.href = 'admin.html'; }, 300);
+          }
+
+          '''
+          text, n = re.subn(r"function handleLogout\(\)\s*\{.*?\n\}\n\n// -------------------------------------------------------------\n// DASHBOARD INITIALIZATION", handle_logout + "// -------------------------------------------------------------\n// DASHBOARD INITIALIZATION", text, count=1, flags=re.S)
+          if n != 1: raise SystemExit('handleLogout replacement failed')
+          text = re.sub(r"postMessage\(([^,]+),\s*['\"]\*['\"]\)", r"postMessage(\1, window.location.origin)", text)
+          admin.write_text(text)
+
+          for filename in ['js/services/auth.js', 'js/services/storage.js']:
+            p = Path(filename)
+            t = p.read_text()
+            t = re.sub(r"(password\s*:\s*)['\"][^'\"]+['\"]", r"\1null", t)
+            t = re.sub(r"(password\s*=\s*)['\"][^'\"]+['\"]", r"\1null", t)
+            p.write_text(t)
+
+          p = Path('js/services/auth.js')
+          t = p.read_text()
+          t = re.sub(r"fetch\(['\"]/api/users['\"]\)", "Promise.resolve({ ok: false, json: async () => ({ users: [] }) })", t)
+          p.write_text(t)
+
+      - name: Validate syntax
+        run: |
+          node --check js/admin.js
+          node --check js/services/auth.js
+          node --check js/services/storage.js
+          node --check api/admin-auth.js
+
+      - name: Commit hardening
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/admin.js js/services/auth.js js/services/storage.js
+          git diff --cached --quiet || git commit -m 'security: remove client-side admin and demo credentials'
+          git push
