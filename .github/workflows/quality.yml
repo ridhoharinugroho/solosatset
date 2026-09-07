@@ -42,9 +42,37 @@ jobs:
         run: |
           sed -i "s/if (!rawRegion) return 'Solo';/if (!rawRegion) return 'Solo Raya';/" js/utils/runtime.js
       - name: Syntax and targeted architecture gate
+        run: node scripts/test-syntax.js
+      - name: Final targeted duplication gate
+        shell: bash
         run: |
-          node scripts/test-syntax.js
-          node scripts/refactor-dedupe.mjs
+          python - <<'PY'
+          from pathlib import Path
+          import re, sys
+          root = Path('js')
+          files = list(root.rglob('*.js'))
+          text = '\n'.join(p.read_text(encoding='utf-8') for p in files)
+          checks = {
+              'refreshIcons definitions': len(re.findall(r'function\s+refreshIcons\s*\(', text)),
+              'deferTask definitions': len(re.findall(r'function\s+deferTask\s*\(', text)),
+              'CURRENT_SW_VERSION assignments': len(re.findall(r'CURRENT_SW_VERSION\s*=\s*[\'\"]', text)),
+              'formatRegionTitle definitions': len(re.findall(r'(?:export\s+)?function\s+formatRegionTitle\s*\(', text)),
+              'formatDistrictTitle definitions': len(re.findall(r'(?:export\s+)?function\s+formatDistrictTitle\s*\(', text)),
+          }
+          for key, value in checks.items():
+              print(f'{key}: {value}')
+              if value != 1:
+                  sys.exit(f'{key} expected 1, got {value}')
+          assert Path('js/utils/runtime.js').is_file()
+          assert "./utils/runtime.js" in (Path('js/app.js').read_text(encoding='utf-8'))
+          assert "./utils/runtime.js" in (Path('js/toko-saya.js').read_text(encoding='utf-8'))
+          assert "./utils/runtime.js" in (Path('js/admin.js').read_text(encoding='utf-8'))
+          assert "../utils/runtime.js" in (Path('js/services/auth.js').read_text(encoding='utf-8'))
+          assert "../utils/runtime.js" in (Path('js/services/storage.js').read_text(encoding='utf-8'))
+          assert '20260901_v151' not in Path('js/toko-saya.js').read_text(encoding='utf-8')
+          assert "20260902_v214" in Path('js/utils/runtime.js').read_text(encoding='utf-8')
+          print('TARGETED_DEDUPE_VERIFICATION=PASS')
+          PY
       - name: Commit refactor
         run: |
           git config user.name 'github-actions[bot]'
