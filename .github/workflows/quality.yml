@@ -25,10 +25,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run project test suite
         run: npm test
 
-      - name: Run combined audit
-        continue-on-error: true
-        run: npm run audit:all
+      - name: Run production build gate
+        run: npm run build
+
+      - name: Run duplication audit
+        run: npm run audit:duplication
