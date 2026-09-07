@@ -1,0 +1,84 @@
+name: Finalize Dedupe Consumers
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.actor == 'ridhoharinugroho'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Fix shared runtime consumer imports
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          for name in ('js/app.js', 'js/toko-saya.js'):
+              path = Path(name)
+              text = path.read_text(encoding='utf-8').replace('\r\n', '\n')
+              pattern = re.compile(r"import \{([^}]*)\} from './utils/runtime\.js';")
+              match = pattern.search(text)
+              if not match:
+                  raise SystemExit(f'runtime import missing in {name}')
+              names = [x.strip() for x in match.group(1).split(',') if x.strip()]
+              for required in ('refreshIcons', 'deferTask', 'CURRENT_SW_VERSION', 'formatRegionTitle', 'formatDistrictTitle'):
+                  if required not in names:
+                      names.append(required)
+              replacement = "import { " + ', '.join(names) + " } from './utils/runtime.js';"
+              text = text[:match.start()] + replacement + text[match.end():]
+              path.write_text(text, encoding='utf-8')
+
+          # Keep only the canonical SW version source inside runtime.js.
+          runtime = Path('js/utils/runtime.js')
+          rt = runtime.read_text(encoding='utf-8')
+          rt = rt.replace("if (!rawRegion) return 'Solo';", "if (!rawRegion) return 'Solo Raya';", 1)
+          runtime.write_text(rt, encoding='utf-8')
+          PY
+
+      - name: Verify changed consumers
+        run: |
+          for file in js/utils/runtime.js js/app.js js/toko-saya.js js/admin.js js/services/auth.js js/services/storage.js; do
+            node --check "$file"
+          done
+          python - <<'PY'
+          from pathlib import Path
+          import re, sys
+          files = list(Path('js').rglob('*.js'))
+          text = '\n'.join(p.read_text(encoding='utf-8') for p in files)
+          checks = {
+              'refreshIcons': len(re.findall(r'function\s+refreshIcons\s*\(', text)),
+              'deferTask': len(re.findall(r'function\s+deferTask\s*\(', text)),
+              'CURRENT_SW_VERSION': len(re.findall(r'CURRENT_SW_VERSION\s*=\s*[\'\"]', text)),
+              'formatRegionTitle': len(re.findall(r'(?:export\s+)?function\s+formatRegionTitle\s*\(', text)),
+              'formatDistrictTitle': len(re.findall(r'(?:export\s+)?function\s+formatDistrictTitle\s*\(', text)),
+          }
+          if any(v != 1 for v in checks.values()):
+              raise SystemExit(checks)
+          for name in ('js/app.js', 'js/toko-saya.js'):
+              source = Path(name).read_text(encoding='utf-8')
+              if "formatRegionTitle" not in source or "formatDistrictTitle" not in source:
+                  raise SystemExit(f'formatter consumer import missing in {name}')
+          print(checks)
+          print('FINAL_DEDUPE_CONSUMER_VERIFICATION=PASS')
+          PY
+
+      - name: Commit finalized consumers
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/app.js js/toko-saya.js js/utils/runtime.js
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'FIX: Restore formatter imports after runtime centralization'
+          git push origin main
