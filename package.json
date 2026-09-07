@@ -6,6 +6,7 @@
   "scripts": {
     "build": "node scripts/force-create-table.js || true",
     "migrate": "node scripts/force-create-table.js",
+    "test": "node scripts/test-formatting.js",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
   "dependencies": {
