@@ -17,24 +17,33 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 -- Keep existing policies intact for compatibility; revoke browser privileges instead.
 -- This does not delete rows, columns, tables, or policies.
 REVOKE SELECT ON TABLE public.users FROM anon, authenticated;
-GRANT SELECT (
-  id,
-  name,
-  store_name,
-  email,
-  phone,
-  region,
-  district,
-  avatar,
-  bio,
-  is_demo,
-  is_verified,
-  status,
-  deleted_at,
-  created_at,
-  updated_at,
-  interests
-) ON TABLE public.users TO anon, authenticated;
+
+-- Grant only columns that actually exist in the target production table,
+-- excluding all known credential/OTP columns. This keeps the migration compatible
+-- with older production schemas that do not yet have every profile column.
+DO $$
+DECLARE
+  safe_columns TEXT;
+BEGIN
+  SELECT string_agg(format('%I', column_name), ', ' ORDER BY ordinal_position)
+    INTO safe_columns
+  FROM information_schema.columns
+  WHERE table_schema = 'public'
+    AND table_name = 'users'
+    AND column_name NOT IN (
+      'password',
+      'password_hash',
+      'otp_code',
+      'otp_expires_at'
+    );
+
+  IF safe_columns IS NOT NULL THEN
+    EXECUTE format(
+      'GRANT SELECT (%s) ON TABLE public.users TO anon, authenticated',
+      safe_columns
+    );
+  END IF;
+END $$;
 
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.users FROM anon, authenticated;
 
