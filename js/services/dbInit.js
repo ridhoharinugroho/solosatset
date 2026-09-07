@@ -1,11 +1,12 @@
 /**
- * Database Initialization & Schema Probing Engine - Pusat Jual Beli Solo Raya
- * Memastikan tabel Supabase dan kolom pendukung siap digunakan secara otomatis
+ * Lightweight database capability check.
+ * Runtime never creates, alters, or seeds database schema/data.
+ * Schema changes must be applied through Supabase migrations.
  */
 
 import { supabase } from '../lib/supabase.js';
 
-let isDbInitialized = false;
+let isDbChecked = false;
 let hasOtpDbColumns = false;
 
 if (typeof window !== 'undefined') {
@@ -17,51 +18,36 @@ export function isOtpDbColumnSupported() {
 }
 
 export async function checkAndInitDatabaseSchema() {
-  if (isDbInitialized) return;
-  isDbInitialized = true;
+  if (isDbChecked) return isOtpDbColumnSupported();
+  isDbChecked = true;
+
+  if (!supabase) return false;
 
   try {
-    // 1. Panggil serverless database initialization endpoint
-    fetch('/api/init-db', { method: 'GET' })
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.success) {
-          console.log('[DB Init] Backend Database Initialization Report:', data.report);
-          if (data.report && data.report.otp_columns_status === 'columns_verified') {
-            hasOtpDbColumns = true;
-            if (typeof window !== 'undefined') window._hasOtpDbColumns = true;
-          }
-        }
-      })
-      .catch(() => {});
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, otp_code, otp_expires_at')
+      .limit(1);
 
-    // 2. Probe tabel users dengan select generic '*' agar tidak memicu error 400 jika kolom belum ada
-    if (supabase && !hasOtpDbColumns) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .limit(1);
-
-      if (data && data.length > 0 && ('otp_code' in data[0] || 'otp_expires_at' in data[0])) {
-        hasOtpDbColumns = true;
-        if (typeof window !== 'undefined') window._hasOtpDbColumns = true;
-        console.log('[DB Init] Kolom OTP (otp_code & otp_expires_at) pada tabel users Supabase terverifikasi aktif!');
-      } else {
-        hasOtpDbColumns = false;
-        if (typeof window !== 'undefined') window._hasOtpDbColumns = false;
-        console.log('[DB Init] Database menggunakan mode Cloud Storage & Serverless Engine untuk OTP.');
-      }
+    if (!error && Array.isArray(data)) {
+      hasOtpDbColumns = true;
+      if (typeof window !== 'undefined') window._hasOtpDbColumns = true;
+      return true;
     }
   } catch (err) {
-    console.warn('[DB Init Exception]', err);
+    console.warn('[DB Capability Check]', err?.message || err);
   }
+
+  hasOtpDbColumns = false;
+  if (typeof window !== 'undefined') window._hasOtpDbColumns = false;
+  return false;
 }
 
-// Jalankan otomatis saat browser idle / dimuat
+// Run a read-only capability check after the app is idle. No schema mutation occurs.
 if (typeof window !== 'undefined') {
   if (window.requestIdleCallback) {
-    window.requestIdleCallback(() => checkAndInitDatabaseSchema());
+    window.requestIdleCallback(() => { checkAndInitDatabaseSchema(); });
   } else {
-    setTimeout(checkAndInitDatabaseSchema, 1000);
+    setTimeout(() => { checkAndInitDatabaseSchema(); }, 1000);
   }
 }
