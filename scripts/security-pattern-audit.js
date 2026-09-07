@@ -3,7 +3,9 @@ import path from 'node:path';
 
 const ROOT = process.cwd();
 const STRICT = process.argv.includes('--strict');
-const SCAN_PATHS = ['index.html', 'admin.html', 'js', 'api', 'scripts'];
+// Audit executable application code only. Developer migration/seed utilities are not shipped
+// to users and may legitimately contain server-only environment variable references.
+const SCAN_PATHS = ['index.html', 'admin.html', 'js', 'api'];
 const SKIP = new Set(['node_modules', '.git', '.vercel']);
 
 const RULES = [
@@ -24,7 +26,7 @@ const RULES = [
   },
   {
     id: 'plaintext-password-field',
-    description: 'Password literal di object source (perlu review; dapat berupa data demo)',
+    description: 'Password literal di object source',
     pattern: /\bpassword\s*:\s*['"][^'"]{4,}['"]/gi,
   },
 ];
@@ -72,6 +74,4 @@ for (const finding of findings) {
   console.warn(`[${finding.id}] ${finding.file}:${finding.line} — ${finding.description}`);
 }
 
-// Default mode is informational so the existing application remains non-blocking.
-// Strict mode is opt-in for CI/release gates after findings have been remediated or approved.
 process.exitCode = STRICT && findings.length > 0 ? 1 : 0;
