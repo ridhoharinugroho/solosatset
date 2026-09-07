@@ -15,10 +15,15 @@ function getSessionToken(req) {
   return header.startsWith('Bearer ') ? header.slice(7).trim() : null;
 }
 
-export default async function handler(req, res) {
+function setCors(res) {
+  // Same-origin API: bearer authentication does not require credentialed CORS.
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,DELETE,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+}
+
+export default async function handler(req, res) {
+  setCors(res);
 
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -68,11 +73,15 @@ export default async function handler(req, res) {
     if (!match) return res.status(400).json({ success: false, error: 'Only JPEG, PNG and WebP images are allowed.' });
 
     const contentType = match[1];
-    const buffer = Buffer.from(match[2], 'base64');
+    const base64Payload = match[2];
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Payload) || base64Payload.length % 4 !== 0) {
+      return res.status(400).json({ success: false, error: 'Invalid image encoding.' });
+    }
+
+    const buffer = Buffer.from(base64Payload, 'base64');
     if (!buffer.length || buffer.length > MAX_IMAGE_BYTES) {
       return res.status(413).json({ success: false, error: 'Image must be smaller than 8 MB.' });
     }
-    if (!ALLOWED_TYPES.has(contentType)) return res.status(400).json({ success: false, error: 'Unsupported image type.' });
 
     const safeName = String(filePath || `${Date.now()}.jpg`).split('/').pop().replace(/[^a-zA-Z0-9._-]/g, '_');
     const targetFilePath = `${sessionUser.id}/${safeName}`;
