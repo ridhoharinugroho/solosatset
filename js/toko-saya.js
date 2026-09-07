@@ -680,20 +680,20 @@ function renderStoreListings(filter = 'all') {
     const regionName = region ? region.shortName : item.regionId;
     const itemStatus = item.status || (item.isSold ? 'sold' : 'available');
 
-    let statusBorderColor = 'border-slate-800 bg-slate-900/90';
+    let statusBorderColor = 'border-slate-200 bg-white';
     if (itemStatus === 'sold') {
-      statusBorderColor = 'border-rose-900/40 bg-rose-950/20';
+      statusBorderColor = 'border-rose-200 bg-rose-50/50';
     } else if (itemStatus === 'booked') {
-      statusBorderColor = 'border-amber-900/40 bg-amber-950/20';
+      statusBorderColor = 'border-amber-200 bg-amber-50/50';
     }
 
     html += `
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-2xl border ${statusBorderColor} shadow-xl hover:border-slate-700 transition-all bg-slate-900/90 backdrop-blur-md">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-2xl border ${statusBorderColor} shadow-sm hover:border-slate-300 transition-all">
 
         <!-- Left: Image & Content -->
         <div class="flex items-start gap-3.5 sm:gap-4 min-w-0 flex-1">
           <div class="relative flex-shrink-0">
-            <img src="${(Array.isArray(item.images) && item.images[0]) ? item.images[0] : 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80'}" alt="${item.title}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border border-slate-800 shadow-md">
+            <img src="${(Array.isArray(item.images) && item.images[0]) ? item.images[0] : 'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?auto=format&fit=crop&w=800&q=80'}" alt="${item.title}" class="w-16 h-16 sm:w-20 sm:h-20 rounded-xl object-cover border border-slate-200 shadow-sm">
             <!-- Small Status Indicator Dot on Image -->
             <span class="absolute top-1.5 left-1.5 w-3.5 h-3.5 rounded-full border-2 border-slate-950 shadow-xs ${itemStatus === 'sold' ? 'bg-rose-500' : itemStatus === 'booked' ? 'bg-amber-400' : 'bg-emerald-400'
       }" title="Status: ${itemStatus === 'sold' ? 'Terjual' : itemStatus === 'booked' ? 'Booked' : 'Tersedia'}"></span>
@@ -701,41 +701,41 @@ function renderStoreListings(filter = 'all') {
 
           <div class="flex-1 min-w-0 space-y-1.5">
             <!-- 1. Nama Barang Prominen di Bagian Paling Atas (User Requirement #1) -->
-            <h3 class="text-sm sm:text-base font-black text-white leading-snug line-clamp-2 hover:text-amber-300 transition-colors" title="${item.title}">
+            <h3 class="text-[11px] sm:text-[12px] font-bold text-slate-800 leading-snug line-clamp-2 hover:text-rose-900 transition-colors" title="${item.title}">
               ${item.title}
             </h3>
 
             <!-- 2. Harga & Opsi Nego & Badge BU -->
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm sm:text-base font-black text-amber-300 tracking-tight">${formatRupiah(item.price)}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="text-[12px] sm:text-[13px] font-black text-rose-900 tracking-tight">${formatRupiah(item.price)}</span>
               ${(item.is_bu || item.isBu) ? `
-                <span class="text-[10px] font-black text-white bg-rose-600 px-2 py-0.5 rounded-lg border border-rose-500 shadow-xs flex items-center gap-1 animate-pulse">
+                <span class="text-[9px] font-black text-white bg-rose-600 px-1.5 py-0.5 rounded-md border border-rose-500 shadow-xs flex items-center gap-1 animate-pulse">
                   <span>🔥 BU</span>
                 </span>
               ` : ''}
-              <span class="text-[10px] font-bold text-slate-300 bg-slate-800/90 px-2 py-0.5 rounded-lg border border-slate-700">
-                ${item.negoType === 'pas' ? 'Harga Pas / Nett' : 'Bisa Nego'}
+              <span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
+                ${item.negoType === 'pas' ? 'Nett' : 'Nego'}
               </span>
-              <span class="text-[10px] font-bold ${item.paymentMethod === 'in_store' ? 'text-sky-300 bg-sky-950/60 border-sky-800/60' : 'text-emerald-300 bg-emerald-950/60 border-emerald-800/60'} px-2 py-0.5 rounded-lg border">
+              <span class="text-[9px] font-bold ${item.paymentMethod === 'in_store' ? 'text-sky-700 bg-sky-50 border-sky-200' : 'text-emerald-700 bg-emerald-50 border-emerald-200'} px-1.5 py-0.5 rounded-md border">
                 ${item.paymentMethod === 'in_store' ? 'In Store' : 'COD'}
               </span>
             </div>
 
             <!-- 3. Lokasi & Tayangan (Vektor Icon Minimalis) -->
-            <div class="flex items-center gap-3 text-xs text-slate-400 flex-wrap pt-0.5">
-              <span class="flex items-center gap-1 text-[11px] font-semibold text-slate-300">
-                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-400 flex-shrink-0"></i>
+            <div class="flex items-center gap-2.5 text-[10px] text-slate-500 flex-wrap pt-0.5">
+              <span class="flex items-center gap-1 font-semibold text-slate-600">
+                <i data-lucide="map-pin" class="w-3 h-3 text-rose-700 flex-shrink-0"></i>
                 <span>${regionName}${item.district ? ' • ' + item.district : ''}</span>
               </span>
-              <span class="flex items-center gap-1 text-[11px] font-medium text-slate-400">
-                <i data-lucide="eye" class="w-3.5 h-3.5 text-amber-400/80 flex-shrink-0"></i>
+              <span class="flex items-center gap-1 font-medium text-slate-500">
+                <i data-lucide="eye" class="w-3 h-3 text-amber-500 flex-shrink-0"></i>
                 <span>${item.views || 1}x dilihat</span>
               </span>
             </div>
 
             ${item.codPoint ? `
-              <div class="text-[11px] text-slate-400 truncate flex items-center gap-1.5">
-                <i data-lucide="navigation" class="w-3 h-3 text-emerald-400 flex-shrink-0"></i>
+              <div class="text-[10px] text-slate-500 truncate flex items-center gap-1.5 mt-0.5">
+                <i data-lucide="navigation" class="w-3 h-3 text-emerald-600 flex-shrink-0"></i>
                 <span class="truncate">Titik: ${item.codPoint}</span>
               </div>
             ` : ''}
@@ -743,7 +743,7 @@ function renderStoreListings(filter = 'all') {
         </div>
 
         <!-- Right Controls: Status Modal Trigger, Edit Button, Delete Button -->
-        <div class="flex items-center gap-2.5 pt-3 md:pt-0 border-t md:border-t-0 border-slate-800 flex-shrink-0 self-end md:self-center">
+        <div class="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 flex-shrink-0 self-end md:self-center mt-1 sm:mt-0">
 
           <!-- Status Modal Trigger Button (Safe, Centered Modal Popup & Dropup Indicator) -->
           <button
@@ -752,16 +752,16 @@ function renderStoreListings(filter = 'all') {
             data-id="${item.id}"
             data-title="${item.title.replace(/"/g, '&quot;')}"
             data-current-status="${itemStatus}"
-            class="flex items-center gap-2 px-3.5 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer shadow-xs ${itemStatus === 'sold' ? 'bg-rose-500/15 text-rose-300 border-rose-500/30 hover:border-rose-400/60 hover:bg-rose-500/25' :
-        itemStatus === 'booked' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:border-amber-400/60 hover:bg-amber-500/25' :
-          'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 hover:border-emerald-400/60 hover:bg-emerald-500/25'
+            class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] sm:text-xs font-extrabold transition-all cursor-pointer shadow-xs ${itemStatus === 'sold' ? 'bg-rose-50 text-rose-800 border-rose-200 hover:border-rose-300 hover:bg-rose-100' :
+        itemStatus === 'booked' ? 'bg-amber-50 text-amber-800 border-amber-200 hover:border-amber-300 hover:bg-amber-100' :
+          'bg-emerald-50 text-emerald-800 border-emerald-200 hover:border-emerald-300 hover:bg-emerald-100'
       }"
             title="Klik untuk Mengubah Status Barang"
           >
-            <span class="w-2 h-2 rounded-full ${itemStatus === 'sold' ? 'bg-rose-400' : itemStatus === 'booked' ? 'bg-amber-400' : 'bg-emerald-400'
+            <span class="w-1.5 h-1.5 rounded-full ${itemStatus === 'sold' ? 'bg-rose-500' : itemStatus === 'booked' ? 'bg-amber-500' : 'bg-emerald-500'
       }"></span>
             <span>${itemStatus === 'sold' ? 'Terjual' : itemStatus === 'booked' ? 'Booked' : 'Tersedia'}</span>
-            <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+            <i data-lucide="chevron-down" class="w-3 h-3 text-slate-500"></i>
           </button>
 
           <!-- Edit Button (User Requirement #2: Direct In-Page Edit Modal) -->
@@ -769,10 +769,10 @@ function renderStoreListings(filter = 'all') {
             type="button"
             data-action="edit-listing"
             data-id="${item.id}"
-            class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer border border-slate-700 hover:border-amber-400/40"
+            class="px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-amber-600 rounded-lg text-[10px] sm:text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer border border-slate-200 hover:border-amber-300"
             title="Sunting / Edit Rincian Iklan"
           >
-            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+            <i data-lucide="edit-3" class="w-3 h-3"></i>
             <span>Edit</span>
           </button>
 
@@ -781,7 +781,7 @@ function renderStoreListings(filter = 'all') {
             type="button"
             data-action="delete-listing"
             data-id="${item.id}"
-            class="p-2 text-slate-400 hover:text-rose-300 hover:bg-rose-950/60 rounded-xl transition-all cursor-pointer border border-slate-800 hover:border-rose-900/60 shadow-xs"
+            class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer border border-transparent hover:border-rose-200 shadow-none hover:shadow-xs"
             title="Hapus Iklan"
           >
             <i data-lucide="trash-2" class="w-4 h-4"></i>

@@ -16,9 +16,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="assets/img/app-logo.png?v=20260828">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/img/app-logo.png?v=20260828">
   <link rel="manifest" href="manifest.json?v=20260828">
-  <meta name="theme-color" content="#4b160c">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: dark)">
   <meta name="msapplication-TileImage" content="assets/img/app-logo.png?v=20260828">
-  <meta name="msapplication-TileColor" content="#4b160c">
+  <meta name="msapplication-TileColor" content="#ffffff">
 
   <!-- Open Graph / Meta Tags -->
   <meta property="og:type" content="website">
@@ -69,22 +71,23 @@
 </head>
 
 <body
-  class="bg-slate-950 text-slate-100 pb-28 md:pb-24 min-h-screen flex flex-col antialiased selection:bg-rose-900 selection:text-white font-sans">
+  style="background-color: #ffffff; margin: 0;"
+  class="bg-[#ffffff] text-slate-900 pb-28 md:pb-24 min-h-screen flex flex-col antialiased selection:bg-rose-900 selection:text-white font-sans">
 
   <!-- Top Navigation Header -->
   <header
-    class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-white/10 px-3 sm:px-4 lg:px-6 py-2.5">
+    class="sticky top-0 z-30 bg-gradient-to-r from-rose-950 via-rose-900 to-amber-950 backdrop-blur-md shadow-md border-b border-rose-800/30 px-3 sm:px-4 lg:px-6 py-2.5">
     <div class="max-w-5xl mx-auto flex items-center justify-between">
-      <a href="index.html" class="flex items-center gap-2 cursor-pointer">
-        <img src="assets/img/app-logo.png?v=3.1.3" alt="Logo" class="w-7 h-7 rounded-lg object-cover shadow-sm"
-          width="28" height="28" loading="eager">
+      <a href="index.html" class="flex items-center gap-2 cursor-pointer bg-white/10 p-1.5 rounded-xl hover:bg-white/20 transition-all">
+        <img src="assets/img/app-logo.png?v=3.1.3" alt="Logo" class="w-6 h-6 rounded-md object-cover shadow-sm bg-white"
+          width="24" height="24" loading="eager">
         <span class="font-black text-xs sm:text-sm text-white tracking-tight">solosatset</span>
       </a>
       <div class="flex items-center gap-2.5">
-        <span class="text-xs font-bold text-rose-300 hidden sm:inline">Pusat Jual Beli Solo Raya</span>
+        <span class="text-[10px] sm:text-xs font-bold text-amber-300 hidden sm:inline">Pusat Jual Beli Solo Raya</span>
         <!-- Notification Bell -->
         <button type="button" id="btn-open-notifications-modal"
-          class="relative p-1.5 sm:p-2 text-white bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 flex items-center justify-center text-xs font-semibold cursor-pointer transition-all"
+          class="relative p-1.5 sm:p-2 text-white bg-white/10 hover:bg-white/20 rounded-xl border border-white/10 flex items-center justify-center text-xs font-semibold cursor-pointer transition-all shadow-xs"
           title="Pusat Notifikasi">
           <i data-lucide="bell" class="w-4 h-4 text-amber-300 pointer-events-none"></i>
         </button>
@@ -142,14 +145,14 @@
     </div>
 
     <!-- Section 2: Rating & Ulasan Toko -->
-    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 sm:p-5 shadow-2xl space-y-3.5 backdrop-blur-md">
+    <div class="bg-white border border-slate-200 rounded-3xl p-4 sm:p-5 shadow-sm space-y-3.5">
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <h2 class="font-extrabold text-sm sm:text-base text-white uppercase tracking-wider flex items-center gap-2">
+        <h2 class="font-extrabold text-sm sm:text-base text-slate-800 uppercase tracking-wider flex items-center gap-2">
           <i data-lucide="star" class="w-5 h-5 text-amber-400 fill-amber-400"></i>
           <span>Rating & Ulasan Pembeli untuk Toko Kamu</span>
         </h2>
         <span id="my-store-rating-summary-badge"
-          class="text-xs font-black text-amber-300 bg-amber-950/70 border border-amber-500/30 px-3 py-1 rounded-full">
+          class="text-xs font-black text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full shadow-xs">
           ⭐ 0.0 (0 Ulasan)
         </span>
       </div>
@@ -205,12 +208,12 @@
         <!-- Loading Skeleton -->
         <div id="my-listings-loading-skeleton" class="space-y-3 animate-pulse">
           <div
-            class="p-4 rounded-2xl border border-slate-800 bg-slate-900/70 backdrop-blur-md flex gap-3.5 sm:gap-4 items-center">
-            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-800/80 flex-shrink-0"></div>
+            class="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm flex gap-3.5 sm:gap-4 items-center">
+            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-slate-100 flex-shrink-0"></div>
             <div class="flex-1 space-y-2.5 min-w-0">
-              <div class="h-4 bg-slate-800 rounded-lg w-3/4"></div>
-              <div class="h-3 bg-slate-800/70 rounded-lg w-1/3"></div>
-              <div class="h-3 bg-slate-800/50 rounded-lg w-1/2"></div>
+              <div class="h-4 bg-slate-200 rounded-lg w-3/4"></div>
+              <div class="h-3 bg-slate-100 rounded-lg w-1/3"></div>
+              <div class="h-3 bg-slate-50 rounded-lg w-1/2"></div>
             </div>
           </div>
         </div>
@@ -218,11 +221,11 @@
 
       <!-- Empty State -->
       <div id="my-listings-empty"
-        class="hidden py-16 text-center space-y-3 bg-slate-900/60 rounded-3xl border border-dashed border-slate-800 p-6 backdrop-blur-md">
-        <i data-lucide="package-open" class="w-14 h-14 text-slate-600 mx-auto"></i>
+        class="hidden py-16 text-center space-y-3 bg-slate-50 rounded-3xl border border-dashed border-slate-300 p-6">
+        <i data-lucide="package-open" class="w-14 h-14 text-slate-400 mx-auto"></i>
         <div>
-          <p class="text-base font-bold text-slate-200">Tidak ada barang jualan pada etalase ini</p>
-          <p class="text-xs text-slate-400">Gunakan tombol Pasang Iklan di atas untuk menambah barang jualan ke etalase
+          <p class="text-base font-bold text-slate-800">Tidak ada barang jualan pada etalase ini</p>
+          <p class="text-xs text-slate-500">Gunakan tombol Pasang Iklan di atas untuk menambah barang jualan ke etalase
             kamu.</p>
         </div>
       </div>
@@ -232,16 +235,16 @@
 
   <!-- BOTTOM NAVIGATION DOCK (ACTIVE ON TOKO SAYA) -->
   <nav id="bottom-navigation-dock"
-    class="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/90 backdrop-blur-xl border-t border-slate-800/80 px-3 py-1.5 shadow-2xl">
+    class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200/90 px-3 py-1.5 shadow-[0_-4px_25px_-5px_rgba(0,0,0,0.05)]">
     <div class="max-w-md md:max-w-xl mx-auto flex items-center justify-around">
       <a href="index.html" id="nav-btn-home"
-        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-400 hover:text-rose-400 font-bold text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all">
+        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-500 hover:text-rose-700 font-bold text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all">
         <i data-lucide="home" class="w-5 h-5"></i>
         <span>Beranda</span>
       </a>
 
       <a href="index.html#ulasan" id="nav-btn-reviews"
-        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-400 hover:text-rose-400 text-[10px] sm:text-xs font-bold cursor-pointer hover:scale-105 transition-all"
+        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-500 hover:text-rose-700 text-[10px] sm:text-xs font-bold cursor-pointer hover:scale-105 transition-all"
         title="Buka Halaman Ulasan & Feedback">
         <i data-lucide="message-square-heart" class="w-5 h-5"></i>
         <span>Ulasan</span>
@@ -253,24 +256,24 @@
           id="nav-btn-traktir"
           title="Traktir Kopi / Apresiasi"
           aria-label="Traktir Pengembang"
-          class="relative z-50 flex items-center justify-center -mt-5 bg-gradient-to-r from-amber-600 via-rose-800 to-rose-900 hover:from-amber-500 hover:to-rose-700 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all border-4 border-slate-900 cursor-pointer pointer-events-auto"
+          class="relative z-50 flex items-center justify-center -mt-5 bg-gradient-to-r from-amber-500 via-rose-700 to-rose-800 hover:from-amber-400 hover:to-rose-600 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-xl hover:scale-110 active:scale-95 transition-all border-4 border-[#ffffff] cursor-pointer pointer-events-auto"
       >
           <i
               data-lucide="coffee"
-              class="w-6 h-6 text-amber-300 pointer-events-none"
+              class="w-6 h-6 text-amber-200 pointer-events-none"
           ></i>
       </button>
 
       <a href="toko-saya.html" id="nav-btn-my-listings"
-        class="flex flex-col items-center gap-0.5 py-1 px-3 text-rose-400 font-black text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all"
+        class="flex flex-col items-center gap-0.5 py-1 px-3 text-rose-700 font-black text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all"
         title="Halaman Toko Saya (Aktif)">
-        <i data-lucide="store" class="w-5 h-5 text-rose-400"></i>
-        <span class="text-rose-400 font-black">Toko Saya</span>
+        <i data-lucide="store" class="w-5 h-5 text-rose-700"></i>
+        <span class="text-rose-700 font-black">Toko Saya</span>
       </a>
 
       <button type="button" id="nav-btn-profile"
         onclick="window.handleProfileNavClick && window.handleProfileNavClick(event)"
-        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-400 hover:text-rose-400 text-[10px] sm:text-xs font-bold cursor-pointer hover:scale-105 transition-all">
+        class="flex flex-col items-center gap-0.5 py-1 px-3 text-slate-500 hover:text-rose-700 text-[10px] sm:text-xs font-bold cursor-pointer hover:scale-105 transition-all">
         <i data-lucide="user" class="w-5 h-5 pointer-events-none"></i>
         <span id="nav-profile-label" class="pointer-events-none">Profil</span>
       </button>
