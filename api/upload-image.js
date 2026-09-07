@@ -5,6 +5,12 @@ import { isAdminRequest } from './admin-auth.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+const IMAGE_SIGNATURES = {
+  'image/jpeg': (buffer) => buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff,
+  'image/png': (buffer) => buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
+  'image/webp': (buffer) => buffer.length >= 12 && buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP'
+};
 
 function getAdminClient() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
@@ -15,6 +21,26 @@ function sanitizeStoragePath(value) {
   const segments = String(value || '').split('/').map((segment) => segment.trim()).filter(Boolean);
   if (!segments.length || segments.some((segment) => segment === '.' || segment === '..' || !/^[a-zA-Z0-9_.-]+$/.test(segment))) return null;
   return segments.join('/');
+}
+
+function decodeImageData(imageData) {
+  if (typeof imageData !== 'string') return null;
+  if (!imageData.startsWith('data:')) return { buffer: Buffer.from(imageData, 'base64'), declaredType: null };
+  const match = imageData.match(/^data:([^;,]+);base64,(.*)$/s);
+  if (!match) return null;
+  const declaredType = String(match[1] || '').toLowerCase().trim();
+  const buffer = Buffer.from(match[2], 'base64');
+  return { buffer, declaredType };
+}
+
+function validateImage(buffer, declaredType) {
+  if (!buffer?.length) return { ok: false, error: 'Invalid image data.' };
+  if (buffer.length > MAX_IMAGE_BYTES) return { ok: false, error: 'Ukuran gambar terlalu besar.' };
+  if (declaredType && !IMAGE_SIGNATURES[declaredType]) return { ok: false, error: 'Format gambar tidak didukung.' };
+  const detectedType = Object.entries(IMAGE_SIGNATURES).find(([, check]) => check(buffer))?.[0] || null;
+  if (!detectedType) return { ok: false, error: 'Data bukan file gambar JPEG, PNG, atau WebP yang valid.' };
+  if (declaredType && declaredType !== detectedType) return { ok: false, error: 'Tipe konten gambar tidak sesuai dengan isi file.' };
+  return { ok: true, contentType: detectedType };
 }
 
 export default async function handler(req, res) {
@@ -56,21 +82,15 @@ export default async function handler(req, res) {
     const ownerId = String(authenticatedUser?.sub || 'admin').replace(/[^a-zA-Z0-9_-]/g, '_');
     const generatedFilePath = `${ownerId}/${targetBucket === 'avatars' ? 'avatar' : 'image'}_${randomId}.jpg`;
 
-    let buffer;
-    let contentType = 'image/jpeg';
-    if (typeof imageData === 'string' && imageData.startsWith('data:')) {
-      const separator = ';base64,';
-      const index = imageData.indexOf(separator);
-      if (index === -1) return res.status(400).json({ success: false, error: 'Invalid image data.' });
-      contentType = imageData.slice(5, index) || 'image/jpeg';
-      buffer = Buffer.from(imageData.slice(index + separator.length), 'base64');
-    } else {
-      buffer = Buffer.from(String(imageData), 'base64');
-    }
-    if (!buffer.length) return res.status(400).json({ success: false, error: 'Invalid image data.' });
-    if (buffer.length > 8 * 1024 * 1024) return res.status(413).json({ success: false, error: 'Ukuran gambar terlalu besar.' });
+    const decoded = decodeImageData(imageData);
+    const validation = validateImage(decoded?.buffer, decoded?.declaredType);
+    if (!validation.ok) return res.status(400).json({ success: false, error: validation.error });
 
-    const { error } = await supabase.storage.from(targetBucket).upload(generatedFilePath, buffer, { upsert: false, contentType, cacheControl: '31536000' });
+    const { error } = await supabase.storage.from(targetBucket).upload(generatedFilePath, decoded.buffer, {
+      upsert: false,
+      contentType: validation.contentType,
+      cacheControl: '31536000'
+    });
     if (error) return res.status(500).json({ success: false, error: 'File gagal diunggah ke storage.' });
     const { data: publicUrlData } = supabase.storage.from(targetBucket).getPublicUrl(generatedFilePath);
     return res.status(200).json({ success: true, publicUrl: publicUrlData.publicUrl, filePath: generatedFilePath, bucket: targetBucket });
