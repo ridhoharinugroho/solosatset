@@ -9,7 +9,7 @@ const key = crypto.scryptSync(password, salt, 64, {
   N: 16384,
   r: 8,
   p: 1,
-  maxmem: 32 * 16384 * 8 + 1024 * 1024
+  maxmem: 64 * 1024 * 1024
 });
 
 process.env.ADMIN_USERNAME = username;
