@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "build": "npm run test:syntax && npm run audit:security:strict && npm run audit:assets",
-    "migrate": "node scripts/force-create-table.js",
     "test": "node scripts/test-formatting.js && node scripts/test-syntax.js",
     "test:syntax": "node scripts/test-syntax.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
