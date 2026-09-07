@@ -92,6 +92,19 @@ function pickLatestPayload(current, payload, itemTime = 0) {
   return candidateTime >= current.time ? { data: payload.data, time: candidateTime } : current;
 }
 
+function normalizeCallbacks(onTextsUpdate, onSettingsUpdate, onListingsUpdate, onUsersUpdate) {
+  if (onTextsUpdate && typeof onTextsUpdate === 'object') {
+    return onTextsUpdate;
+  }
+
+  return {
+    onTextsUpdate,
+    onSettingsUpdate,
+    onListingsUpdate,
+    onUsersUpdate
+  };
+}
+
 // -------------------------------------------------------------
 // INITIALIZE CLOUD REAL-TIME LISTENER (ON HP & ALL DEVICES)
 // -------------------------------------------------------------
@@ -99,13 +112,15 @@ export function initCloudRealtimeSync(onTextsUpdate, onSettingsUpdate, onListing
   if (isCloudSyncInitialized) return;
   isCloudSyncInitialized = true;
 
-  const callbacks = { onTextsUpdate, onSettingsUpdate, onListingsUpdate, onUsersUpdate };
+  const callbacks = normalizeCallbacks(onTextsUpdate, onSettingsUpdate, onListingsUpdate, onUsersUpdate);
   fetchLatestCloudState(callbacks);
   startRealtimeStream(callbacks);
 }
 
-// Fresh Fetch latest updates with cache-busting from central database
-export async function fetchLatestCloudState(callbacks) {
+// Fresh Fetch latest updates with cache-busting from central database.
+// Supports both the legacy four-callback signature and the internal callbacks object.
+export async function fetchLatestCloudState(onTextsUpdate, onSettingsUpdate, onListingsUpdate, onUsersUpdate) {
+  const callbacks = normalizeCallbacks(onTextsUpdate, onSettingsUpdate, onListingsUpdate, onUsersUpdate);
   const cacheBuster = Date.now();
 
   for (const baseUrl of CLOUD_ENDPOINTS) {
@@ -144,11 +159,10 @@ export async function fetchLatestCloudState(callbacks) {
         }
       }
 
-      if (latest.texts) callbacks.onTextsUpdate?.(latest.texts.data);
-      if (latest.settings) callbacks.onSettingsUpdate?.(latest.settings.data);
-      if (latest.listings) callbacks.onListingsUpdate?.(latest.listings);
-      if (latest.users) callbacks.onUsersUpdate?.(latest.users);
-
+      callbacks.onTextsUpdate?.(latest.texts?.data);
+      callbacks.onSettingsUpdate?.(latest.settings?.data);
+      callbacks.onListingsUpdate?.(latest.listings);
+      callbacks.onUsersUpdate?.(latest.users);
       return;
     } catch (_) {
       // Fallback to the next relay.
