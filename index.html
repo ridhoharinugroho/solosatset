@@ -116,52 +116,38 @@
       })();
   </script>
 
-  <!-- STICKY TOP APP SECTION (LOGO + ACTIONS + SEARCH INLINE) -->
+  <!-- STICKY TOP APP SECTION (LOGO + ACTIONS + SEARCH BELOW BRAND ON MOBILE) -->
   <div id="sticky-top-app-wrapper"
-    class="sticky-top-app-bar sticky top-0 z-30 w-full bg-[#ffffff] shadow-xs h-[60px] min-h-[60px] sm:h-16 sm:min-h-[64px] flex items-center">
+    class="sticky-top-app-bar sticky top-0 z-30 w-full bg-[#ffffff] shadow-xs min-h-[88px] md:min-h-[64px] flex flex-col justify-center">
 
     <!-- 2. TOP APP HEADER & SEARCH BAR -->
     <header class="w-full max-w-full overflow-hidden">
       <div class="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6">
-        <div class="flex items-center justify-between h-14 sm:h-16 gap-1.5 sm:gap-4 py-1">
+
+        <!-- Row 1: Brand Logo, Tagline, & Action Buttons -->
+        <div class="flex items-center justify-between h-12 sm:h-16 gap-2 sm:gap-4 pt-1.5 pb-0.5 sm:py-1">
 
           <!-- Brand Logo & Header -->
-          <div id="brand-header" class="flex items-center gap-1.5 sm:gap-2 group flex-shrink-0 select-none">
+          <div id="brand-header" class="flex items-center gap-2 group flex-shrink min-w-0 select-none">
             <div id="brand-logo-icon-container"
-              class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform bg-white border border-rose-200"
+              class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform bg-white border border-rose-200"
               title="solosatset (Klik 10x untuk Akses Admin)">
               <img src="assets/img/app-logo.png?v=2.1" alt="Logo solosatset"
                 class="w-full h-full object-contain pointer-events-none rounded-xl" width="36" height="36"
                 loading="eager" fetchpriority="high">
             </div>
-            <div class="flex flex-col min-w-0 justify-center max-w-[90px] min-[380px]:max-w-[120px] sm:max-w-none">
+            <div class="flex flex-col min-w-0 justify-center">
               <div class="flex items-center gap-1 sm:gap-1.5 leading-none">
                 <span data-text-key="brand_name"
-                  class="font-black text-xs sm:text-xl tracking-tight text-rose-950 truncate cursor-pointer lowercase">solosatset</span>
+                  class="font-black text-base sm:text-xl tracking-tight text-rose-950 truncate cursor-pointer lowercase">solosatset</span>
               </div>
               <span data-text-key="brand_subtagline"
-                class="text-[8.5px] sm:text-[11px] text-rose-700 font-bold tracking-tight mt-0.5 leading-tight truncate cursor-pointer">Pantau
+                class="text-[9.5px] sm:text-[11px] text-rose-700 font-bold tracking-tight mt-0.5 leading-tight truncate cursor-pointer">Pantau
                 Cocok Bayar • Nego Langsung WA</span>
             </div>
           </div>
 
-          <!-- Mobile Search Container (Inline on Mobile) -->
-          <div id="mobile-search-container" class="flex md:hidden flex-1 min-w-0 mx-1">
-            <form id="mobile-search-form" action="javascript:void(0)" role="search" class="relative w-full">
-              <i data-lucide="search"
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none"></i>
-              <input type="search" id="mobile-search-input" data-text-key="search_placeholder"
-                placeholder="Cari se-Solo Raya..." enterkeyhint="search" autocapitalize="none" autocorrect="off"
-                spellcheck="false"
-                class="w-full pl-8 pr-7 py-1.5 bg-slate-50 text-slate-800 border border-slate-200 rounded-full text-xs placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:bg-white shadow-xs [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden">
-              <button type="button" id="mobile-search-clear"
-                class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
-                <i data-lucide="x" class="w-3.5 h-3.5"></i>
-              </button>
-            </form>
-          </div>
-
-          <!-- Desktop Search Bar -->
+          <!-- Desktop Search Bar (Hidden on Mobile) -->
           <div id="desktop-search-container" class="hidden md:flex flex-1 max-w-lg mx-2 lg:mx-4">
             <form id="desktop-search-form" action="javascript:void(0)" role="search" class="relative w-full">
               <i data-lucide="search"
@@ -178,7 +164,7 @@
           </div>
 
           <!-- Right Header Action Controls -->
-          <div class="flex items-center gap-1 sm:gap-2.5 flex-shrink-0">
+          <div class="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
             <!-- Notification Bell Button -->
             <button type="button" id="btn-open-notifications-modal"
               class="relative p-1.5 sm:p-2 text-rose-900 bg-white/50 hover:bg-white/80 rounded-xl border border-rose-200/50 flex items-center justify-center text-xs font-semibold flex-shrink-0 cursor-pointer backdrop-blur-sm transition-all shadow-sm"
@@ -203,6 +189,22 @@
             </button>
           </div>
 
+        </div>
+
+        <!-- Row 2: Mobile Search Bar (Positioned directly below brand header on mobile) -->
+        <div id="mobile-search-container" class="md:hidden pt-0.5 pb-2">
+          <form id="mobile-search-form" action="javascript:void(0)" role="search" class="relative w-full">
+            <i data-lucide="search"
+              class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none"></i>
+            <input type="search" id="mobile-search-input" data-text-key="search_placeholder"
+              placeholder="Cari barang se-Solo Raya..." enterkeyhint="search" autocapitalize="none" autocorrect="off"
+              spellcheck="false"
+              class="w-full pl-10 pr-8 py-2 bg-slate-50 text-slate-800 border border-slate-200 rounded-xl text-xs sm:text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:bg-white shadow-xs [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden">
+            <button type="button" id="mobile-search-clear"
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </form>
         </div>
 
       </div>
