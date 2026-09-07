@@ -11,6 +11,7 @@
     "audit:duplication": "node scripts/duplicate-audit.js",
     "audit:assets": "node scripts/test-asset-integrity.js",
     "audit:security": "node scripts/security-pattern-audit.js",
+    "audit:security:strict": "node scripts/security-pattern-audit.js --strict",
     "audit:all": "npm run audit:duplication && npm run audit:assets && npm run audit:security",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
