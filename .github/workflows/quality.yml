@@ -28,3 +28,7 @@ jobs:
       - name: Run combined audit
         continue-on-error: true
         run: npm run audit:all
+
+      - name: Run security pattern audit
+        continue-on-error: true
+        run: npm run audit:security
