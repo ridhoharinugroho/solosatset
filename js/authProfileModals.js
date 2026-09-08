@@ -1,12 +1,11 @@
 // ============================================================
 // AUTH & PROFILE MODALS LOADER
 // Single source of truth for loading components/modals/auth-profile.html
-// Modals: modal-user-auth, modal-user-profile,
-// modal-profile-region-picker, modal-profile-district-picker
 // ============================================================
 
 import { getDistrictsByRegionId } from './data/regions.js';
 import './services/otpAuth.js';
+import './services/passwordChangeOtp.js';
 
 let authProfileLoadPromise = null;
 
@@ -14,13 +13,10 @@ function populateRegistrationDistricts(preferredDistrict = '') {
     const regionSelect = document.getElementById('reg-select-region');
     const districtSelect = document.getElementById('reg-select-district');
     if (!regionSelect || !districtSelect) return false;
-
     const regionId = regionSelect.value || 'solo';
     const districts = getDistrictsByRegionId(regionId);
     const previousValue = preferredDistrict || districtSelect.value || '';
-
     districtSelect.replaceChildren();
-
     if (!districts.length) {
         const option = document.createElement('option');
         option.value = '';
@@ -29,14 +25,12 @@ function populateRegistrationDistricts(preferredDistrict = '') {
         districtSelect.value = '';
         return false;
     }
-
     districts.forEach((district) => {
         const option = document.createElement('option');
         option.value = district;
         option.textContent = district;
         districtSelect.appendChild(option);
     });
-
     const matchingDistrict = districts.find((district) => district === previousValue);
     districtSelect.value = matchingDistrict || districts[0];
     return true;
@@ -46,14 +40,10 @@ function installRegistrationDistrictHandler() {
     const regionSelect = document.getElementById('reg-select-region');
     const districtSelect = document.getElementById('reg-select-district');
     if (!regionSelect || !districtSelect) return false;
-
     if (!regionSelect.dataset.districtHandlerInstalled) {
-        regionSelect.addEventListener('change', () => {
-            populateRegistrationDistricts();
-        });
+        regionSelect.addEventListener('change', () => populateRegistrationDistricts());
         regionSelect.dataset.districtHandlerInstalled = 'true';
     }
-
     populateRegistrationDistricts();
     return true;
 }
@@ -61,16 +51,13 @@ function installRegistrationDistrictHandler() {
 function showAuthModal(mode = 'login') {
     const modal = document.getElementById('modal-user-auth');
     if (!modal) return false;
-
     modal.classList.remove('hidden');
     modal.classList.add('flex');
     modal.setAttribute('aria-hidden', 'false');
-
     const loginPanel = document.getElementById('panel-auth-login');
     const registerPanel = document.getElementById('panel-auth-register');
     const loginTab = document.getElementById('tab-auth-login');
     const registerTab = document.getElementById('tab-auth-register');
-
     const isRegister = mode === 'register';
     if (loginPanel) loginPanel.classList.toggle('hidden', isRegister);
     if (registerPanel) registerPanel.classList.toggle('hidden', !isRegister);
@@ -86,22 +73,14 @@ function showAuthModal(mode = 'login') {
         registerTab.classList.toggle('shadow-xs', isRegister);
         registerTab.classList.toggle('text-slate-500', !isRegister);
     }
-
     if (isRegister) installRegistrationDistrictHandler();
-
-    if (typeof window.refreshIcons === 'function') {
-        try { window.refreshIcons(modal); } catch (e) {}
-    } else if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
-        try { window.lucide.createIcons(); } catch (e) {}
-    }
+    if (typeof window.refreshIcons === 'function') { try { window.refreshIcons(modal); } catch (e) {} }
+    else if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
     return true;
 }
 
 export async function ensureAuthProfileModalsLoaded() {
-    if (document.getElementById('modal-user-auth')) {
-        installRegistrationDistrictHandler();
-        return true;
-    }
+    if (document.getElementById('modal-user-auth')) { installRegistrationDistrictHandler(); return true; }
     if (authProfileLoadPromise) return authProfileLoadPromise;
     authProfileLoadPromise = (async () => {
         try {
@@ -110,9 +89,7 @@ export async function ensureAuthProfileModalsLoaded() {
             const html = await response.text();
             if (!document.getElementById('modal-user-auth')) {
                 document.body.insertAdjacentHTML('beforeend', html);
-                if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
-                    try { window.lucide.createIcons(); } catch (e) {}
-                }
+                if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
             }
             installRegistrationDistrictHandler();
             window.dispatchEvent(new CustomEvent('auth-profile-modals:ready'));
