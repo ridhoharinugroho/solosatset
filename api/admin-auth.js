@@ -101,18 +101,13 @@ function verifyPassword(password, passwordHash) {
       return crypto.timingSafeEqual(derived, parsed.key);
     } catch { return false; }
   }
-
-  // Legacy compatibility: some existing admin rows contain the password directly
-  // in password_hash. Accept it once, then migrate the row to scrypt immediately.
   return timingSafeEqualText(raw, String(password));
 }
 
 function hashPassword(password) {
   const N = 16384, r = 8, p = 1;
   const salt = crypto.randomBytes(16);
-  const key = crypto.scryptSync(String(password), salt, 64, {
-    N, r, p, maxmem: 32 * 1024 * 1024
-  });
+  const key = crypto.scryptSync(String(password), salt, 64, { N, r, p, maxmem: 32 * 1024 * 1024 });
   return `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$${N},${r},${p}`;
 }
 
@@ -144,7 +139,18 @@ function getAdminClient() {
 
 async function authenticate(username, password) {
   const normalized = String(username || '').trim().toLowerCase();
+  const supabaseUrl = String(process.env.SUPABASE_URL || '').trim();
+  const hasSupabaseUrl = Boolean(supabaseUrl);
+  const hasSupabaseServiceKey = Boolean(String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim());
   const supabase = getAdminClient();
+  console.info('[Admin Auth Diagnostic]', JSON.stringify({
+    source: supabase ? 'supabase' : 'env',
+    hasSupabaseUrl,
+    hasSupabaseServiceKey,
+    supabaseHost: supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname; } catch { return 'invalid-url'; } })() : null,
+    username: normalized,
+    passwordProvided: Boolean(password)
+  }));
 
   if (supabase) {
     const { data, error } = await supabase
@@ -153,16 +159,21 @@ async function authenticate(username, password) {
       .eq('username', normalized)
       .maybeSingle();
 
-    // A configured database that cannot be queried is a server/configuration
-    // failure, not an invalid-password response. Keep this distinct from 401.
     if (error) {
-      console.error('[Admin Auth DB]', error.message);
+      console.error('[Admin Auth DB]', JSON.stringify({ code: error.code || null, message: error.message || 'unknown', details: error.details || null }));
       throw new Error('Admin authentication database query failed');
     }
 
     const user = data || null;
-    if (user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)) {
-      // Transparently upgrade legacy plaintext storage to the intended scrypt format.
+    const checks = {
+      rowFound: Boolean(user),
+      active: user ? user.is_active === true : false,
+      roleAdmin: user ? String(user.role || '').toLowerCase() === 'admin' : false,
+      passwordMatch: user ? verifyPassword(password, user.password_hash) : false
+    };
+    console.info('[Admin Auth Diagnostic]', JSON.stringify(checks));
+
+    if (user && checks.active && checks.roleAdmin && checks.passwordMatch) {
       if (!isScryptHash(user.password_hash)) {
         const { error: upgradeError } = await supabase
           .from('admin_users')
@@ -173,16 +184,21 @@ async function authenticate(username, password) {
       return { configured: true, user };
     }
 
-    // Supabase is the canonical admin store. Do not silently switch to a second
-    // credential source when the database is available.
     return { configured: true, user: null };
   }
 
-  // Legacy environment credentials are retained only when the canonical
-  // Supabase admin store is unavailable in this deployment.
   const legacyUsername = String(process.env.ADMIN_USERNAME || '').trim();
   const legacyHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
-  if (legacyUsername && legacyHash && timingSafeEqualText(normalized, legacyUsername.toLowerCase()) && verifyPassword(password, legacyHash)) {
+  const legacyUsernameMatch = Boolean(legacyUsername && timingSafeEqualText(normalized, legacyUsername.toLowerCase()));
+  const legacyPasswordMatch = Boolean(legacyHash && verifyPassword(password, legacyHash));
+  console.info('[Admin Auth Diagnostic]', JSON.stringify({
+    source: 'env',
+    legacyUsernameConfigured: Boolean(legacyUsername),
+    legacyHashConfigured: Boolean(legacyHash),
+    legacyUsernameMatch,
+    legacyPasswordMatch
+  }));
+  if (legacyUsernameMatch && legacyPasswordMatch) {
     return { configured: true, user: { id: 'legacy-admin', username: legacyUsername, role: 'admin', is_active: true } };
   }
 
