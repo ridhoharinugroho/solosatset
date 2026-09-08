@@ -17,6 +17,10 @@ function hash(v){return crypto.createHash('sha256').update(String(v)).digest('he
 function otp(){return crypto.randomInt(100000,1000000).toString();}
 function cleanEmail(v){return String(v||'').trim().toLowerCase();}
 function makeVerificationMarker(){return `verified:${crypto.randomBytes(32).toString('hex')}`;}
+function passwordHash(password,salt=crypto.randomBytes(16)){
+  const derived=crypto.scryptSync(String(password),salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024});
+  return `scrypt$16384$8$1$${salt.toString('base64url')}$${derived.toString('base64url')}`;
+}
 
 async function smtp(){
   const db=admin();
@@ -40,28 +44,20 @@ async function sendOtpEmail(email,code,purpose){
   const labels={registration:'pendaftaran akun',password_reset:'reset password',password_change:'ganti password'};
   const label=labels[purpose]||'verifikasi akun';
   const t=nodemailer.createTransport({host:s.host,port:s.port,secure:s.secure,auth:{user:s.user,pass:s.pass},tls:{rejectUnauthorized:true},connectionTimeout:15000});
-  await t.sendMail({
-    from:`"${s.fromName}" <${s.fromEmail}>`,
-    to:email,
-    subject:`Kode OTP ${label} - Pusat Jual Beli Solo Raya`,
-    text:`Kode OTP Anda untuk ${label} adalah ${code}. Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.`,
-    html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Pusat Jual Beli Solo Raya</h2><p>Kode OTP untuk <b>${label}</b>:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:12px;text-align:center">${code}</div><p>Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.</p></div>`
-  });
+  await t.sendMail({from:`"${s.fromName}" <${s.fromEmail}>`,to:email,subject:`Kode OTP ${label} - Pusat Jual Beli Solo Raya`,text:`Kode OTP Anda untuk ${label} adalah ${code}. Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.`,html:`<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Pusat Jual Beli Solo Raya</h2><p>Kode OTP untuk <b>${label}</b>:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:12px;text-align:center">${code}</div><p>Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.</p></div>`});
 }
 
 async function getUserByEmail(db,email){
-  const {data,error}=await db.from('users').select('id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,otp_code,otp_expires_at,password_hash,password,is_verified').eq('email',email).maybeSingle();
+  const {data,error}=await db.from('users').select('id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,created_at,otp_code,otp_expires_at,password_hash,password,is_verified').eq('email',email).maybeSingle();
   if(error) throw new Error('Data akun tidak dapat dibaca.');
   return data||null;
 }
-
 async function requireUser(db,email){
   const data=await getUserByEmail(db,email);
   if(!data||data.deleted_at||(data.status||'active').toLowerCase()==='deleted') throw new Error('Akun tidak ditemukan.');
   if((data.status||'active').toLowerCase()==='suspended') throw new Error('Akun sedang ditangguhkan oleh Admin.');
   return data;
 }
-
 async function ensureRegistrationUser(db,email,now){
   const existing=await getUserByEmail(db,email);
   if(existing){
@@ -70,23 +66,21 @@ async function ensureRegistrationUser(db,email,now){
     return existing;
   }
   const id=`user-${Date.now()}-${crypto.randomInt(1000,9999)}`;
-  const {data,error}=await db.from('users').insert({id,email,status:'pending',is_demo:false,otp_code:null,otp_expires_at:null,created_at:new Date(now).toISOString()}).select('id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,otp_code,otp_expires_at,password_hash,password,is_verified').single();
+  const {data,error}=await db.from('users').insert({id,email,status:'pending',is_demo:false,otp_code:null,otp_expires_at:null,created_at:new Date(now).toISOString()}).select('id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,created_at,otp_code,otp_expires_at,password_hash,password,is_verified').single();
   if(error) throw new Error('Gagal menyiapkan pendaftaran.');
   return data;
 }
-
 async function saveOtp(db,user,code,now){
   const currentExpiry=user.otp_expires_at?new Date(user.otp_expires_at).getTime():0;
-  if(user.otp_code&&currentExpiry>now-RESEND_MS){
-    const age=OTP_TTL_MS-(currentExpiry-now);
-    if(age<RESEND_MS) throw new Error('Tunggu 60 detik sebelum meminta OTP lagi.');
+  if(user.otp_code&&currentExpiry>now){
+    const issuedAt=currentExpiry-OTP_TTL_MS;
+    if(now-issuedAt<RESEND_MS) throw new Error('Tunggu 60 detik sebelum meminta OTP lagi.');
   }
   const expiresAt=new Date(now+OTP_TTL_MS).toISOString();
   const stored=`${hash(code)}:0`;
   const {error}=await db.from('users').update({otp_code:stored,otp_expires_at:expiresAt,updated_at:new Date(now).toISOString()}).eq('id',user.id);
   if(error) throw new Error('Gagal menyimpan OTP.');
 }
-
 async function verifyCode(db,email,code){
   const user=await requireUser(db,email);
   const expiresAt=user.otp_expires_at?new Date(user.otp_expires_at).getTime():0;
@@ -107,7 +101,6 @@ async function verifyCode(db,email,code){
   if(error) throw new Error('Verifikasi OTP gagal.');
   return marker;
 }
-
 async function completeWithMarker(db,email,verificationToken){
   const user=await requireUser(db,email);
   if(!verificationToken||!user.otp_code||user.otp_code!==verificationToken||!user.otp_code.startsWith('verified:')) throw new Error('Token verifikasi tidak valid atau sudah kedaluwarsa.');
@@ -116,9 +109,6 @@ async function completeWithMarker(db,email,verificationToken){
 }
 
 export default async function handler(req,res){
-  res.setHeader('Access-Control-Allow-Origin','*');
-  res.setHeader('Access-Control-Allow-Methods','POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers','Content-Type,Accept');
   if(req.method==='OPTIONS')return res.status(204).end();
   if(req.method!=='POST')return res.status(405).json({success:false,error:'Method Not Allowed'});
   try{
@@ -135,7 +125,7 @@ export default async function handler(req,res){
       else user=await requireUser(db,email);
       const code=otp();
       await saveOtp(db,user,code,Date.now());
-      await sendOtpEmail(email,code,purpose);
+      try{await sendOtpEmail(email,code,purpose);}catch(error){await db.from('users').update({otp_code:null,otp_expires_at:null,updated_at:new Date().toISOString()}).eq('id',user.id);throw error;}
       return res.status(200).json({success:true,message:'OTP berhasil dikirim.',expiresInSeconds:600});
     }
 
@@ -155,8 +145,8 @@ export default async function handler(req,res){
       const region=String(b.region||'').trim();
       const district=String(b.district||'').trim();
       const password=String(b.password||'');
-      if(name.length<2||storeName.length<2||!phone||!region||!district||password.length<5||password.length>128)throw new Error('Data pendaftaran tidak lengkap.');
-      const {error}=await db.from('users').update({name,store_name:storeName,email,phone,region,district,password,is_verified:true,status:'active',deleted_at:null,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
+      if(name.length<2||storeName.length<2||phone.replace(/\D/g,'').length<9||!region||!district||password.length<5||password.length>128)throw new Error('Data pendaftaran tidak lengkap.');
+      const {error}=await db.from('users').update({name,store_name:storeName,email,phone,region,district,password_hash:passwordHash(password),password:null,is_verified:true,status:'active',deleted_at:null,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
       if(error)throw new Error('Akun gagal dibuat.');
       return res.status(200).json({success:true,user:{id:user.id,name,storeName,email,phone,region,district,isVerified:true}});
     }
@@ -166,7 +156,23 @@ export default async function handler(req,res){
       const v=String(b.verificationToken||'');
       if(newPassword.length<5||newPassword.length>128)return res.status(400).json({success:false,error:'Password harus 5-128 karakter.'});
       const user=await completeWithMarker(db,email,v);
-      const {error}=await db.from('users').update({password:newPassword,is_verified:true,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
+      if(action==='change_password'){
+        const currentPassword=String(b.currentPassword||'');
+        if(!currentPassword)throw new Error('Password saat ini wajib diisi untuk ganti password.');
+        let currentValid=false;
+        if(user.password_hash){
+          const parts=user.password_hash.split('$');
+          if(parts.length===7&&parts[0]==='scrypt'){
+            const salt=Buffer.from(parts[4],'base64url');
+            const expected=Buffer.from(parts[5],'base64url');
+            const actual=crypto.scryptSync(currentPassword,salt,expected.length,{N:Number(parts[1]),r:Number(parts[2]),p:Number(parts[3]),maxmem:64*1024*1024});
+            currentValid=actual.length===expected.length&&crypto.timingSafeEqual(actual,expected);
+          }
+        }
+        if(!currentValid&&user.password)currentValid=crypto.timingSafeEqual(Buffer.from(user.password),Buffer.from(currentPassword));
+        if(!currentValid)throw new Error('Password saat ini salah.');
+      }
+      const {error}=await db.from('users').update({password_hash:passwordHash(newPassword),password:null,is_verified:true,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
       if(error)throw new Error('Password gagal diperbarui.');
       return res.status(200).json({success:true,message:'Password berhasil diperbarui.'});
     }
@@ -174,7 +180,7 @@ export default async function handler(req,res){
     return res.status(400).json({success:false,error:'Aksi OTP tidak dikenali.'});
   }catch(e){
     console.error('[OTP Server Error]',{name:e.name,code:e.code,message:e.message});
-    const status=/tidak ditemukan|sudah kedaluwarsa|salah|Tunggu|Terlalu banyak|tidak valid|sudah terdaftar|tidak lengkap|sudah digunakan|ditangguhkan/i.test(e.message)?400:500;
+    const status=/tidak ditemukan|sudah kedaluwarsa|salah|Tunggu|Terlalu banyak|tidak valid|sudah terdaftar|tidak lengkap|sudah digunakan|ditangguhkan|wajib diisi/i.test(e.message)?400:500;
     return res.status(status).json({success:false,error:e.message||'OTP service error.'});
   }
 }
