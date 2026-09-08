@@ -1,0 +1,31 @@
+import { loginUser, syncUsersFromCloud } from './auth.js';
+
+const API = '/api/auth-otp';
+const state = { registration: null, reset: null };
+
+async function callApi(body) {
+  const res = await fetch(API, { method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(body) });
+  let data = {};
+  try { data = await res.json(); } catch {}
+  if (!res.ok || !data.success) throw new Error(data.error || 'Layanan OTP gagal diproses.');
+  return data;
+}
+function setButtonBusy(button,busy,text){if(!button)return;button.disabled=busy;button.dataset.originalText ||= button.textContent.trim();button.textContent=busy?text:button.dataset.originalText;}
+function ensureOtpBox(form,id,label){let box=document.getElementById(id);if(box)return box;box=document.createElement('div');box.id=id;box.className='mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2';box.innerHTML=`<div class="text-xs font-black text-emerald-900">${label}</div><div class="flex gap-2"><input id="${id}-input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6 digit OTP" class="flex-1 px-3 py-2 bg-white border border-emerald-300 rounded-xl text-xs font-black font-mono"><button type="button" id="${id}-verify" class="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black">Verifikasi</button></div><div id="${id}-msg" class="text-[11px] font-bold text-emerald-800"></div>`;form.appendChild(box);return box;}
+function errorBox(form,msg){let x=form.querySelector('[data-otp-error]');if(!x){x=document.createElement('div');x.dataset.otpError='1';x.className='mt-2 text-xs font-bold text-rose-600';form.appendChild(x)}x.textContent=msg;}
+
+async function registration(form){
+  const fields={name:form.querySelector('#reg-input-name')?.value.trim(),storeName:form.querySelector('#reg-input-store')?.value.trim(),phone:form.querySelector('#reg-input-phone')?.value.trim(),email:form.querySelector('#reg-input-email')?.value.trim().toLowerCase(),region:form.querySelector('#reg-select-region')?.value,district:form.querySelector('#reg-select-district')?.value,password:form.querySelector('#reg-input-password')?.value};
+  const confirm=form.querySelector('#reg-input-password-confirm')?.value;
+  if(Object.values(fields).some(v=>!v)||fields.password!==confirm){errorBox(form,'Lengkapi data pendaftaran dan pastikan kedua password sama.');return;}
+  const button=form.querySelector('button[type="submit"]');setButtonBusy(button,true,'Mengirim OTP...');
+  try{await callApi({action:'request',purpose:'registration',email:fields.email});state.registration=fields;const box=ensureOtpBox(form,'registration-otp-box','Kode OTP pendaftaran sudah dikirim ke email Anda.');box.querySelector('input').focus();setButtonBusy(button,false);button.textContent='Kirim Ulang OTP';
+    box.querySelector('#registration-otp-box-verify').onclick=async()=>{try{setButtonBusy(box.querySelector('button'),true,'Memeriksa...');const v=await callApi({action:'verify',purpose:'registration',email:fields.email,code:box.querySelector('input').value});await callApi({action:'complete_registration',purpose:'registration',email:fields.email,verificationToken:v.verificationToken,...state.registration});await syncUsersFromCloud();await loginUser(fields.email,fields.password);window.dispatchEvent(new CustomEvent('auth:otp-registration-complete'));box.querySelector('[id$="-msg"]').textContent='Akun berhasil diverifikasi dan dibuat.';}catch(e){errorBox(form,e.message)}finally{setButtonBusy(box.querySelector('button'),false)}};
+  }catch(e){errorBox(form,e.message);setButtonBusy(button,false)}
+}
+
+async function resetRequest(form){const email=form.querySelector('#forgot-input-email')?.value.trim().toLowerCase();if(!email){errorBox(form,'Masukkan email akun terlebih dahulu.');return}const button=form.querySelector('button[type="submit"]');setButtonBusy(button,true,'Mengirim OTP...');try{await callApi({action:'request',purpose:'password_reset',email});state.reset={email};document.getElementById('forgot-step-reset')?.classList.remove('hidden');const input=document.getElementById('forgot-input-code');input?.focus();setButtonBusy(button,false)}catch(e){errorBox(form,e.message);setButtonBusy(button,false)}}
+async function resetConfirm(form){const email=state.reset?.email||document.getElementById('forgot-input-email')?.value.trim().toLowerCase();const code=document.getElementById('forgot-input-code')?.value.trim();const pass=document.getElementById('forgot-input-new-password')?.value||'';if(!email||!/^\d{6}$/.test(code)||pass.length<5){errorBox(form,'Masukkan OTP 6 digit dan password baru minimal 5 karakter.');return}const button=form.querySelector('button[type="submit"]');setButtonBusy(button,true,'Memverifikasi...');try{const v=await callApi({action:'verify',purpose:'password_reset',email,code});await callApi({action:'reset_password',purpose:'password_reset',email,verificationToken:v.verificationToken,newPassword:pass});await loginUser(email,pass);window.dispatchEvent(new CustomEvent('auth:otp-password-reset-complete'));}catch(e){errorBox(form,e.message)}finally{setButtonBusy(button,false)}}
+
+function install(){document.addEventListener('submit',async(e)=>{const form=e.target;if(!(form instanceof HTMLFormElement))return;if(form.id==='form-user-register'){e.preventDefault();e.stopImmediatePropagation();await registration(form)}else if(form.id==='form-forgot-email'){e.preventDefault();e.stopImmediatePropagation();await resetRequest(form)}else if(form.id==='form-forgot-confirm'){e.preventDefault();e.stopImmediatePropagation();await resetConfirm(form)}},true)}
+install();
