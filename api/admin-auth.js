@@ -103,12 +103,6 @@ function verifyPassword(password, passwordHash) {
   } catch { return false; }
 }
 
-function getLegacyCredential() {
-  const username = String(process.env.ADMIN_USERNAME || '').trim();
-  const passwordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
-  return username && passwordHash ? { username, passwordHash } : null;
-}
-
 function rateLimited(ip) {
   const now = Date.now();
   const item = attempts.get(ip);
@@ -133,57 +127,28 @@ function getAdminClient() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-async function repairSupabase(supabase, legacy) {
-  try {
-    const username = legacy.username.toLowerCase();
-    const { data: existing, error: lookupError } = await supabase
-      .from('admin_users')
-      .select('id')
-      .ilike('username', username)
-      .limit(1);
-    if (lookupError) throw lookupError;
-    const values = { username, password_hash: legacy.passwordHash, role: 'admin', is_active: true, updated_at: new Date().toISOString() };
-    if (existing?.[0]?.id) {
-      const { data, error } = await supabase.from('admin_users').update(values).eq('id', existing[0].id).select('id,username,role,is_active').single();
-      if (error) throw error;
-      return data;
-    }
-    const { data, error } = await supabase.from('admin_users').insert(values).select('id,username,role,is_active').single();
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('[Admin Auth Repair]', error?.message || 'repair failed');
-    return null;
-  }
-}
-
 async function authenticate(username, password) {
-  const clean = String(username || '').trim();
-  const normalized = clean.toLowerCase();
-  const legacy = getLegacyCredential();
-
-  // Server environment credential is the recovery authority. This is deliberately
-  // checked before Supabase so a stale/missing admin_users row cannot cause a 401.
-  if (legacy && timingSafeEqualText(normalized, legacy.username.toLowerCase()) && verifyPassword(password, legacy.passwordHash)) {
-    const supabase = getAdminClient();
-    if (supabase) await repairSupabase(supabase, legacy);
-    return { configured: true, user: { id: 'legacy-admin', username: legacy.username, role: 'admin', is_active: true } };
-  }
-
+  const normalized = String(username || '').trim().toLowerCase();
   const supabase = getAdminClient();
   if (!supabase) return { configured: false, user: null };
 
+  // Supabase admin_users is the single source of truth for admin login.
+  // Do not prefer Vercel ADMIN_USERNAME / ADMIN_PASSWORD_HASH credentials here.
   const { data, error } = await supabase
     .from('admin_users')
     .select('id, username, password_hash, role, is_active')
     .ilike('username', normalized)
     .limit(1);
+
   if (error) {
     console.error('[Admin Auth DB]', error.message);
     return { configured: true, user: null, databaseError: true };
   }
+
   const user = Array.isArray(data) ? data[0] : null;
-  if (!user || user.is_active !== true || String(user.role || '').toLowerCase() !== 'admin') return { configured: true, user: null };
+  if (!user || user.is_active !== true || String(user.role || '').toLowerCase() !== 'admin') {
+    return { configured: true, user: null };
+  }
   if (!verifyPassword(password, user.password_hash)) return { configured: true, user: null };
   return { configured: true, user };
 }
