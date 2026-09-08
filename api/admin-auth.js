@@ -88,20 +88,17 @@ function parsePasswordHash(value) {
 }
 
 function verifyPassword(password, passwordHash) {
-  const raw = String(passwordHash || '').trim();
-  const parsed = parsePasswordHash(raw);
-  if (parsed) {
-    try {
-      const derived = crypto.scryptSync(String(password), parsed.salt, parsed.key.length, {
-        N: parsed.N,
-        r: parsed.r,
-        p: parsed.p,
-        maxmem: Math.max(32 * 1024 * 1024, 128 * parsed.N * parsed.r + 1024 * 1024)
-      });
-      return crypto.timingSafeEqual(derived, parsed.key);
-    } catch { return false; }
-  }
-  return timingSafeEqualText(raw, String(password));
+  const parsed = parsePasswordHash(passwordHash);
+  if (!parsed) return false;
+  try {
+    const derived = crypto.scryptSync(String(password), parsed.salt, parsed.key.length, {
+      N: parsed.N,
+      r: parsed.r,
+      p: parsed.p,
+      maxmem: Math.max(32 * 1024 * 1024, 128 * parsed.N * parsed.r + 1024 * 1024)
+    });
+    return crypto.timingSafeEqual(derived, parsed.key);
+  } catch { return false; }
 }
 
 function hashPassword(password) {
