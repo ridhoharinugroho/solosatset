@@ -8,9 +8,8 @@
  */
 
 const SUPABASE_URL = 'https://rwjqqoulqdmtsweuvbef.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6MTc4NzY3NjQyNiwiZXhwIjoyMTAzMjUyNDI2fQ.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
 
-// Load Supabase JS v2 from CDN (ESM-compatible, no build tool needed)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 function validateConfig() {
@@ -68,7 +67,6 @@ if (validateConfig()) {
       if (property === 'from') {
         return (table) => {
           if (String(table || '').trim().toLowerCase() === 'users') {
-            console.warn('[Supabase Security] Browser access to users table blocked; use /api/* instead.');
             return createBlockedUsersQuery();
           }
           return target.from(table);
