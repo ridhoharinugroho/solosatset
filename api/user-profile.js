@@ -37,6 +37,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
+    if (action === 'update_interests') {
+      const interests = Array.isArray(body?.interests)
+        ? body.interests.map((item) => clean(item, 80).toLowerCase()).filter(Boolean).slice(-3)
+        : [];
+      const { error } = await supabase.from('users').update({ interests, updated_at: new Date().toISOString() }).eq('id', userId);
+      if (error) throw error;
+      return res.status(200).json({ success: true, interests });
+    }
+
     const updates = {};
     if (body?.name !== undefined) updates.name = clean(body.name, 120);
     if (body?.storeName !== undefined) updates.store_name = clean(body.storeName, 160);
