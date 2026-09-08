@@ -46,6 +46,33 @@ const cookie = String(loginResponse.headers['Set-Cookie']).split(';')[0];
 assert.equal(getAdminSessionFromRequest({ headers: { cookie } })?.role, 'admin');
 assert.equal(getAdminSessionFromRequest({ headers: { cookie } })?.username, username);
 
+// Wrong credentials must fail and must not issue a session.
+const wrongPasswordResponse = makeResponse();
+await handler({
+  method: 'POST',
+  query: { action: 'login' },
+  headers: { 'x-forwarded-for': '127.0.0.11' },
+  body: { username, password: 'WrongPassword-123!' },
+  socket: { remoteAddress: '127.0.0.11' }
+}, wrongPasswordResponse);
+assert.equal(wrongPasswordResponse.statusCode, 401);
+assert.equal(wrongPasswordResponse.headers['Set-Cookie'], undefined);
+
+// Unrecognized password-hash formats must fail closed rather than acting as plaintext.
+process.env.ADMIN_PASSWORD_HASH = 'plaintext-password-should-never-be-accepted';
+const malformedHashResponse = makeResponse();
+await handler({
+  method: 'POST',
+  query: { action: 'login' },
+  headers: { 'x-forwarded-for': '127.0.0.12' },
+  body: { username, password: 'plaintext-password-should-never-be-accepted' },
+  socket: { remoteAddress: '127.0.0.12' }
+}, malformedHashResponse);
+assert.equal(malformedHashResponse.statusCode, 401);
+assert.equal(malformedHashResponse.headers['Set-Cookie'], undefined);
+
+process.env.ADMIN_PASSWORD_HASH = `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$16384,8,1`;
+
 const tampered = cookie.replace(/\.([^;]+)$/, '.tampered');
 assert.equal(getAdminSessionFromRequest({ headers: { cookie: tampered } }), null);
 assert.equal(getAdminSessionFromRequest({ headers: { cookie: `${SESSION_COOKIE}=not-a-token` } }), null);
