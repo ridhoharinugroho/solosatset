@@ -1,9 +1,9 @@
 /**
- * solosatset - Service Worker Engine v20260902_v214
+ * solosatset - Service Worker Engine v20260902_v215
  * Instant Cache Invalidation, Automatic Update & Network-First Fresh Code Delivery
  */
 
-const CACHE_NAME = 'solosatset-cache-v20260902_v214';
+const CACHE_NAME = 'solosatset-cache-v20260902_v215';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -17,7 +17,6 @@ const PRECACHE_ASSETS = [
   './favicon.png'
 ];
 
-// 1. INSTALL EVENT - Precache Critical App Shell dengan Resilient Caching
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -38,27 +37,23 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// 2. ACTIVATE EVENT - Fast Cache Invalidation for Outdated Builds
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME) {
-            console.log('[Service Worker] Purging legacy cache:', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then((cacheNames) => Promise.all(
+      cacheNames.map((cache) => {
+        if (cache !== CACHE_NAME) {
+          console.log('[Service Worker] Purging legacy cache:', cache);
+          return caches.delete(cache);
+        }
+        return undefined;
+      })
+    )).then(() => self.clients.claim())
   );
 });
 
-// 3. FETCH EVENT - Network-First Strategy for Fresh Code
 self.addEventListener('fetch', (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Bypass non-GET, dynamic APIs, WebSockets, Supabase & analytics
   if (
     event.request.method !== 'GET' ||
     requestUrl.protocol.startsWith('chrome-extension') ||
@@ -72,7 +67,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network First for HTML and JavaScript files
   if (
     event.request.mode === 'navigate' ||
     requestUrl.pathname.endsWith('.html') ||
@@ -85,49 +79,45 @@ self.addEventListener('fetch', (event) => {
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
           }
           return networkResponse;
         })
-        .catch(() => {
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) return cachedResponse;
-            if (event.request.mode === 'navigate') {
-              return caches.match('./index.html') || caches.match('./');
-            }
-            return new Response('Network connection offline', { status: 503, statusText: 'Offline' });
-          });
+        .catch(async () => {
+          const cachedResponse = await caches.match(event.request);
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return (await caches.match('./index.html')) || (await caches.match('./')) || new Response('Offline', { status: 503 });
+          }
+          return new Response('Network connection offline', { status: 503, statusText: 'Offline' });
         })
     );
     return;
   }
 
-  // Stale-While-Revalidate for Static Assets (Images, Fonts, CSS)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
             const responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone)).catch(() => {});
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
+        .catch(() => cachedResponse || new Response('Network connection offline', { status: 503, statusText: 'Offline' }));
 
       return cachedResponse || fetchPromise;
     })
   );
 });
 
-// 4. MESSAGE EVENT - Instant Cache Invalidation Trigger
 self.addEventListener('message', (event) => {
   if (event.data && event.data.action === 'skipWaiting') {
     self.skipWaiting();
   }
 });
 
-// 5. PUSH EVENT - Handle incoming Web Push Notifications (Supabase & VAPID Engine)
 self.addEventListener('push', (event) => {
   let data = {
     title: '📢 Pusat Jual Beli Solo Raya',
@@ -169,15 +159,11 @@ self.addEventListener('push', (event) => {
     ]
   };
 
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  event.waitUntil(self.registration.showNotification(data.title, options));
 });
 
-// 6. NOTIFICATION CLICK EVENT - Open app or focus existing window
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
   if (event.action === 'close') return;
 
   const targetUrl = (event.notification.data && event.notification.data.url) || './';
@@ -190,10 +176,8 @@ self.addEventListener('notificationclick', (event) => {
           return client.focus();
         }
       }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+      return undefined;
     })
   );
 });
-
