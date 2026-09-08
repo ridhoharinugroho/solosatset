@@ -1,0 +1,148 @@
+import crypto from 'node:crypto';
+import nodemailer from 'nodemailer';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const OTP_TTL_MS = 10 * 60 * 1000;
+const MAX_ATTEMPTS = 5;
+const RESEND_MS = 60 * 1000;
+
+function admin() {
+  if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Server database configuration is unavailable.');
+  return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+function hash(value) { return crypto.createHash('sha256').update(String(value)).digest('hex'); }
+function token() { return crypto.randomBytes(32).toString('hex'); }
+function otp() { return crypto.randomInt(100000, 1000000).toString(); }
+function cleanEmail(v) { return String(v || '').trim().toLowerCase(); }
+
+async function smtp() {
+  const db = admin();
+  const { data, error } = await db.from('app_smtp_config').select('settings_json').eq('id', 'config').maybeSingle();
+  if (error) throw new Error('Server SMTP configuration is unavailable.');
+  let c = {};
+  try { c = data?.settings_json ? (typeof data.settings_json === 'string' ? JSON.parse(data.settings_json) : data.settings_json) : {}; } catch { throw new Error('Server SMTP configuration is invalid.'); }
+  const host = (process.env.SMTP_HOST || c.host || 'smtp.gmail.com').trim();
+  const port = Number(process.env.SMTP_PORT || c.port || (host === 'smtp.gmail.com' ? 465 : 587));
+  const secure = process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : (c.secure !== undefined ? Boolean(c.secure) : port === 465);
+  const user = (process.env.SMTP_USER || c.user || '').trim();
+  const pass = (process.env.SMTP_PASS || c.pass || '').replace(/\s+/g, '');
+  const fromName = (process.env.SMTP_FROM_NAME || c.senderName || c.fromName || 'Pusat Jual Beli Solo Raya').trim();
+  const fromEmail = (process.env.SMTP_FROM_EMAIL || c.senderEmail || c.from || user).trim();
+  if (!user || !pass) throw new Error('SMTP server credentials are not configured.');
+  return { host, port, secure, user, pass, fromName, fromEmail };
+}
+
+async function sendOtpEmail(email, code, purpose) {
+  const s = await smtp();
+  const labels = { registration: 'pendaftaran akun', password_reset: 'reset password', password_change: 'ganti password' };
+  const label = labels[purpose] || 'verifikasi akun';
+  const transporter = nodemailer.createTransport({ host: s.host, port: s.port, secure: s.secure, auth: { user: s.user, pass: s.pass }, tls: { rejectUnauthorized: true }, connectionTimeout: 15000 });
+  await transporter.sendMail({
+    from: `"${s.fromName}" <${s.fromEmail}>`, to: email,
+    subject: `Kode OTP ${label} - Pusat Jual Beli Solo Raya`,
+    text: `Kode OTP Anda untuk ${label} adalah ${code}. Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Pusat Jual Beli Solo Raya</h2><p>Kode OTP untuk <b>${label}</b>:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:12px;text-align:center">${code}</div><p>Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.</p></div>`
+  });
+}
+
+async function insertChallenge(db, email, purpose, code) {
+  const now = Date.now();
+  const { data: recent } = await db.from('app_smtp_config').select('id,settings_json').like('id', 'otp:%').order('id', { ascending: false }).limit(30);
+  for (const row of recent || []) {
+    try {
+      const x = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json;
+      if (x?.email === email && x?.purpose === purpose && now - new Date(x.createdAt).getTime() < RESEND_MS) throw new Error('Tunggu 60 detik sebelum meminta OTP lagi.');
+      if (x?.expiresAt && new Date(x.expiresAt).getTime() < now) await db.from('app_smtp_config').delete().eq('id', row.id);
+    } catch (e) { if (e.message.includes('Tunggu')) throw e; }
+  }
+  const id = `otp:${crypto.randomBytes(16).toString('hex')}`;
+  const payload = { email, purpose, codeHash: hash(code), attempts: 0, createdAt: new Date(now).toISOString(), expiresAt: new Date(now + OTP_TTL_MS).toISOString() };
+  const { error } = await db.from('app_smtp_config').insert({ id, settings_json: payload });
+  if (error) throw new Error('Gagal membuat tantangan OTP.');
+  return id;
+}
+
+async function verifyCode(db, email, purpose, code) {
+  const { data: rows, error } = await db.from('app_smtp_config').select('id,settings_json').like('id', 'otp:%').order('id', { ascending: false }).limit(50);
+  if (error) throw new Error('Verifikasi OTP gagal.');
+  const row = (rows || []).find(r => {
+    try { const x = typeof r.settings_json === 'string' ? JSON.parse(r.settings_json) : r.settings_json; return x?.email === email && x?.purpose === purpose && !x?.consumedAt; } catch { return false; }
+  });
+  if (!row) throw new Error('Kode OTP tidak ditemukan atau sudah kedaluwarsa.');
+  const x = typeof row.settings_json === 'string' ? JSON.parse(row.settings_json) : row.settings_json;
+  if (Date.now() > new Date(x.expiresAt).getTime()) { await db.from('app_smtp_config').delete().eq('id', row.id); throw new Error('Kode OTP sudah kedaluwarsa.'); }
+  if ((x.attempts || 0) >= MAX_ATTEMPTS) throw new Error('Terlalu banyak percobaan OTP. Minta kode baru.');
+  if (hash(code) !== x.codeHash) { x.attempts = (x.attempts || 0) + 1; await db.from('app_smtp_config').update({ settings_json: x }).eq('id', row.id); throw new Error('Kode OTP salah.'); }
+  const verificationToken = token();
+  x.consumedAt = new Date().toISOString(); x.verificationTokenHash = hash(verificationToken); x.verificationTokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  await db.from('app_smtp_config').update({ settings_json: x }).eq('id', row.id);
+  return verificationToken;
+}
+
+async function requireUser(db, email) {
+  const { data, error } = await db.from('users').select('id,name,email,password,is_verified,status,deletedAt').eq('email', email).maybeSingle();
+  if (error || !data) throw new Error('Akun tidak ditemukan.');
+  if (data.status === 'deleted' || data.deletedAt) throw new Error('Akun tidak aktif.');
+  return data;
+}
+
+async function completeWithToken(db, email, purpose, verificationToken) {
+  const { data: rows } = await db.from('app_smtp_config').select('id,settings_json').like('id', 'otp:%').limit(100);
+  const row = (rows || []).find(r => { try { const x = typeof r.settings_json === 'string' ? JSON.parse(r.settings_json) : r.settings_json; return x?.email === email && x?.purpose === purpose && x?.verificationTokenHash === hash(verificationToken) && new Date(x.verificationTokenExpiresAt).getTime() > Date.now(); } catch { return false; } });
+  if (!row) throw new Error('Token verifikasi tidak valid atau sudah kedaluwarsa.');
+  return row;
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Accept');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  try {
+    const b = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
+    const action = String(b.action || '');
+    const email = cleanEmail(b.email);
+    const purpose = String(b.purpose || '');
+    const db = admin();
+    if (!email.includes('@') || !['registration','password_reset','password_change'].includes(purpose)) return res.status(400).json({ success:false, error:'Permintaan OTP tidak valid.' });
+
+    if (action === 'request') {
+      if (purpose === 'registration') {
+        const { data } = await db.from('users').select('id').eq('email', email).maybeSingle();
+        if (data) return res.status(409).json({ success:false, error:'Email sudah terdaftar.' });
+      } else {
+        await requireUser(db, email);
+      }
+      const code = otp();
+      await insertChallenge(db, email, purpose, code);
+      await sendOtpEmail(email, code, purpose);
+      return res.status(200).json({ success:true, message:'OTP berhasil dikirim.', expiresInSeconds:600 });
+    }
+
+    if (action === 'verify') {
+      const code = String(b.code || '').replace(/\D/g, '');
+      if (!/^\d{6}$/.test(code)) return res.status(400).json({ success:false,error:'OTP harus 6 digit.' });
+      const verificationToken = await verifyCode(db, email, purpose, code);
+      return res.status(200).json({ success:true, verificationToken, message:'OTP terverifikasi.' });
+    }
+
+    if (action === 'reset_password' || action === 'change_password') {
+      const newPassword = String(b.newPassword || '');
+      const verificationToken = String(b.verificationToken || '');
+      if (newPassword.length < 5 || newPassword.length > 128) return res.status(400).json({ success:false,error:'Password harus 5-128 karakter.' });
+      await completeWithToken(db, email, purpose, verificationToken);
+      const { error } = await db.from('users').update({ password: newPassword, is_verified: true }).eq('email', email);
+      if (error) throw new Error('Password gagal diperbarui.');
+      return res.status(200).json({ success:true,message:'Password berhasil diperbarui.' });
+    }
+
+    return res.status(400).json({ success:false,error:'Aksi OTP tidak dikenali.' });
+  } catch (e) {
+    console.error('[OTP Server Error]', { name:e.name, code:e.code, message:e.message });
+    const status = /tidak ditemukan|sudah kedaluwarsa|salah|Tunggu|Terlalu banyak|tidak valid|sudah terdaftar|tidak aktif/i.test(e.message) ? 400 : 500;
+    return res.status(status).json({ success:false,error:e.message || 'OTP service error.' });
+  }
+}
