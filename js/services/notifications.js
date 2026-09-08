@@ -2,6 +2,10 @@
 // Intentionally contains no Supabase client access; all notification data operations
 // go through the authenticated server endpoint so the browser never receives DB access.
 
+function isAnonymousSessionUser(userId) {
+  return !userId || String(userId).startsWith('guest-');
+}
+
 async function request(action, payload = null, method = 'POST') {
   try {
     const options = { method, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' } };
@@ -23,7 +27,7 @@ async function request(action, payload = null, method = 'POST') {
 
 export async function sbGetNotifications(userId = null) {
   // Notification data is private. Never call the server endpoint for an anonymous visitor.
-  if (!userId) return [];
+  if (isAnonymousSessionUser(userId)) return [];
   const result = await request('list_notifications', null, 'GET');
   return result.success && Array.isArray(result.notifications) ? result.notifications : [];
 }
@@ -59,7 +63,8 @@ export function sbUnsubscribeNotifications(subscription) {
 }
 
 export function sbSubscribeNotifications(userId, onNewNotification, intervalMs = 15000) {
-  if (!userId || typeof onNewNotification !== 'function') return null;
+  // Device/guest identifiers are not authenticated notification principals.
+  if (isAnonymousSessionUser(userId) || typeof onNewNotification !== 'function') return null;
   let stopped = false;
   let lastSeenIds = new Set();
 
