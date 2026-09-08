@@ -12,9 +12,10 @@ const key = crypto.scryptSync(password, salt, 64, {
   maxmem: 64 * 1024 * 1024
 });
 
-// Keep this unit-style test isolated from any developer/CI Supabase credentials.
-delete process.env.SUPABASE_URL;
-delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Force the isolated unit test down the legacy env path even when CI/Vercel
+// provides Supabase credentials in the build environment.
+process.env.SUPABASE_URL = '';
+process.env.SUPABASE_SERVICE_ROLE_KEY = '';
 process.env.ADMIN_USERNAME = username;
 process.env.ADMIN_PASSWORD_HASH = `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$16384,8,1`;
 process.env.ADMIN_SESSION_SECRET = crypto.randomBytes(32).toString('hex');
