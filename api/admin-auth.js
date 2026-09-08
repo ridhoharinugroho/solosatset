@@ -3,6 +3,9 @@
  *
  * Admin credentials live in Supabase table `admin_users`.
  * Only the session-signing secret remains in the server environment.
+ *
+ * During migration, an existing legacy Vercel admin credential is accepted only
+ * when the Supabase admin row does not yet exist, then copied into Supabase.
  */
 
 import crypto from 'node:crypto';
@@ -154,11 +157,44 @@ function getAdminClient() {
   });
 }
 
+function getLegacyAdminCredential() {
+  const username = String(process.env.ADMIN_USERNAME || '').trim();
+  const passwordHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+  if (!username || !passwordHash) return null;
+  return { username, passwordHash };
+}
+
+async function bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername) {
+  if (!legacy || !timingSafeEqualText(normalizedUsername, legacy.username.toLowerCase())) return null;
+  if (!verifyPassword(password, legacy.passwordHash)) return null;
+
+  const { data, error } = await supabase
+    .from('admin_users')
+    .upsert({
+      username: legacy.username.toLowerCase(),
+      password_hash: legacy.passwordHash,
+      role: 'admin',
+      is_active: true,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'username' })
+    .select('id, username, password_hash, role, is_active')
+    .single();
+
+  if (error) {
+    console.error('[Admin Auth Bootstrap]', error.message);
+    return null;
+  }
+
+  console.info('[Admin Auth] Existing server admin credential migrated to Supabase.');
+  return data;
+}
+
 async function authenticateFromSupabase(username, password) {
   const supabase = getAdminClient();
   if (!supabase) return { configured: false, user: null };
 
   const normalizedUsername = String(username || '').trim().toLowerCase();
+  const legacy = getLegacyAdminCredential();
   const { data, error } = await supabase
     .from('admin_users')
     .select('id, username, password_hash, role, is_active')
@@ -167,10 +203,18 @@ async function authenticateFromSupabase(username, password) {
 
   if (error) {
     console.error('[Admin Auth DB]', error.message);
+    const bootstrapped = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
+    if (bootstrapped) return { configured: true, user: bootstrapped };
     return { configured: true, user: null, databaseError: true };
   }
 
-  if (!data || data.is_active !== true || String(data.role || '').toLowerCase() !== 'admin') {
+  if (!data) {
+    const bootstrapped = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
+    if (bootstrapped) return { configured: true, user: bootstrapped };
+    return { configured: true, user: null };
+  }
+
+  if (data.is_active !== true || String(data.role || '').toLowerCase() !== 'admin') {
     return { configured: true, user: null };
   }
 
@@ -182,7 +226,6 @@ async function authenticateFromSupabase(username, password) {
 }
 
 async function authenticateAdmin(username, password) {
-  // Explicit test-only fallback keeps the unit/negative tests independent of a live database.
   if (process.env.ADMIN_AUTH_TEST_MODE === '1') {
     const expectedUsername = String(process.env.ADMIN_USERNAME || '').trim();
     const valid = timingSafeEqualText(username, expectedUsername) && verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
