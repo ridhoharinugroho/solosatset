@@ -69,7 +69,7 @@ function parsePasswordHash(value) {
   if (parts.length === 4 && parts[0] === 'scrypt') {
     const [, saltText, keyText, params] = parts;
     const [N, r, p] = params.split(',').map(Number);
-    if (parts.length === 4 && saltText && keyText && Number.isSafeInteger(N) && Number.isSafeInteger(r) && Number.isSafeInteger(p) && N > 1 && r > 0 && p > 0) {
+    if (saltText && keyText && Number.isSafeInteger(N) && Number.isSafeInteger(r) && Number.isSafeInteger(p) && N > 1 && r > 0 && p > 0) {
       const salt = Buffer.from(saltText, 'base64url');
       const key = Buffer.from(keyText, 'base64url');
       if (salt.length && key.length) return { salt, key, N, r, p };
@@ -150,34 +150,43 @@ async function authenticate(username, password) {
     const { data, error } = await supabase
       .from('admin_users')
       .select('id, username, password_hash, role, is_active')
-      .ilike('username', normalized)
-      .limit(1);
+      .eq('username', normalized)
+      .maybeSingle();
 
-    if (!error) {
-      const user = Array.isArray(data) ? data[0] : null;
-      if (user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)) {
-        // Transparently upgrade legacy plaintext storage to the intended scrypt format.
-        if (!isScryptHash(user.password_hash)) {
-          const { error: upgradeError } = await supabase
-            .from('admin_users')
-            .update({ password_hash: hashPassword(password), updated_at: new Date().toISOString() })
-            .eq('id', user.id);
-          if (upgradeError) console.error('[Admin Auth Migration]', upgradeError.message);
-        }
-        return { configured: true, user };
-      }
-    } else {
+    // A configured database that cannot be queried is a server/configuration
+    // failure, not an invalid-password response. Keep this distinct from 401.
+    if (error) {
       console.error('[Admin Auth DB]', error.message);
+      throw new Error('Admin authentication database query failed');
     }
+
+    const user = data || null;
+    if (user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)) {
+      // Transparently upgrade legacy plaintext storage to the intended scrypt format.
+      if (!isScryptHash(user.password_hash)) {
+        const { error: upgradeError } = await supabase
+          .from('admin_users')
+          .update({ password_hash: hashPassword(password), updated_at: new Date().toISOString() })
+          .eq('id', user.id);
+        if (upgradeError) console.error('[Admin Auth Migration]', upgradeError.message);
+      }
+      return { configured: true, user };
+    }
+
+    // Supabase is the canonical admin store. Do not silently switch to a second
+    // credential source when the database is available.
+    return { configured: true, user: null };
   }
 
+  // Legacy environment credentials are retained only when the canonical
+  // Supabase admin store is unavailable in this deployment.
   const legacyUsername = String(process.env.ADMIN_USERNAME || '').trim();
   const legacyHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
   if (legacyUsername && legacyHash && timingSafeEqualText(normalized, legacyUsername.toLowerCase()) && verifyPassword(password, legacyHash)) {
     return { configured: true, user: { id: 'legacy-admin', username: legacyUsername, role: 'admin', is_active: true } };
   }
 
-  return { configured: Boolean(supabase), user: null };
+  return { configured: false, user: null };
 }
 
 export default async function handler(req, res) {
@@ -205,7 +214,14 @@ export default async function handler(req, res) {
   const password = String(body?.password || '');
   if (!username || !password) { failed(ip); return json(res, 401, { ok: false, error: 'Username atau Password salah.' }); }
 
-  const auth = await authenticate(username, password);
+  let auth;
+  try {
+    auth = await authenticate(username, password);
+  } catch (error) {
+    console.error('[Admin Auth]', error?.message || error);
+    return json(res, 503, { ok: false, error: 'Admin authentication service is unavailable.' });
+  }
+
   if (!auth.configured) return json(res, 503, { ok: false, error: 'Admin authentication database is not configured on the server.' });
   if (!auth.user) { failed(ip); return json(res, 401, { ok: false, error: 'Username atau Password salah.' }); }
 
