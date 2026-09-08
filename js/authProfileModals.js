@@ -5,7 +5,57 @@
 // modal-profile-region-picker, modal-profile-district-picker
 // ============================================================
 
+import { getDistrictsByRegionId } from './data/regions.js';
+
 let authProfileLoadPromise = null;
+
+function populateRegistrationDistricts(preferredDistrict = '') {
+    const regionSelect = document.getElementById('reg-select-region');
+    const districtSelect = document.getElementById('reg-select-district');
+    if (!regionSelect || !districtSelect) return false;
+
+    const regionId = regionSelect.value || 'solo';
+    const districts = getDistrictsByRegionId(regionId);
+    const previousValue = preferredDistrict || districtSelect.value || '';
+
+    districtSelect.replaceChildren();
+
+    if (!districts.length) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'Kecamatan tidak tersedia';
+        districtSelect.appendChild(option);
+        districtSelect.value = '';
+        return false;
+    }
+
+    districts.forEach((district) => {
+        const option = document.createElement('option');
+        option.value = district;
+        option.textContent = district;
+        districtSelect.appendChild(option);
+    });
+
+    const matchingDistrict = districts.find((district) => district === previousValue);
+    districtSelect.value = matchingDistrict || districts[0];
+    return true;
+}
+
+function installRegistrationDistrictHandler() {
+    const regionSelect = document.getElementById('reg-select-region');
+    const districtSelect = document.getElementById('reg-select-district');
+    if (!regionSelect || !districtSelect) return false;
+
+    if (!regionSelect.dataset.districtHandlerInstalled) {
+        regionSelect.addEventListener('change', () => {
+            populateRegistrationDistricts();
+        });
+        regionSelect.dataset.districtHandlerInstalled = 'true';
+    }
+
+    populateRegistrationDistricts();
+    return true;
+}
 
 function showAuthModal(mode = 'login') {
     const modal = document.getElementById('modal-user-auth');
@@ -36,6 +86,10 @@ function showAuthModal(mode = 'login') {
         registerTab.classList.toggle('text-slate-500', !isRegister);
     }
 
+    if (isRegister) {
+        installRegistrationDistrictHandler();
+    }
+
     if (typeof window.refreshIcons === 'function') {
         try { window.refreshIcons(modal); } catch (e) {}
     } else if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') {
@@ -47,6 +101,7 @@ function showAuthModal(mode = 'login') {
 
 export async function ensureAuthProfileModalsLoaded() {
     if (document.getElementById('modal-user-auth')) {
+        installRegistrationDistrictHandler();
         return true;
     }
 
@@ -63,6 +118,7 @@ export async function ensureAuthProfileModalsLoaded() {
                     try { window.lucide.createIcons(); } catch (e) {}
                 }
             }
+            installRegistrationDistrictHandler();
             window.dispatchEvent(new CustomEvent('auth-profile-modals:ready'));
             return true;
         } catch (err) {
