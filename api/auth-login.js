@@ -8,12 +8,10 @@ function admin() {
   if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Server database configuration is unavailable.');
   return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
-
 function hashPassword(password, salt = crypto.randomBytes(16)) {
   const derived = crypto.scryptSync(String(password), salt, 64, { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
   return `scrypt$16384$8$1$${salt.toString('base64url')}$${derived.toString('base64url')}`;
 }
-
 function verifyPassword(password, encoded) {
   const parts = String(encoded || '').split('$');
   if (parts.length !== 7 || parts[0] !== 'scrypt') return false;
@@ -23,7 +21,11 @@ function verifyPassword(password, encoded) {
   const actual = crypto.scryptSync(String(password), salt, expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: 64 * 1024 * 1024 });
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
-
+function sameSecret(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
 function clean(v) { return String(v || '').trim(); }
 function cleanEmail(v) { return clean(v).toLowerCase(); }
 
@@ -49,22 +51,19 @@ export default async function handler(req, res) {
     const identifier = clean(body.identifier);
     const password = String(body.password || '');
     if (!identifier || !password) return res.status(400).json({ success: false, error: 'Identifier dan password wajib diisi.' });
-
     const db = admin();
     const user = await findUser(db, identifier);
     if (!user || user.deleted_at || (user.status || 'active').toLowerCase() === 'deleted') throw new Error('Akun tidak ditemukan.');
     if ((user.status || 'active').toLowerCase() === 'suspended') throw new Error('Akun sedang ditangguhkan oleh Admin.');
-
     let valid = user.password_hash ? verifyPassword(password, user.password_hash) : false;
     let migrated = false;
-    if (!valid && user.password && crypto.timingSafeEqual(Buffer.from(String(user.password)), Buffer.from(password))) {
+    if (!valid && user.password && sameSecret(user.password, password)) {
       valid = true;
       const passwordHash = hashPassword(password);
       await db.from('users').update({ password_hash: passwordHash, password: null, updated_at: new Date().toISOString() }).eq('id', user.id);
       migrated = true;
     }
     if (!valid) throw new Error('Password yang Anda masukkan salah.');
-
     return res.status(200).json({ success: true, migrated, user: {
       id: user.id, name: user.name, storeName: user.store_name || user.name, email: user.email,
       phone: user.phone, region: user.region, district: user.district, avatar: user.avatar,
