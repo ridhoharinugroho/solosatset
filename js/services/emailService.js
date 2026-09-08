@@ -1,132 +1,72 @@
-import { supabase } from '../lib/supabase.js';
-
-const STORAGE_KEY_SMTP_CONFIG = 'pusat_barkas_smtp_config';
-
-export const DEFAULT_SMTP_CONFIG = {
+const DEFAULT_SMTP_CONFIG = Object.freeze({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  user: 'solosatset.soloraya@gmail.com',
-  pass: '', // Diisi melalui Admin Panel (Google App Password) atau Supabase
+  user: '',
+  pass: '',
   fromName: 'Pusat Jual Beli Solo Raya',
-  from: 'solosatset.soloraya@gmail.com'
-};
+  from: ''
+});
 
-let cachedCloudSmtpConfig = null;
+let cachedClientMailConfig = null;
 
 /**
- * Ambil Konfigurasi SMTP dari Cloud Supabase (tabel app_smtp_config)
+ * Client-safe SMTP settings facade.
+ * SMTP credentials are intentionally unavailable in browser code.
  */
 export async function fetchCloudSmtpConfig() {
-  if (cachedCloudSmtpConfig && cachedCloudSmtpConfig.pass) return cachedCloudSmtpConfig;
-  if (!supabase) return null;
-  try {
-    const { data: smtpRow } = await supabase
-      .from('app_smtp_config')
-      .select('settings_json')
-      .eq('id', 'config')
-      .maybeSingle();
-
-    if (smtpRow && smtpRow.settings_json) {
-      const parsed = typeof smtpRow.settings_json === 'string' ? JSON.parse(smtpRow.settings_json) : smtpRow.settings_json;
-      if (parsed && (parsed.pass || parsed.user)) {
-        cachedCloudSmtpConfig = parsed;
-        saveSmtpConfig(cachedCloudSmtpConfig, false);
-        return cachedCloudSmtpConfig;
-      }
-    }
-  } catch (e) {}
   return null;
 }
 
-/**
- * Dapatkan Konfigurasi SMTP Tersimpan
- */
 export function getSmtpConfig() {
-  try {
-    const raw = window.__smtpConfigCache;
-    if (raw) {
-      return { ...DEFAULT_SMTP_CONFIG, ...raw };
-    }
-  } catch (e) {}
-  if (cachedCloudSmtpConfig) {
-    return { ...DEFAULT_SMTP_CONFIG, ...cachedCloudSmtpConfig };
-  }
-  return { ...DEFAULT_SMTP_CONFIG };
-}
-
-/**
- * Simpan Konfigurasi SMTP ke Local & Cloud Supabase (tabel app_smtp_config)
- */
-export async function saveSmtpConfig(config, syncToCloud = true) {
-  const current = getSmtpConfig();
-  const cleanPass = (config.pass !== undefined ? config.pass : current.pass || '').replace(/\s+/g, '');
-  const cleanUser = (config.user || current.user || 'solosatset.official@gmail.com').trim();
-  const senderEmail = cleanUser; // Kunci kesamaan Email 'From' dengan User SMTP
-
-  const updated = { 
-    ...current, 
-    ...config,
-    user: cleanUser,
-    pass: cleanPass,
-    from: senderEmail,
-    senderEmail: senderEmail
+  return {
+    ...DEFAULT_SMTP_CONFIG,
+    ...(cachedClientMailConfig || {}),
+    user: '',
+    pass: ''
   };
-
-  window.__smtpConfigCache = updated;
-  cachedCloudSmtpConfig = updated;
-
-  if (syncToCloud && supabase) {
-    try {
-      await supabase.from('app_smtp_config').upsert([
-        { 
-          id: 'config', 
-          settings_json: JSON.stringify(updated), 
-          updated_at: new Date().toISOString() 
-        }
-      ], { onConflict: 'id' });
-
-      console.log('[SMTP Security] Konfigurasi SMTP berhasil disinkronkan ke tabel app_smtp_config Supabase.');
-    } catch (e) {
-      console.warn('[SMTP Cloud Sync Error]', e);
-    }
-  }
-
-  return updated;
 }
 
 /**
- * Pengiriman Email Inti (Dispatcher ke Serverless / SMTP Gateway)
+ * Keep only non-secret presentation settings in memory.
+ * The SMTP password is never stored, sent, or persisted from the browser.
  */
-export async function sendEmail({ to, subject, html, text, type = 'general', metadata = {} }) {
-  if (!to || !to.includes('@')) {
+export async function saveSmtpConfig(config = {}) {
+  cachedClientMailConfig = {
+    host: String(config.host || DEFAULT_SMTP_CONFIG.host).trim(),
+    port: Number(config.port || DEFAULT_SMTP_CONFIG.port),
+    secure: Boolean(config.secure ?? DEFAULT_SMTP_CONFIG.secure),
+    fromName: String(config.fromName || DEFAULT_SMTP_CONFIG.fromName).trim(),
+    from: String(config.from || '').trim(),
+    user: '',
+    pass: ''
+  };
+  return getSmtpConfig();
+}
+
+function normalizeRecipient(to) {
+  const email = String(to || '').trim().toLowerCase();
+  if (!email || !email.includes('@') || email.length > 254) {
     throw new Error('Alamat email penerima tidak valid.');
   }
+  return email;
+}
 
-  let smtpConfig = getSmtpConfig();
-  if (!smtpConfig.pass) {
-    const cloudConfig = await fetchCloudSmtpConfig();
-    if (cloudConfig && cloudConfig.pass) {
-      smtpConfig = { ...smtpConfig, ...cloudConfig };
-    }
-  }
+/**
+ * Browser -> server email dispatcher.
+ * No SMTP credentials are ever included in the request body.
+ */
+export async function sendEmail({ to, subject, html, text, type = 'general', metadata = {} }) {
+  const recipient = normalizeRecipient(to);
+  if (!html && !text) throw new Error('Isi email tidak boleh kosong.');
 
   const payload = {
-    to: to.trim().toLowerCase(),
-    subject,
-    html,
-    text: text || '',
-    type,
-    metadata,
-    smtpConfig: {
-      host: smtpConfig.host,
-      port: Number(smtpConfig.port),
-      secure: Boolean(smtpConfig.secure),
-      user: smtpConfig.user,
-      pass: smtpConfig.pass,
-      fromName: smtpConfig.fromName,
-      from: smtpConfig.from
-    }
+    to: recipient,
+    subject: String(subject || '').slice(0, 300),
+    html: typeof html === 'string' ? html : '',
+    text: typeof text === 'string' ? text : '',
+    type: String(type || 'general').slice(0, 80),
+    metadata: metadata && typeof metadata === 'object' ? metadata : {}
   };
 
   try {
@@ -139,119 +79,48 @@ export async function sendEmail({ to, subject, html, text, type = 'general', met
       body: JSON.stringify(payload)
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      console.log('[Email Dispatcher] Email dispatched successfully to recipient via SMTP gateway.');
-      return { success: true, result };
-    } else {
-      const errJson = await response.json().catch(() => ({ error: 'HTTP Error ' + response.status }));
-      console.error('[Email Dispatcher Server Error]', errJson.error || errJson);
-      return { success: false, error: errJson.error || 'Gagal mengirim email via SMTP server.' };
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) {
+      const message = result.error || 'Gagal mengirim email melalui server.';
+      console.error('[Email Dispatcher Server Error]', message);
+      return { success: false, error: message };
     }
-  } catch (err) {
-    console.error('[Email Dispatcher Network/Gateway Error]', err);
+
+    console.log('[Email Dispatcher] Email berhasil diteruskan ke server mail gateway.');
+    return { success: true, result };
+  } catch (error) {
+    console.error('[Email Dispatcher Network Error]', error);
     return {
       success: false,
-      error: err.message || 'Gagal terhubung ke gateway SMTP server backend.'
+      error: error?.message || 'Gagal terhubung ke server email.'
     };
   }
 }
 
-/**
- * 1. Kirim Email Notifikasi Registrasi Akun Baru
- */
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export async function sendWelcomeRegistrationEmail(user) {
-  if (!user || !user.email) return;
+  if (!user?.email) return { success: false, error: 'Email pengguna tidak tersedia.' };
 
-  const subject = `🎉 Selamat Datang di Pusat Jual Beli Solo Raya - Akun Toko Anda Aktif!`;
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Selamat Datang di Pusat Jual Beli Solo Raya</title>
-      <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .header { background: linear-gradient(135deg, #881337 0%, #be123c 100%); padding: 36px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; }
-        .header p { margin: 8px 0 0; font-size: 13px; color: #fecdd3; font-weight: 500; }
-        .badge-brand { display: inline-block; background: #fbbf24; color: #4c0519; font-weight: 900; font-size: 11px; padding: 4px 12px; border-radius: 999px; text-transform: uppercase; margin-bottom: 12px; }
-        .content { padding: 32px 28px; }
-        .greeting { font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 16px; }
-        .intro-text { font-size: 13.5px; line-height: 1.6; color: #475569; margin-bottom: 24px; }
-        .card-details { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 18px; padding: 20px; margin-bottom: 24px; }
-        .card-title { font-size: 12px; font-weight: 800; text-transform: uppercase; color: #881337; margin-bottom: 14px; letter-spacing: 0.5px; }
-        .detail-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
-        .detail-row:last-child { border-bottom: none; }
-        .detail-label { color: #64748b; font-weight: 600; }
-        .detail-value { color: #0f172a; font-weight: 700; text-align: right; }
-        .btn-action { display: block; width: fit-content; margin: 28px auto; background: #881337; color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 14px; font-weight: 800; font-size: 14px; box-shadow: 0 4px 14px rgba(136,19,55,0.3); text-align: center; }
-        .security-box { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 16px; padding: 16px; font-size: 12px; color: #065f46; line-height: 1.5; margin-bottom: 24px; }
-        .footer { background: #f1f5f9; padding: 24px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <span class="badge-brand">Pusat Jual Beli Solo Raya</span>
-          <h1>Sugeng Rawuh, Lur! 🎉</h1>
-          <p>Platform Jual Beli Barang 7 Wilayah Se-Solo Raya</p>
-        </div>
-        
-        <div class="content">
-          <div class="greeting">Halo, ${user.name || user.storeName}!</div>
-          <p class="intro-text">
-            Selamat! Akun Anda telah berhasil terdaftar dan aktif di <b>Pusat Jual Beli Solo Raya</b>. Anda sekarang dapat langsung memasang iklan barang dengan rasio foto 1:1 (persegi) dan menjangkau ribuan pembeli di seluruh wilayah Solo, Sukoharjo, Karanganyar, Boyolali, Sragen, Klaten, dan Wonogiri.
-          </p>
+  const name = escapeHtml(user.name || user.storeName || 'Pengguna');
+  const storeName = escapeHtml(user.storeName || user.name || '-');
+  const phone = escapeHtml(user.phone || '-');
+  const district = escapeHtml(user.district || '');
+  const region = escapeHtml(user.region ? String(user.region).toUpperCase() : 'SOLO');
+  const email = normalizeRecipient(user.email);
 
-          <div class="card-details">
-            <div class="card-title">📋 Ringkasan Akun Terdaftar</div>
-            <table style="width:100%; border-collapse:collapse;">
-              <tr>
-                <td style="padding:6px 0; color:#64748b; font-size:13px;">Nama Toko:</td>
-                <td style="padding:6px 0; color:#0f172a; font-weight:700; font-size:13px; text-align:right;">${user.storeName || user.name}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0; color:#64748b; font-size:13px;">Nama Pemilik:</td>
-                <td style="padding:6px 0; color:#881337; font-weight:700; font-size:13px; text-align:right;">${user.name || '-'}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0; color:#64748b; font-size:13px;">Nomor WhatsApp:</td>
-                <td style="padding:6px 0; color:#0f172a; font-weight:700; font-size:13px; text-align:right;">${user.phone || '-'}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0; color:#64748b; font-size:13px;">Wilayah:</td>
-                <td style="padding:6px 0; color:#0f172a; font-weight:700; font-size:13px; text-align:right;">${user.district ? user.district + ', ' : ''}${user.region ? user.region.toUpperCase() : 'SOLO'}</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 0; color:#64748b; font-size:13px;">Status Akun:</td>
-                <td style="padding:6px 0; color:#059669; font-weight:700; font-size:13px; text-align:right;">✅ Aktif & Siap Jualan</td>
-              </tr>
-            </table>
-          </div>
-
-          <div class="security-box">
-            🛡️ <b>Jaminan Keamanan:</b> Platform kami 100% bebas biaya komisi, bebas link judi online, pinjaman online, atau iklan mengganggu. Jual beli sat-set, pantau cocok bayar!
-          </div>
-
-          <a href="https://solosatset.vercel.app/" class="btn-action">
-            Buka Web & Mulai Pasang Iklan 🚀
-          </a>
-        </div>
-
-        <div class="footer">
-          <p>© 2026 Pusat Jual Beli Solo Raya. Dikembangkan dengan ❤️ untuk masyarakat Solo Raya.</p>
-          <p>Email otomatis ini dikirim ke <b>${user.email}</b> saat Anda mendaftar akun.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  const subject = 'Selamat Datang di Pusat Jual Beli Solo Raya - Akun Anda Aktif';
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Selamat Datang</title></head><body style="margin:0;padding:20px;background:#f8fafc;font-family:Segoe UI,Arial,sans-serif;color:#1e293b"><div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:24px;overflow:hidden"><div style="background:linear-gradient(135deg,#881337,#be123c);padding:36px 24px;text-align:center;color:#fff"><div style="display:inline-block;background:#fbbf24;color:#4c0519;font-weight:900;font-size:11px;padding:4px 12px;border-radius:999px;text-transform:uppercase;margin-bottom:12px">Pusat Jual Beli Solo Raya</div><h1 style="margin:0;font-size:24px">Sugeng Rawuh, Lur! 🎉</h1><p style="margin:8px 0 0;font-size:13px;color:#fecdd3">Platform Jual Beli Barang Se-Solo Raya</p></div><div style="padding:32px 28px"><p style="font-size:16px;font-weight:700">Halo, ${name}!</p><p style="font-size:13.5px;line-height:1.6;color:#475569">Akun Anda berhasil terdaftar dan aktif. Anda sekarang dapat mulai memasang iklan dan menjangkau pembeli di wilayah Solo Raya.</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:20px;margin:24px 0"><div style="font-size:12px;font-weight:800;text-transform:uppercase;color:#881337;margin-bottom:12px">Ringkasan Akun</div><p style="font-size:13px;margin:7px 0"><b>Nama Toko:</b> ${storeName}</p><p style="font-size:13px;margin:7px 0"><b>Nomor WhatsApp:</b> ${phone}</p><p style="font-size:13px;margin:7px 0"><b>Wilayah:</b> ${district ? `${district}, ` : ''}${region}</p><p style="font-size:13px;margin:7px 0;color:#059669"><b>Status:</b> Aktif & siap jualan</p></div><a href="https://solosatset.vercel.app/" style="display:block;width:max-content;margin:28px auto;background:#881337;color:#fff;text-decoration:none;padding:14px 32px;border-radius:14px;font-weight:800;font-size:14px">Buka Web & Mulai Pasang Iklan 🚀</a></div><div style="background:#f1f5f9;padding:24px;text-align:center;font-size:11px;color:#64748b">© 2026 Pusat Jual Beli Solo Raya</div></div></body></html>`;
 
   return sendEmail({
-    to: user.email,
+    to: email,
     subject,
     html,
     type: 'registration_welcome',
@@ -259,107 +128,29 @@ export async function sendWelcomeRegistrationEmail(user) {
   });
 }
 
-/**
- * 2. Kirim Email Kode Reset Password
- */
 export async function sendPasswordResetEmail({ email, userName, resetCode }) {
-  if (!email || !resetCode) return;
+  if (!email || !resetCode) return { success: false, error: 'Data reset tidak lengkap.' };
 
-  const subject = `🔐 Kode Pemulihan Password Akun: [${resetCode}] - Pusat Jual Beli Solo Raya`;
-  const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Password Akun</title>
-      <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 20px; color: #1e293b; }
-        .container { max-width: 540px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .header { background: linear-gradient(135deg, #881337 0%, #4c0519 100%); padding: 32px 24px; text-align: center; color: #ffffff; }
-        .header h1 { margin: 0; font-size: 22px; font-weight: 900; }
-        .content { padding: 32px 28px; text-align: center; }
-        .code-box { background: #fffbeb; border: 2px dashed #f59e0b; border-radius: 20px; padding: 20px; margin: 24px 0; }
-        .code-number { font-family: 'Courier New', Courier, monospace; font-size: 38px; font-weight: 900; letter-spacing: 8px; color: #881337; margin: 6px 0; display: inline-block; }
-        .expiry-text { font-size: 12px; color: #b45309; font-weight: 700; }
-        .instruction { font-size: 13.5px; color: #475569; line-height: 1.6; text-align: left; }
-        .footer { background: #f1f5f9; padding: 20px; text-align: center; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div style="font-size:32px; margin-bottom:6px;">🔐</div>
-          <h1>Pemulihan Password Akun</h1>
-          <p style="margin:6px 0 0; color:#fecdd3; font-size:12.5px;">Pusat Jual Beli Solo Raya</p>
-        </div>
-
-        <div class="content">
-          <p class="instruction">
-            Halo <b>${userName || 'Pengguna'}</b>,<br>
-            Kami menerima permintaan untuk mengatur ulang kata sandi (password) akun Pusat Jual Beli Solo Raya yang terhubung dengan alamat email ini.
-          </p>
-
-          <div class="code-box">
-            <div style="font-size:11px; font-weight:800; text-transform:uppercase; color:#92400e;">KODE VERIFIKASI RESET ANDA:</div>
-            <div class="code-number">${resetCode}</div>
-            <div class="expiry-text">⏳ Berlaku selama 15 menit</div>
-          </div>
-
-          <p class="instruction">
-            Masukkan kode 6 digit di atas pada halaman reset password untuk membuat kata sandi baru.
-          </p>
-
-          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:14px; padding:14px; font-size:11.5px; color:#991b1b; text-align:left; margin-top:20px;">
-            ⚠️ <b>Keamanan Akun:</b> Jangan pernah memberikan kode ini kepada orang lain. Jika Anda tidak meminta pengaturan ulang password, Anda dapat mengabaikan email ini dengan aman.
-          </div>
-        </div>
-
-        <div class="footer">
-          <p>© 2026 Pusat Jual Beli Solo Raya • Solo Raya Jawa Tengah</p>
-          <p>Email ini dikirim otomatis ke <b>${email}</b>.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+  const recipient = normalizeRecipient(email);
+  const safeName = escapeHtml(userName || 'Pengguna');
+  const safeCode = escapeHtml(String(resetCode).replace(/\D/g, '').slice(0, 6));
+  const subject = 'Kode Pemulihan Password - Pusat Jual Beli Solo Raya';
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px;background:#f8fafc;font-family:Segoe UI,Arial,sans-serif;color:#1e293b"><div style="max-width:540px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:20px;overflow:hidden"><div style="background:linear-gradient(135deg,#881337,#4c0519);padding:30px 24px;color:#fff;text-align:center"><div style="font-size:30px">🔐</div><h1 style="margin:8px 0 0;font-size:22px">Pemulihan Password</h1><p style="margin:6px 0 0;color:#fecdd3;font-size:13px">Pusat Jual Beli Solo Raya</p></div><div style="padding:30px 26px"><p style="font-size:14px;line-height:1.6">Halo <b>${safeName}</b>, kami menerima permintaan untuk mengatur ulang password akun Anda.</p><div style="background:#fffbeb;border:2px dashed #f59e0b;border-radius:16px;padding:18px;text-align:center;margin:22px 0"><div style="font-size:11px;font-weight:800;color:#92400e;text-transform:uppercase">Kode Verifikasi</div><div style="font-family:Courier New,monospace;font-size:36px;font-weight:900;letter-spacing:8px;color:#881337;margin:8px 0">${safeCode}</div><div style="font-size:12px;color:#b45309;font-weight:700">Berlaku selama 15 menit</div></div><p style="font-size:13px;line-height:1.6">Masukkan kode 6 digit tersebut pada halaman pemulihan password. Jangan bagikan kode ini kepada siapa pun.</p><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:13px;font-size:11.5px;color:#991b1b;margin-top:18px">Jika Anda tidak meminta reset password, abaikan email ini.</div></div><div style="background:#f1f5f9;padding:18px;text-align:center;font-size:10.5px;color:#64748b">Email otomatis untuk ${escapeHtml(recipient)}.</div></div></body></html>`;
 
   return sendEmail({
-    to: email,
+    to: recipient,
     subject,
     html,
     type: 'password_reset',
-    metadata: { resetCode }
+    metadata: {}
   });
 }
 
-/**
- * 3. Kirim Email Uji Coba (Test Connection SMTP)
- */
-export async function sendTestEmail({ toEmail, smtpConfig }) {
-  const target = (toEmail || getSmtpConfig().user || 'solosatset.soloraya@gmail.com').trim();
-  const subject = `🧪 Uji Coba Pengiriman Email SMTP - Pusat Jual Beli Solo Raya`;
-  const html = `
-    <div style="font-family:sans-serif; max-width:500px; margin:0 auto; padding:24px; background:#fff; border-radius:16px; border:1px solid #e2e8f0;">
-      <h2 style="color:#881337; margin-top:0;">✅ Konfigurasi SMTP Berhasil Terhubung!</h2>
-      <p style="font-size:13px; color:#475569; line-height:1.6;">
-        Email ini adalah pesan pengujian dari <b>Panel Admin Pusat Jual Beli Solo Raya</b>. Mail server SMTP Anda telah terkonfigurasi dengan benar dan siap mengirimkan email notifikasi pendaftaran serta kode reset password kepada seluruh warga pengguna.
-      </p>
-      <div style="background:#f8fafc; padding:12px; border-radius:12px; font-size:12px; color:#334155; margin:16px 0;">
-        <b>Waktu Pengujian:</b> ${new Date().toLocaleString('id-ID')}<br>
-        <b>Penerima:</b> ${target}
-      </div>
-      <p style="font-size:11px; color:#94a3b8; margin-bottom:0;">Pusat Jual Beli Solo Raya - Mail Engine v2.1</p>
-    </div>
-  `;
-
-  return sendEmail({
-    to: target,
-    subject,
-    html,
-    type: 'test_smtp',
-    metadata: { testedAt: new Date().toISOString() }
-  });
+export async function sendTestEmail({ toEmail } = {}) {
+  const target = normalizeRecipient(toEmail);
+  const subject = 'Uji Coba Pengiriman Email - Pusat Jual Beli Solo Raya';
+  const html = `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px;background:#fff;border-radius:16px;border:1px solid #e2e8f0"><h2 style="color:#881337;margin-top:0">✅ Email Uji Coba Berhasil Dikirim</h2><p style="font-size:13px;color:#475569;line-height:1.6">Pesan ini dikirim melalui mail gateway server Pusat Jual Beli Solo Raya. Credential SMTP tidak diproses di browser.</p><div style="background:#f8fafc;padding:12px;border-radius:12px;font-size:12px;color:#334155"><b>Waktu:</b> ${escapeHtml(new Date().toLocaleString('id-ID'))}<br><b>Penerima:</b> ${escapeHtml(target)}</div><p style="font-size:11px;color:#94a3b8;margin-bottom:0">Pusat Jual Beli Solo Raya</p></div>`;
+  return sendEmail({ to: target, subject, html, type: 'test_smtp', metadata: { testedAt: new Date().toISOString() } });
 }
 
-
+export { DEFAULT_SMTP_CONFIG };

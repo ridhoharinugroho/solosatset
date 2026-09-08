@@ -1,12 +1,11 @@
 /**
- * Lightweight database capability check.
- * Runtime never creates, alters, or seeds database schema/data.
- * Schema changes must be applied through Supabase migrations.
+ * Client database health facade.
+ *
+ * Database schema is managed exclusively by Supabase migrations and sensitive
+ * user/OTP columns are intentionally not queried from the browser. Authentication
+ * and password-reset schema checks are server-authoritative.
  */
 
-import { supabase } from '../lib/supabase.js';
-
-let isDbChecked = false;
 let hasOtpDbColumns = false;
 
 if (typeof window !== 'undefined') {
@@ -18,36 +17,7 @@ export function isOtpDbColumnSupported() {
 }
 
 export async function checkAndInitDatabaseSchema() {
-  if (isDbChecked) return isOtpDbColumnSupported();
-  isDbChecked = true;
-
-  if (!supabase) return false;
-
-  try {
-    const { data, error } = await supabase
-      .from('users')
-      .select('id, otp_code, otp_expires_at')
-      .limit(1);
-
-    if (!error && Array.isArray(data)) {
-      hasOtpDbColumns = true;
-      if (typeof window !== 'undefined') window._hasOtpDbColumns = true;
-      return true;
-    }
-  } catch (err) {
-    console.warn('[DB Capability Check]', err?.message || err);
-  }
-
-  hasOtpDbColumns = false;
-  if (typeof window !== 'undefined') window._hasOtpDbColumns = false;
-  return false;
-}
-
-// Run a read-only capability check after the app is idle. No schema mutation occurs.
-if (typeof window !== 'undefined') {
-  if (window.requestIdleCallback) {
-    window.requestIdleCallback(() => { checkAndInitDatabaseSchema(); });
-  } else {
-    setTimeout(() => { checkAndInitDatabaseSchema(); }, 1000);
-  }
+  // Intentionally no browser-side query against users/OTP columns.
+  // Browser access to the users table is restricted by the security model.
+  return isOtpDbColumnSupported();
 }

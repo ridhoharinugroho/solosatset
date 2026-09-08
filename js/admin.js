@@ -1,6 +1,6 @@
 /**
  * Pusat Jual Beli Solo Raya - Admin Panel Controller
- * Protected Admin Panel - credentials verified server-side
+ * Admin authentication is server-authoritative via /api/admin-auth.
  */
 
 import { SOLO_RAYA_REGIONS, getRegionById } from './data/regions.js';
@@ -11,27 +11,25 @@ import {
   initializeStorage 
 } from './services/storage.js';
 import { getSmtpConfig, saveSmtpConfig, sendTestEmail } from './services/emailService.js';
-import { logout } from './services/auth.js';
-import { CURRENT_SW_VERSION } from './utils/runtime.js';
+import './adminAuthBridge.js';
 
 const ADMIN_AUTH_KEY = 'pusat_barkas_admin_auth';
-
+const CURRENT_SW_VERSION = '20260902_v214';
 
 // Admin State
 const adminState = {
   searchQuery: '',
   selectedRegion: 'all',
-  selectedStatus: 'all' // 'all', 'active', 'hidden', 'sold'
+  selectedStatus: 'all'
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   initializeStorage();
-  checkAuth();
+  await checkAuth();
   initAdminEventListeners();
   initBackHandler();
   initServiceWorker();
 
-  // Listen to Online Database Status changes
   window.addEventListener('dbStatusChanged', (e) => {
     const status = e.detail;
     const badgeText = document.getElementById('db-status-text');
@@ -44,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Listen to remote changes
   window.addEventListener('listingsChanged', () => {
     updateStats();
     renderAdminListings();
@@ -55,62 +52,60 @@ document.addEventListener('DOMContentLoaded', () => {
 // AUTHENTICATION MANAGEMENT
 // -------------------------------------------------------------
 async function checkAuth() {
+  const auth = window.__solosatsetAdminAuth;
+  const session = await auth?.getSession?.();
+  const isAuth = Boolean(session?.authenticated);
   const loginView = document.getElementById('admin-login-view');
   const dashboardView = document.getElementById('admin-dashboard-view');
-  try {
-    const response = await fetch('/api/admin-auth', { credentials: 'same-origin', cache: 'no-store' });
-    const result = await response.json();
-    if (result.authenticated) {
-      loginView.classList.add('hidden');
-      dashboardView.classList.remove('hidden');
-      loadDashboard();
-    } else {
-      loginView.classList.remove('hidden');
-      dashboardView.classList.add('hidden');
-    }
-  } catch {
-    loginView.classList.remove('hidden');
-    dashboardView.classList.add('hidden');
+
+  if (isAuth) {
+    sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
+    loginView?.classList.add('hidden');
+    dashboardView?.classList.remove('hidden');
+    loadDashboard();
+  } else {
+    sessionStorage.removeItem(ADMIN_AUTH_KEY);
+    loginView?.classList.remove('hidden');
+    dashboardView?.classList.add('hidden');
   }
+
   if (window.lucide) window.lucide.createIcons();
+  return isAuth;
 }
 
 async function handleLogin(e) {
   e.preventDefault();
-  const usernameInput = document.getElementById('admin-username').value.trim();
-  const passwordInput = document.getElementById('admin-password').value;
+  const usernameInput = document.getElementById('admin-username')?.value.trim() || '';
+  const passwordInput = document.getElementById('admin-password')?.value || '';
   const errorAlert = document.getElementById('login-error-alert');
   const errorMsg = document.getElementById('login-error-msg');
+
   try {
-    const response = await fetch('/api/admin-auth', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: usernameInput, password: passwordInput })
-    });
-    const result = await response.json();
-    if (!response.ok || !result.authenticated) throw new Error('invalid');
-    errorAlert.classList.add('hidden');
-    showToast('Login Admin Berhasil!', 'success');
+    await window.__solosatsetAdminAuth.login(usernameInput, passwordInput);
+    errorAlert?.classList.add('hidden');
+    showToast('Login Admin Berhasil. Selamat datang di Panel Admin.', 'success');
     await checkAuth();
-  } catch {
-    errorAlert.classList.remove('hidden');
-    errorMsg.textContent = 'Username atau Password salah! Periksa kembali kredensial Anda.';
+  } catch (error) {
+    errorAlert?.classList.remove('hidden');
+    if (errorMsg) errorMsg.textContent = error.message || 'Username atau Password salah.';
     if (window.lucide) window.lucide.createIcons();
   }
 }
 
 async function handleLogout() {
   try {
-    await fetch('/api/admin-auth', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'logout' })
-    });
+    await window.__solosatsetAdminAuth.logout();
   } catch {}
-  logout();
+
+  sessionStorage.removeItem(ADMIN_AUTH_KEY);
+  try {
+    sessionStorage.clear();
+  } catch {}
   showToast('Anda telah keluar dari Panel Admin.', 'info');
   await checkAuth();
-  setTimeout(() => { window.location.href = 'admin.html'; }, 300);
+  setTimeout(() => {
+    window.location.href = 'admin.html';
+  }, 300);
 }
 
 // -------------------------------------------------------------
@@ -129,7 +124,6 @@ function loadDashboard() {
 
 function updateStats() {
   const listings = getAllListings();
-  
   const total = listings.length;
   const active = listings.filter((l) => !l.isHidden && !l.isSold).length;
   const hidden = listings.filter((l) => l.isHidden).length;
@@ -183,7 +177,6 @@ function renderAdminListings() {
   }
 
   emptyView.classList.add('hidden');
-
   let rowsHtml = '';
   listings.forEach((item) => {
     const region = getRegionById(item.regionId);
@@ -217,12 +210,10 @@ function renderAdminListings() {
             </div>
           </div>
         </td>
-
         <td class="p-3.5">
           <div class="font-extrabold text-rose-400 text-xs">${formatRupiah(item.price)}</div>
           <div class="text-[11px] text-slate-400 mt-0.5">${cat ? cat.name : item.category}</div>
         </td>
-
         <td class="p-3.5">
           <div class="font-semibold text-slate-200 flex items-center gap-1">
             <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500"></i>
@@ -230,7 +221,6 @@ function renderAdminListings() {
           </div>
           <div class="text-[11px] text-slate-400">Kec. ${item.district || '-'}</div>
         </td>
-
         <td class="p-3.5">
           <div class="font-bold text-slate-200 flex items-center gap-1">
             <i data-lucide="user" class="w-3.5 h-3.5 text-slate-400"></i>
@@ -238,47 +228,18 @@ function renderAdminListings() {
           </div>
           <div class="text-[11px] text-emerald-400 font-mono mt-0.5">${sellerPhone}</div>
         </td>
-
-        <td class="p-3.5">
-          ${statusBadge}
-        </td>
-
+        <td class="p-3.5">${statusBadge}</td>
         <td class="p-3.5 text-right">
           <div class="flex items-center justify-end gap-1.5 flex-wrap">
-            <button 
-              data-action="toggle-hide" 
-              data-id="${item.id}"
-              class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 ${
-                item.isHidden 
-                  ? 'bg-purple-600 hover:bg-purple-500 text-white' 
-                  : 'bg-slate-700 hover:bg-slate-600 text-slate-200'
-              }"
-              title="${item.isHidden ? 'Tampilkan kembali iklan ke publik' : 'Sembunyikan iklan dari marketplace publik'}"
-            >
+            <button data-action="toggle-hide" data-id="${item.id}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 ${item.isHidden ? 'bg-purple-600 hover:bg-purple-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'}" title="${item.isHidden ? 'Tampilkan kembali iklan ke publik' : 'Sembunyikan iklan dari marketplace publik'}">
               <i data-lucide="${item.isHidden ? 'eye' : 'eye-off'}" class="w-3.5 h-3.5"></i>
               <span>${item.isHidden ? 'Tampilkan' : 'Sembunyikan'}</span>
             </button>
-
-            <button 
-              data-action="toggle-sold" 
-              data-id="${item.id}"
-              class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 ${
-                item.isSold 
-                  ? 'bg-emerald-700 hover:bg-emerald-600 text-white' 
-                  : 'bg-amber-600/80 hover:bg-amber-600 text-white'
-              }"
-              title="Ubah status terjual"
-            >
+            <button data-action="toggle-sold" data-id="${item.id}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors flex items-center gap-1 ${item.isSold ? 'bg-emerald-700 hover:bg-emerald-600 text-white' : 'bg-amber-600/80 hover:bg-amber-600 text-white'}" title="Ubah status terjual">
               <i data-lucide="${item.isSold ? 'check' : 'tag'}" class="w-3.5 h-3.5"></i>
               <span>${item.isSold ? 'Aktifkan' : 'Terjual'}</span>
             </button>
-
-            <button 
-              data-action="delete" 
-              data-id="${item.id}"
-              class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors flex items-center gap-1"
-              title="Hapus iklan secara permanen"
-            >
+            <button data-action="delete" data-id="${item.id}" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-rose-950 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors flex items-center gap-1" title="Hapus iklan secara permanen">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
               <span>Hapus</span>
             </button>
@@ -289,49 +250,35 @@ function renderAdminListings() {
   });
 
   tbody.innerHTML = rowsHtml;
-
   tbody.querySelectorAll('[data-action="toggle-hide"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-id');
       const updated = toggleHideListing(id);
       updateStats();
       renderAdminListings();
-      showToast(
-        updated.isHidden 
-          ? "Iklan berhasil disembunyikan dari pengunjung publik!" 
-          : "Iklan kembali ditampilkan ke marketplace publik!", 
-        updated.isHidden ? "warning" : "success"
-      );
+      showToast(updated.isHidden ? 'Iklan berhasil disembunyikan dari pengunjung publik!' : 'Iklan kembali ditampilkan ke marketplace publik!', updated.isHidden ? 'warning' : 'success');
     });
   });
-
   tbody.querySelectorAll('[data-action="toggle-sold"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-id');
       const updated = toggleSoldStatus(id);
       updateStats();
       renderAdminListings();
-      showToast(
-        updated.isSold 
-          ? "Iklan ditandai Terjual!" 
-          : "Iklan kembali Tersedia!", 
-        "info"
-      );
+      showToast(updated.isSold ? 'Iklan ditandai Terjual!' : 'Iklan kembali Tersedia!', 'info');
     });
   });
-
   tbody.querySelectorAll('[data-action="delete"]').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = btn.getAttribute('data-id');
-      if (confirm("Apakah Anda yakin ingin MENGHAPUS PERMANEN iklan barang ini? Tindakan ini tidak dapat dibatalkan.")) {
+      if (confirm('Apakah Anda yakin ingin MENGHAPUS PERMANEN iklan barang ini? Tindakan ini tidak dapat dibatalkan.')) {
         deleteListing(id);
         updateStats();
         renderAdminListings();
-        showToast("Iklan berhasil dihapus secara permanen.", "info");
+        showToast('Iklan berhasil dihapus secara permanen.', 'info');
       }
     });
   });
-
   if (window.lucide) window.lucide.createIcons();
 }
 
@@ -339,13 +286,9 @@ function renderAdminListings() {
 // EVENT LISTENERS INITIALIZATION
 // -------------------------------------------------------------
 function initAdminEventListeners() {
-  // Login Form
   document.getElementById('form-admin-login')?.addEventListener('submit', handleLogin);
-
-  // Logout Button
   document.getElementById('btn-admin-logout')?.addEventListener('click', handleLogout);
 
-  // Tabs Switcher (Listings vs Visual Studio vs SMTP Email)
   const tabListingsBtn = document.getElementById('admin-tab-btn-listings');
   const tabStudioBtn = document.getElementById('admin-tab-btn-studio');
   const tabEmailBtn = document.getElementById('admin-tab-btn-email');
@@ -355,28 +298,25 @@ function initAdminEventListeners() {
 
   function setAdminTab(tab) {
     adminState.currentTab = tab;
-
-    tabListingsBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer";
-    tabStudioBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer";
-    if (tabEmailBtn) tabEmailBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer";
-
+    tabListingsBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer';
+    tabStudioBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer';
+    if (tabEmailBtn) tabEmailBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-slate-800 text-slate-400 hover:text-white border border-slate-700 flex-shrink-0 cursor-pointer';
     contentListings?.classList.add('hidden');
     contentStudio?.classList.add('hidden');
     contentEmail?.classList.add('hidden');
 
     if (tab === 'listings') {
-      tabListingsBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-rose-900 text-white shadow-sm flex-shrink-0";
+      tabListingsBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-rose-900 text-white shadow-sm flex-shrink-0';
       contentListings?.classList.remove('hidden');
       renderAdminListings();
     } else if (tab === 'studio') {
-      tabStudioBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-rose-900 text-white shadow-sm flex-shrink-0";
+      tabStudioBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-rose-900 text-white shadow-sm flex-shrink-0';
       contentStudio?.classList.remove('hidden');
     } else if (tab === 'email') {
-      if (tabEmailBtn) tabEmailBtn.className = "admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-800 text-white shadow-sm flex-shrink-0";
+      if (tabEmailBtn) tabEmailBtn.className = 'admin-tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-800 text-white shadow-sm flex-shrink-0';
       contentEmail?.classList.remove('hidden');
       loadSmtpForm();
     }
-
     if (window.lucide) window.lucide.createIcons();
   }
 
@@ -384,9 +324,6 @@ function initAdminEventListeners() {
   tabStudioBtn?.addEventListener('click', () => setAdminTab('studio'));
   tabEmailBtn?.addEventListener('click', () => setAdminTab('email'));
 
-  // -------------------------------------------------------------
-  // SMTP CONFIGURATION & LIVE TEST CONTROLLER
-  // -------------------------------------------------------------
   function loadSmtpForm() {
     const config = getSmtpConfig();
     const hostEl = document.getElementById('smtp-host');
@@ -397,7 +334,6 @@ function initAdminEventListeners() {
     const fromNameEl = document.getElementById('smtp-from-name');
     const fromEmailEl = document.getElementById('smtp-from-email');
     const testTargetEl = document.getElementById('test-email-target');
-
     if (hostEl) hostEl.value = config.host || 'smtp.gmail.com';
     if (portEl) portEl.value = config.port || 465;
     if (secureEl) secureEl.value = String(config.secure !== false);
@@ -406,7 +342,6 @@ function initAdminEventListeners() {
     if (fromNameEl) fromNameEl.value = config.fromName || 'Pusat Jual Beli Solo Raya';
     if (fromEmailEl) fromEmailEl.value = config.from || config.user || '';
     if (testTargetEl && !testTargetEl.value) testTargetEl.value = config.user || '';
-
     updateSmtpStatusPill(config.pass ? 'configured' : 'unconfigured');
   }
 
@@ -414,77 +349,42 @@ function initAdminEventListeners() {
     const textEl = document.getElementById('smtp-live-status-text');
     const pillEl = document.getElementById('smtp-live-status-pill');
     if (!textEl || !pillEl) return;
-
     if (status === 'configured') {
-      pillEl.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-bold shadow-sm";
-      textEl.textContent = "Mail Server: Terkonfigurasi (Live)";
+      pillEl.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-700 text-emerald-300 text-xs font-bold shadow-sm';
+      textEl.textContent = 'Mail Server: Terkonfigurasi (Live)';
     } else if (status === 'testing') {
-      pillEl.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950 border border-amber-700 text-amber-300 text-xs font-bold shadow-sm";
-      textEl.textContent = "Sedang Menguji Koneksi...";
+      pillEl.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-950 border border-amber-700 text-amber-300 text-xs font-bold shadow-sm';
+      textEl.textContent = 'Sedang Menguji Koneksi...';
     } else {
-      pillEl.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 text-xs font-bold shadow-sm";
-      textEl.textContent = "Mail Server: Belum Ada App Password";
+      pillEl.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-400 text-xs font-bold shadow-sm';
+      textEl.textContent = 'Mail Server: Belum Ada App Password';
     }
   }
 
-  // Presets
   document.getElementById('btn-preset-gmail')?.addEventListener('click', () => {
     document.getElementById('smtp-host').value = 'smtp.gmail.com';
     document.getElementById('smtp-port').value = '465';
     document.getElementById('smtp-secure').value = 'true';
-    showToast("Preset Google / Gmail diterapkan (Port 465 SSL)", "info");
+    showToast('Preset Google / Gmail diterapkan (Port 465 SSL)', 'info');
   });
-
   document.getElementById('btn-preset-brevo')?.addEventListener('click', () => {
     document.getElementById('smtp-host').value = 'smtp-relay.brevo.com';
     document.getElementById('smtp-port').value = '587';
     document.getElementById('smtp-secure').value = 'false';
-    showToast("Preset Brevo / Sendinblue diterapkan (Port 587 TLS)", "info");
+    showToast('Preset Brevo / Sendinblue diterapkan (Port 587 TLS)', 'info');
   });
-
   document.getElementById('btn-preset-custom')?.addEventListener('click', () => {
     document.getElementById('smtp-host').value = 'mail.domainanda.com';
     document.getElementById('smtp-port').value = '587';
     document.getElementById('smtp-secure').value = 'false';
-    showToast("Preset Custom SMTP diterapkan", "info");
+    showToast('Preset Custom SMTP diterapkan', 'info');
   });
-
-  // Toggle Password Visibility
   document.getElementById('btn-toggle-smtp-pass')?.addEventListener('click', () => {
     const input = document.getElementById('smtp-pass');
-    if (input) {
-      input.type = input.type === 'password' ? 'text' : 'password';
-    }
+    if (input) input.type = input.type === 'password' ? 'text' : 'password';
   });
-
-  // Form SMTP Submit (Save)
   document.getElementById('form-smtp-settings')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const host = document.getElementById('smtp-host').value.trim();
-    const port = Number(document.getElementById('smtp-port').value) || 465;
-    const secure = document.getElementById('smtp-secure').value === 'true';
-    const user = (document.getElementById('smtp-user').value.trim() || 'solosatset.official@gmail.com');
-    const pass = document.getElementById('smtp-pass').value.trim();
-    const fromName = document.getElementById('smtp-from-name').value.trim();
-    const from = user; // Kunci kesamaan Email 'From' (Sender Address) persis dengan User SMTP
-
-    // Sinkronkan kembali tampilan input 'From'
-    const fromEmailInput = document.getElementById('smtp-from-email');
-    if (fromEmailInput) fromEmailInput.value = from;
-
-    const saved = await saveSmtpConfig({ host, port, secure, user, pass, fromName, from, senderEmail: from });
-    updateSmtpStatusPill(pass ? 'configured' : 'unconfigured');
-    showToast("Konfigurasi SMTP Mail Server berhasil disimpan ke app_smtp_config!", "success");
-  });
-
-  // Test Email Button
-  document.getElementById('btn-test-send-email')?.addEventListener('click', async () => {
-    const targetEmail = document.getElementById('test-email-target')?.value?.trim();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      showToast("Masukkan alamat email tujuan uji coba yang valid.", "error");
-      return;
-    }
-
     const host = document.getElementById('smtp-host').value.trim();
     const port = Number(document.getElementById('smtp-port').value) || 465;
     const secure = document.getElementById('smtp-secure').value === 'true';
@@ -492,90 +392,105 @@ function initAdminEventListeners() {
     const pass = document.getElementById('smtp-pass').value.trim();
     const fromName = document.getElementById('smtp-from-name').value.trim();
     const from = document.getElementById('smtp-from-email').value.trim() || user;
-
+    const fromEmailInput = document.getElementById('smtp-from-email');
+    if (fromEmailInput) fromEmailInput.value = from;
+    await saveSmtpConfig({ host, port, secure, user, pass, fromName, from, senderEmail: from });
+    updateSmtpStatusPill(pass ? 'configured' : 'unconfigured');
+    showToast('Konfigurasi SMTP Mail Server berhasil disimpan.', 'success');
+  });
+  document.getElementById('btn-test-send-email')?.addEventListener('click', async () => {
+    const targetEmail = document.getElementById('test-email-target')?.value?.trim();
+    if (!targetEmail || !targetEmail.includes('@')) {
+      showToast('Masukkan alamat email tujuan uji coba yang valid.', 'error');
+      return;
+    }
+    const host = document.getElementById('smtp-host').value.trim();
+    const port = Number(document.getElementById('smtp-port').value) || 465;
+    const secure = document.getElementById('smtp-secure').value === 'true';
+    const user = document.getElementById('smtp-user').value.trim();
+    const pass = document.getElementById('smtp-pass').value.trim();
+    const fromName = document.getElementById('smtp-from-name').value.trim();
+    const from = document.getElementById('smtp-from-email').value.trim() || user;
     const btn = document.getElementById('btn-test-send-email');
     const resultBox = document.getElementById('test-email-result-box');
     const resultTitle = document.getElementById('test-email-result-title');
     const resultDesc = document.getElementById('test-email-result-desc');
-
     if (btn) {
       btn.disabled = true;
-      btn.innerHTML = `<span class="inline-block animate-spin mr-2">⏳</span> Mengirim email uji coba...`;
+      btn.innerHTML = '<span class="inline-block animate-spin mr-2">⏳</span> Mengirim email uji coba...';
     }
-
     updateSmtpStatusPill('testing');
-
     try {
-      // Simpan konfigurasi terkini sebelum pengujian
       saveSmtpConfig({ host, port, secure, user, pass, fromName, from });
-
-      const res = await sendTestEmail({
-        toEmail: targetEmail,
-        smtpConfig: { host, port, secure, user, pass, fromName, from }
-      });
-
+      const res = await sendTestEmail({ toEmail: targetEmail, smtpConfig: { host, port, secure, user, pass, fromName, from } });
       resultBox?.classList.remove('hidden');
-
       if (res.success) {
-        resultBox.className = "p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-emerald-950/80 border border-emerald-700 text-emerald-200";
-        resultTitle.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i><span>Pengiriman Sukses 100%!</span>`;
-        resultDesc.innerHTML = `Email uji coba berhasil dikirim ke <b>${targetEmail}</b>.<br>Silakan periksa Kotak Masuk (Inbox) atau folder Spam Gmail Anda.`;
+        resultBox.className = 'p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-emerald-950/80 border border-emerald-700 text-emerald-200';
+        resultTitle.innerHTML = '<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i><span>Pengiriman Sukses!</span>';
+        resultDesc.innerHTML = `Email uji coba berhasil dikirim ke <b>${targetEmail}</b>.<br>Silakan periksa Kotak Masuk (Inbox) atau folder Spam.`;
         updateSmtpStatusPill('configured');
-        showToast(`Email uji coba berhasil dikirim ke ${targetEmail}!`, "success");
+        showToast(`Email uji coba berhasil dikirim ke ${targetEmail}!`, 'success');
       } else {
-        resultBox.className = "p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-rose-950/80 border border-rose-700 text-rose-200";
-        resultTitle.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i><span>Pengiriman Gagal / Catatan Koneksi</span>`;
-        resultDesc.innerHTML = `${res.error || 'Periksa App Password Gmail Anda di myaccount.google.com/apppasswords'}`;
+        resultBox.className = 'p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-rose-950/80 border border-rose-700 text-rose-200';
+        resultTitle.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i><span>Pengiriman Gagal</span>';
+        resultDesc.textContent = res.error || 'Periksa konfigurasi SMTP.';
         updateSmtpStatusPill('unconfigured');
-        showToast("Pengiriman gagal: " + (res.error || "Periksa konfigurasi SMTP"), "error");
+        showToast('Pengiriman gagal.', 'error');
       }
-
       if (window.lucide) window.lucide.createIcons();
     } catch (err) {
       resultBox?.classList.remove('hidden');
-      resultBox.className = "p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-rose-950/80 border border-rose-700 text-rose-200";
-      resultTitle.innerHTML = `<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i><span>Kesalahan Jaringan</span>`;
-      resultDesc.textContent = err.message || "Gagal menghubungi endpoint pengiriman.";
-      showToast(err.message || "Kesalahan pengiriman", "error");
+      resultBox.className = 'p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-rose-950/80 border border-rose-700 text-rose-200';
+      resultTitle.innerHTML = '<i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i><span>Kesalahan Jaringan</span>';
+      resultDesc.textContent = err.message || 'Gagal menghubungi endpoint pengiriman.';
+      showToast(err.message || 'Kesalahan pengiriman', 'error');
     } finally {
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = `<i data-lucide="mail-check" class="w-4 h-4 text-slate-950"></i><span>Kirim Email Percobaan Sekarang</span>`;
+        btn.innerHTML = '<i data-lucide="mail-check" class="w-4 h-4 text-slate-950"></i><span>Kirim Email Percobaan Sekarang</span>';
         if (window.lucide) window.lucide.createIcons();
       }
     }
   });
-
-  // Studio Reload Button
   document.getElementById('btn-reload-studio')?.addEventListener('click', () => {
     const mobileIframe = document.getElementById('mobile-editor-frame');
     const desktopIframe = document.getElementById('desktop-preview-frame');
     if (mobileIframe) mobileIframe.src = mobileIframe.src;
     if (desktopIframe) desktopIframe.src = desktopIframe.src;
-    showToast("Memuat ulang simulasi HP & Pratinjau Desktop...", "info");
+    showToast('Memuat ulang simulasi HP & Pratinjau Desktop...', 'info');
   });
-
-  // Relay real-time edits from mobile-editor-frame to desktop-preview-frame
   window.addEventListener('message', (e) => {
-    if (e.data && (e.data.type === 'LIVE_STUDIO_SYNC' || e.data.type === 'LIVE_STUDIO_SAVED')) {
-      const desktopFrame = document.getElementById('desktop-preview-frame');
-      if (desktopFrame && desktopFrame.contentWindow) {
-        desktopFrame.contentWindow.postMessage(e.data, window.location.origin);
-      }
+    const mobileFrame = document.getElementById('mobile-editor-frame');
+    const desktopFrame = document.getElementById('desktop-preview-frame');
+
+    if (
+      !mobileFrame ||
+      !desktopFrame ||
+      e.source !== mobileFrame.contentWindow ||
+      e.origin !== window.location.origin
+    ) {
+      return;
+    }
+
+    if (
+      e.data &&
+      (e.data.type === 'LIVE_STUDIO_SYNC' ||
+        e.data.type === 'LIVE_STUDIO_SAVED')
+    ) {
+      desktopFrame.contentWindow.postMessage(
+        e.data,
+        window.location.origin
+      );
     }
   });
-
-  // Search & Filter in Admin Table
   document.getElementById('admin-search-input')?.addEventListener('input', (e) => {
     adminState.searchQuery = e.target.value;
     renderAdminListings();
   });
-
   document.getElementById('admin-region-filter')?.addEventListener('change', (e) => {
     adminState.selectedRegion = e.target.value;
     renderAdminListings();
   });
-
   document.getElementById('admin-status-filter')?.addEventListener('change', (e) => {
     adminState.selectedStatus = e.target.value;
     renderAdminListings();
@@ -591,9 +506,7 @@ let lastToastTime = 0;
 function showToast(message, type = 'info', duration = 4500) {
   const now = Date.now();
   const key = `${type}:${message}`;
-  if (key === lastToastKey && (now - lastToastTime) < 800) {
-    return;
-  }
+  if (key === lastToastKey && (now - lastToastTime) < 800) return;
   lastToastKey = key;
   lastToastTime = now;
 
@@ -604,9 +517,7 @@ function showToast(message, type = 'info', duration = 4500) {
     container.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-2.5 max-w-md w-[92%] sm:w-auto sm:min-w-[360px] pointer-events-none';
     document.body.appendChild(container);
   }
-
   container.className = 'fixed top-5 left-1/2 -translate-x-1/2 z-[999999] flex flex-col items-center gap-2.5 max-w-md w-[92%] sm:w-auto sm:min-w-[360px] pointer-events-none';
-
   const toast = document.createElement('div');
   let iconName = 'info';
   let bgGradient = 'from-slate-900 via-slate-800 to-slate-950 border-slate-600 shadow-2xl';
@@ -614,135 +525,56 @@ function showToast(message, type = 'info', duration = 4500) {
   let badgeColor = 'bg-slate-700 text-slate-200';
   let iconColor = 'text-amber-300';
   let ringClass = 'ring-2 ring-white/10';
-
   if (type === 'error') {
-    iconName = 'alert-octagon';
-    bgGradient = 'from-rose-950 via-rose-900 to-rose-950 border-rose-400 shadow-2xl shadow-rose-950/80';
-    badgeText = 'Pemberitahuan Gagal / Kendala';
-    badgeColor = 'bg-rose-800 text-rose-100 border border-rose-600';
-    iconColor = 'text-rose-200';
-    ringClass = 'ring-4 ring-rose-500/30 animate-pulse';
+    iconName = 'alert-octagon'; bgGradient = 'from-rose-950 via-rose-900 to-rose-950 border-rose-400 shadow-2xl shadow-rose-950/80'; badgeText = 'Pemberitahuan Gagal / Kendala'; badgeColor = 'bg-rose-800 text-rose-100 border border-rose-600'; iconColor = 'text-rose-200'; ringClass = 'ring-4 ring-rose-500/30 animate-pulse';
   } else if (type === 'success') {
-    iconName = 'check-circle-2';
-    bgGradient = 'from-emerald-950 via-emerald-900 to-emerald-950 border-emerald-400 shadow-2xl shadow-emerald-950/80';
-    badgeText = 'Berhasil';
-    badgeColor = 'bg-emerald-800 text-emerald-100 border border-emerald-600';
-    iconColor = 'text-emerald-300';
-    ringClass = 'ring-4 ring-emerald-500/20';
+    iconName = 'check-circle-2'; bgGradient = 'from-emerald-950 via-emerald-900 to-emerald-950 border-emerald-400 shadow-2xl shadow-emerald-950/80'; badgeText = 'Berhasil'; badgeColor = 'bg-emerald-800 text-emerald-100 border border-emerald-600'; iconColor = 'text-emerald-300'; ringClass = 'ring-4 ring-emerald-500/20';
   } else if (type === 'warning') {
-    iconName = 'alert-triangle';
-    bgGradient = 'from-amber-950 via-amber-900 to-amber-950 border-amber-400 shadow-2xl shadow-amber-950/80';
-    badgeText = 'Peringatan';
-    badgeColor = 'bg-amber-800 text-amber-100 border border-amber-600';
-    iconColor = 'text-amber-300';
-    ringClass = 'ring-4 ring-amber-500/20';
+    iconName = 'alert-triangle'; bgGradient = 'from-amber-950 via-amber-900 to-amber-950 border-amber-400 shadow-2xl shadow-amber-950/80'; badgeText = 'Peringatan'; badgeColor = 'bg-amber-800 text-amber-100 border border-amber-600'; iconColor = 'text-amber-300'; ringClass = 'ring-4 ring-amber-500/20';
   }
-
   toast.className = `toast-item pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r ${bgGradient} border-2 ${ringClass} text-white transition-all duration-300 transform -translate-y-4 opacity-0 max-w-md w-full backdrop-blur-md`;
-  
   toast.innerHTML = `
-    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 ${iconColor} mt-0.5">
-      <i data-lucide="${iconName}" class="w-5 h-5"></i>
-    </div>
-    <div class="flex-1 min-w-0 pr-1">
-      <div class="flex items-center gap-1.5 mb-0.5">
-        <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeColor}">
-          ${badgeText}
-        </span>
-      </div>
-      <div class="text-xs sm:text-sm font-bold text-white leading-snug break-words">${message}</div>
-    </div>
-    <button type="button" class="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer" title="Tutup Notifikasi">
-      <i data-lucide="x" class="w-4 h-4"></i>
-    </button>
+    <div class="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 ${iconColor} mt-0.5"><i data-lucide="${iconName}" class="w-5 h-5"></i></div>
+    <div class="flex-1 min-w-0 pr-1"><div class="flex items-center gap-1.5 mb-0.5"><span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeColor}">${badgeText}</span></div><div class="text-xs sm:text-sm font-bold text-white leading-snug break-words">${message}</div></div>
+    <button type="button" class="text-white/60 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0 cursor-pointer" title="Tutup Notifikasi"><i data-lucide="x" class="w-4 h-4"></i></button>
   `;
-
   const closeBtn = toast.querySelector('button');
-  if (closeBtn) {
-    closeBtn.onclick = () => {
-      toast.classList.remove('translate-y-0', 'opacity-100');
-      toast.classList.add('-translate-y-4', 'opacity-0');
-      setTimeout(() => toast.remove(), 250);
-    };
-  }
-
+  if (closeBtn) closeBtn.onclick = () => { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('-translate-y-4', 'opacity-0'); setTimeout(() => toast.remove(), 250); };
   container.appendChild(toast);
   if (window.lucide) window.lucide.createIcons();
-
-  requestAnimationFrame(() => {
-    toast.classList.remove('-translate-y-4', 'opacity-0');
-    toast.classList.add('translate-y-0', 'opacity-100');
-  });
-
-  setTimeout(() => {
-    if (toast.parentElement) {
-      toast.classList.remove('translate-y-0', 'opacity-100');
-      toast.classList.add('-translate-y-4', 'opacity-0');
-      setTimeout(() => toast.remove(), 250);
-    }
-  }, duration);
+  requestAnimationFrame(() => { toast.classList.remove('-translate-y-4', 'opacity-0'); toast.classList.add('translate-y-0', 'opacity-100'); });
+  setTimeout(() => { if (toast.parentElement) { toast.classList.remove('translate-y-0', 'opacity-100'); toast.classList.add('-translate-y-4', 'opacity-0'); setTimeout(() => toast.remove(), 250); } }, duration);
 }
 
 function initBackHandler() {
   try {
-    if (!window.history.state || !window.history.state.pageBase) {
-      window.history.replaceState({ pageBase: 'admin' }, '');
-    }
-  } catch (e) {}
-
-  window.addEventListener('popstate', (e) => {
-    // Check if any modal in admin is open
-    const openModals = Array.from(document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]'))
-      .filter(m => window.getComputedStyle(m).display !== 'none');
-
+    if (!window.history.state || !window.history.state.pageBase) window.history.replaceState({ pageBase: 'admin' }, '');
+  } catch {}
+  window.addEventListener('popstate', () => {
+    const openModals = Array.from(document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')).filter(m => window.getComputedStyle(m).display !== 'none');
     if (openModals.length > 0) {
-      openModals.forEach(m => {
-        m.classList.add('hidden');
-        m.style.display = 'none';
-      });
+      openModals.forEach(m => { m.classList.add('hidden'); m.style.display = 'none'; });
       document.body.style.overflow = '';
       return;
     }
-
-    // If at root of admin, back button navigates back to index.html (Beranda)
     window.location.href = 'index.html';
   });
 }
 
 export function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-
   const storedVersion = window.__solosatset_sw_version || null;
   if (storedVersion !== CURRENT_SW_VERSION) {
-    if ('caches' in window) {
-      caches.keys().then((keys) => {
-        return Promise.all(keys.map((k) => caches.delete(k)));
-      }).then(() => {
-        console.log(`[SW Bootstrap] Upgraded from ${storedVersion || 'v1'} to v${CURRENT_SW_VERSION}. All stale caches cleaned.`);
-      }).catch(() => {});
-    }
+    if ('caches' in window) caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))).then(() => console.log(`[SW Bootstrap] Upgraded from ${storedVersion || 'v1'} to v${CURRENT_SW_VERSION}. All stale caches cleaned.`)).catch(() => {});
     window.__solosatset_sw_version = CURRENT_SW_VERSION;
   }
-
-  navigator.serviceWorker.register(`./sw.js?v=${CURRENT_SW_VERSION}`)
-    .then((registration) => {
-      registration.update().catch(() => {});
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        if (!newWorker) return;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            newWorker.postMessage({ action: 'skipWaiting' });
-          }
-        });
-      });
-      if (registration.waiting) {
-        registration.waiting.postMessage({ action: 'skipWaiting' });
-      }
-    })
-    .catch(() => {});
+  navigator.serviceWorker.register(`./sw.js?v=${CURRENT_SW_VERSION}`).then((registration) => {
+    registration.update().catch(() => {});
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => { if (newWorker.state === 'installed' && navigator.serviceWorker.controller) newWorker.postMessage({ action: 'skipWaiting' }); });
+    });
+    if (registration.waiting) registration.waiting.postMessage({ action: 'skipWaiting' });
+  }).catch(() => {});
 }
-
-
-
-

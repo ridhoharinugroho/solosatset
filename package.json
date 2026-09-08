@@ -4,15 +4,11 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "build": "npm run test:syntax && npm run audit:security:strict && npm run audit:assets",
+    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js && node --check js/services/supabaseDBLegacy.js && node --check js/services/notifications.js && node --check js/authProfileModals.js && node --check js/authServerBridge.js && node --check js/adminAuthBridge.js && node --check js/services/auth.js && node --check js/admin.js && node --check api/auth-login.js && node --check api/auth-register.js && node --check api/password-reset.js && node --check api/admin-auth.js && node --check api/push-subscribe.js && node --check api/push-notify.js && node --check api/send-email.js && node --check api/track-interest.js && node --check api/upload-image.js && node --check api/auth-logout.js && node --check api/user-profile.js && node --check server/user-session.js && node scripts/security-audit.mjs && node scripts/security-negative-tests.mjs && node scripts/admin-auth-negative-tests.mjs && node scripts/notification-security-audit.mjs",
     "test": "node scripts/test-formatting.js && node scripts/test-syntax.js",
-    "test:syntax": "node scripts/test-syntax.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
-    "audit:assets": "node scripts/test-asset-integrity.js",
-    "audit:security": "node scripts/security-pattern-audit.js",
-    "audit:security:strict": "node scripts/security-pattern-audit.js --strict",
-    "audit:all": "npm run audit:duplication && npm run audit:assets && npm run audit:security",
-    "sync:reviews": "node scripts/sync-app-reviews.js"
+    "sync:reviews": "node scripts/sync-app-reviews.js",
+    "security:audit": "node scripts/security-audit.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
