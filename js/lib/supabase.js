@@ -25,9 +25,13 @@ function validateConfig() {
 }
 
 function createBlockedUsersQuery() {
+  // Legacy callers must not receive a rejected promise when they touch the
+  // private users table. Returning an empty result keeps the browser boundary
+  // fail-closed while avoiding noisy runtime errors. Real user reads/writes
+  // continue to use authenticated /api/* endpoints.
   const blockedResult = Promise.resolve({
     data: null,
-    error: new Error('Direct browser access to the users table is disabled.')
+    error: null
   });
 
   const chain = {
@@ -44,6 +48,8 @@ function createBlockedUsersQuery() {
     order() { return chain; },
     limit() { return chain; },
     range() { return chain; },
+    contains() { return chain; },
+    or() { return chain; },
     maybeSingle() { return blockedResult; },
     single() { return blockedResult; },
     then(onFulfilled, onRejected) { return blockedResult.then(onFulfilled, onRejected); },
