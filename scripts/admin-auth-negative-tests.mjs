@@ -12,6 +12,7 @@ const key = crypto.scryptSync(password, salt, 64, {
   maxmem: 64 * 1024 * 1024
 });
 
+process.env.ADMIN_AUTH_TEST_MODE = '1';
 process.env.ADMIN_USERNAME = username;
 process.env.ADMIN_PASSWORD_HASH = `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$16384,8,1`;
 process.env.ADMIN_SESSION_SECRET = crypto.randomBytes(32).toString('hex');
@@ -41,6 +42,7 @@ assert.equal(loginResponse.statusCode, 200);
 assert.match(String(loginResponse.headers['Set-Cookie']), new RegExp(`^${SESSION_COOKIE}=`));
 const cookie = String(loginResponse.headers['Set-Cookie']).split(';')[0];
 assert.equal(getAdminSessionFromRequest({ headers: { cookie } })?.role, 'admin');
+assert.equal(getAdminSessionFromRequest({ headers: { cookie } })?.username, username);
 
 const tampered = cookie.replace(/\.([^;]+)$/, '.tampered');
 assert.equal(getAdminSessionFromRequest({ headers: { cookie: tampered } }), null);
