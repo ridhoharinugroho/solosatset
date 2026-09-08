@@ -16,7 +16,8 @@ import {
     loginUser,
     registerUser,
     requestPasswordReset,
-    confirmPasswordReset
+    confirmPasswordReset,
+    getCurrentUser
 } from './services/auth.js';
 
 export async function ensureAuthProfileModalsLoaded() {
@@ -124,8 +125,43 @@ function initializeAuthModalRuntime() {
         refreshIcons();
     };
 
-    // Expose only the safe UI controller needed by the dynamically loaded modal.
+    // Expose the auth-tab controller for other UI flows.
     window.switchAuthTab = switchAuthTab;
+
+    // Profile navigation is rendered in index.html before this async modal loader
+    // finishes. The previous inline onclick called an undefined function, making
+    // the Profile button a silent no-op in production. Keep the handler here so it
+    // always exists immediately after auth-profile.html has been loaded.
+    window.handleProfileNavClick = (event) => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+
+        const profileModal = document.getElementById('modal-user-profile');
+        const authModal = document.getElementById('modal-user-auth');
+        const currentUser = getCurrentUser();
+
+        if (!currentUser) {
+            switchAuthTab('login');
+            if (authModal) {
+                authModal.classList.remove('hidden');
+                authModal.classList.add('flex');
+            }
+            refreshIcons();
+            return false;
+        }
+
+        if (typeof window.openModal === 'function') {
+            window.openModal('modal-user-profile');
+        } else if (profileModal) {
+            profileModal.classList.remove('hidden');
+            profileModal.classList.add('flex');
+        }
+
+        window.dispatchEvent(new CustomEvent('profile:open', { detail: currentUser }));
+        window.dispatchEvent(new CustomEvent('userProfileModalOpened', { detail: currentUser }));
+        refreshIcons();
+        return false;
+    };
 
     document.getElementById('tab-auth-login')?.addEventListener('click', () => switchAuthTab('login'));
     document.getElementById('tab-auth-register')?.addEventListener('click', () => switchAuthTab('register'));
@@ -155,8 +191,7 @@ function initializeAuthModalRuntime() {
         refreshIcons();
     });
 
-    // Login runtime handler. This is intentionally initialized here because
-    // this modal is asynchronous and may not exist when app.js binds its listeners.
+    // Login runtime handler.
     document.getElementById('form-user-login')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         clearErrors();
