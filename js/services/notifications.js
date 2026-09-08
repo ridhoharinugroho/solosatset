@@ -12,12 +12,18 @@ async function request(action, payload = null, method = 'POST') {
     if (!response.ok) throw new Error(data?.error || `Notification request failed (${response.status}).`);
     return data;
   } catch (error) {
-    console.warn(`[Notifications] ${action}:`, error?.message || error);
+    // Authentication failures are expected when a public page has no active user.
+    // Do not spam the browser console during background polling.
+    if (error?.message !== 'Authentication required.') {
+      console.warn(`[Notifications] ${action}:`, error?.message || error);
+    }
     return { success: false, error: error?.message || 'Notification request failed.' };
   }
 }
 
-export async function sbGetNotifications() {
+export async function sbGetNotifications(userId = null) {
+  // Notification data is private. Never call the server endpoint for an anonymous visitor.
+  if (!userId) return [];
   const result = await request('list_notifications', null, 'GET');
   return result.success && Array.isArray(result.notifications) ? result.notifications : [];
 }
@@ -52,14 +58,14 @@ export function sbUnsubscribeNotifications(subscription) {
   if (subscription?.timer) window.clearInterval(subscription.timer);
 }
 
-export function sbSubscribeNotifications(_userId, onNewNotification, intervalMs = 15000) {
-  if (typeof onNewNotification !== 'function') return null;
+export function sbSubscribeNotifications(userId, onNewNotification, intervalMs = 15000) {
+  if (!userId || typeof onNewNotification !== 'function') return null;
   let stopped = false;
   let lastSeenIds = new Set();
 
   const poll = async () => {
     if (stopped) return;
-    const notifications = await sbGetNotifications();
+    const notifications = await sbGetNotifications(userId);
     if (stopped) return;
     const fresh = notifications.filter((notification) => notification?.id && !lastSeenIds.has(String(notification.id)));
     notifications.forEach((notification) => lastSeenIds.add(String(notification.id)));
