@@ -1,0 +1,75 @@
+name: Repair Interest Tracking
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.event.head_commit.message != 'fix: route interest tracking through server API'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch legacy interest tracker
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          path = Path('js/services/supabaseDBLegacy.js')
+          text = path.read_text(encoding='utf-8')
+          start = text.find('export async function updateUserInterest(')
+          end = text.find('/**\n * Alias pembaruan minat', start)
+          if start < 0 or end < 0:
+              raise SystemExit('updateUserInterest boundaries not found')
+
+          replacement = '''export async function updateUserInterest(userId, newCategory) {
+  if (!userId || !newCategory || newCategory === 'all') return;
+
+  const cleanCategory = String(newCategory).toLowerCase().trim();
+  if (!cleanCategory) return;
+
+  try {
+    const storedUser = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('pusat_barkas_current_user') || 'null')
+      : null;
+    if (storedUser && storedUser.id && String(storedUser.id) === String(userId)) {
+      const interests = Array.isArray(storedUser.interests) ? [...storedUser.interests] : [];
+      const nextInterests = interests
+        .filter((cat) => String(cat).toLowerCase().trim() !== cleanCategory);
+      nextInterests.push(cleanCategory);
+      const limited = nextInterests.slice(-3);
+      const response = await fetch('/api/user-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ action: 'update_interests', interests: limited })
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload.success) {
+        storedUser.interests = payload.interests || limited;
+        localStorage.setItem('pusat_barkas_current_user', JSON.stringify(storedUser));
+      } else if (response.status !== 401) {
+        console.warn('[updateUserInterest] Server tracking failed:', payload.error || response.status);
+      }
+    }
+  } catch (err) {
+    console.warn('[updateUserInterest] Tracking dilewati:', err?.message || err);
+  }
+}
+
+'''
+          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+
+      - name: Remove one-time workflow and commit repair
+        run: |
+          rm -f .github/workflows/repair-interest-tracking.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/services/supabaseDBLegacy.js .github/workflows/repair-interest-tracking.yml
+          git commit -m 'fix: route interest tracking through server API'
+          git push
