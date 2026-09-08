@@ -142,6 +142,19 @@ function initializeAuthModalRuntime() {
     document.getElementById('btn-switch-to-reg-from-login')?.addEventListener('click', () => switchAuthTab('register'));
     document.getElementById('btn-switch-to-login-from-reg')?.addEventListener('click', () => switchAuthTab('login'));
 
+    // Login password visibility toggle.
+    document.getElementById('btn-toggle-login-pass')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const input = document.getElementById('login-input-password');
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        const icon = e.currentTarget.querySelector('i');
+        if (icon) icon.setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+        refreshIcons();
+    });
+
     // Login runtime handler. This is intentionally initialized here because
     // this modal is asynchronous and may not exist when app.js binds its listeners.
     document.getElementById('form-user-login')?.addEventListener('submit', async (e) => {
