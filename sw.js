@@ -1,9 +1,9 @@
 /**
- * solosatset - Service Worker Engine v20260902_v214
+ * solosatset - Service Worker Engine v20260902_v215
  * Instant Cache Invalidation, Automatic Update & Network-First Fresh Code Delivery
  */
 
-const CACHE_NAME = 'solosatset-cache-v20260902_v214';
+const CACHE_NAME = 'solosatset-cache-v20260902_v215';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -12,10 +12,28 @@ const PRECACHE_ASSETS = [
   './css/styles.css',
   './assets/img/app-logo.png',
   './assets/img/app-splash.png',
-  './manifest.json',
   './favicon.ico',
   './favicon.png'
 ];
+
+const FALLBACK_MANIFEST = {
+  name: 'solosatset - Pusat Jual Beli Solo Raya',
+  short_name: 'solosatset',
+  description: 'Pusat Jual Beli Barang Solo Raya - Pantau Cocok Bayar, Nego Langsung WA',
+  start_url: './index.html',
+  display: 'standalone',
+  background_color: '#58111a',
+  theme_color: '#58111a',
+  orientation: 'portrait',
+  icons: [
+    {
+      src: 'assets/img/app-logo.png?v=2.1',
+      sizes: '192x192 512x512 800x800',
+      type: 'image/png',
+      purpose: 'any maskable'
+    }
+  ]
+};
 
 // 1. INSTALL EVENT - Precache Critical App Shell dengan Resilient Caching
 self.addEventListener('install', (event) => {
@@ -72,6 +90,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Vercel Preview Deployment Protection can redirect manifest requests to
+  // vercel.com/sso-api. Return the app-owned manifest locally so the browser
+  // never receives a cross-origin SSO redirect and the PWA metadata remains valid.
+  if (requestUrl.pathname === '/manifest.json') {
+    event.respondWith(
+      new Response(JSON.stringify(FALLBACK_MANIFEST), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/manifest+json; charset=utf-8',
+          'Cache-Control': 'no-store'
+        }
+      })
+    );
+    return;
+  }
+
   // Network First for HTML and JavaScript files
   if (
     event.request.mode === 'navigate' ||
@@ -93,7 +127,7 @@ self.addEventListener('fetch', (event) => {
           return caches.match(event.request).then((cachedResponse) => {
             if (cachedResponse) return cachedResponse;
             if (event.request.mode === 'navigate') {
-              return caches.match('./index.html') || caches.match('./');
+              return caches.match('./index.html').then((fallback) => fallback || caches.match('./'));
             }
             return new Response('Network connection offline', { status: 503, statusText: 'Offline' });
           });
@@ -113,7 +147,7 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => cachedResponse);
+        .catch(() => cachedResponse || new Response('Network connection offline', { status: 503, statusText: 'Offline' }));
 
       return cachedResponse || fetchPromise;
     })
@@ -196,4 +230,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-
