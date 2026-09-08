@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   if (!SUPABASE_ANON_KEY) {
-    return res.status(500).json({ success: false, error: 'SUPABASE_ANON_KEY is not configured' });
+    return res.status(500).json({ success: false, error: 'Database health configuration is unavailable.' });
   }
 
   try {
@@ -46,7 +46,6 @@ export default async function handler(req, res) {
       const { error } = await supabase.from(table).select(column).limit(1);
       if (error) {
         report[`${table}_status`] = 'unavailable';
-        report[`${table}_error`] = error.message;
       } else {
         report[`${table}_status`] = 'ready';
       }
@@ -58,7 +57,6 @@ export default async function handler(req, res) {
       .limit(1);
 
     report.otp_columns_status = otpError ? 'unavailable' : 'ready';
-    if (otpError) report.otp_columns_error = otpError.message;
 
     const hasFailures = Object.keys(report).some(key => key.endsWith('_status') && report[key] === 'unavailable');
 
@@ -70,7 +68,10 @@ export default async function handler(req, res) {
       report
     });
   } catch (error) {
-    console.error('[DB Health Handler Error]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    console.error('[DB Health Handler Error]', {
+      name: error.name,
+      code: error.code
+    });
+    return res.status(500).json({ success: false, error: 'Database health check failed.' });
   }
 }
