@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       port,
       secure,
       auth: { user, pass },
-      tls: { rejectUnauthorized: false },
+      tls: { rejectUnauthorized: true },
       connectionTimeout: 15000
     });
 
