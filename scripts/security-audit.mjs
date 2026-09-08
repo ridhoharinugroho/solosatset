@@ -60,6 +60,14 @@ for (const scanRoot of runtimeRoots) {
       if (/\b(?:password_hash|otp_code|otp_expires_at)\s*:/g.test(content)) {
         addFinding(rel, 'server credential field embedded in client data');
       }
+      // The users table contains credential-bearing account records. Browser code must
+      // never query it directly; all account reads/writes must go through /api endpoints.
+      if (/\.from\(\s*['"]users['"]\s*\)/g.test(content)) {
+        addFinding(rel, 'browser-side direct users table query');
+      }
+      if (/rest\/v1\/users\b/g.test(content)) {
+        addFinding(rel, 'browser-side direct users REST query');
+      }
     }
 
     if (isServer) {
@@ -82,4 +90,4 @@ if (findings.length) {
   process.exit(1);
 }
 
-console.log('Security audit passed: no forbidden legacy or browser credential patterns found.');
+console.log('Security audit passed: no forbidden legacy, direct users-table, or browser credential patterns found.');
