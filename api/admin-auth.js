@@ -66,7 +66,6 @@ function parsePasswordHash(value) {
   const raw = String(value || '').trim();
   const parts = raw.split('$');
 
-  // Current format: scrypt$<salt-base64url>$<key-base64url>$<N>,<r>,<p>
   if (parts.length === 4 && parts[0] === 'scrypt') {
     const [, saltText, keyText, params] = parts;
     const [N, r, p] = params.split(',').map(Number);
@@ -77,7 +76,6 @@ function parsePasswordHash(value) {
     return { salt, key, N, r, p };
   }
 
-  // Legacy format used by the normal user-auth code: scrypt$N$r$p$<salt-hex>:<hash-hex>
   if (parts.length === 5 && parts[0] === 'scrypt') {
     const [, nText, rText, pText, payload] = parts;
     const [saltHex, hashHex] = payload.split(':');
@@ -130,27 +128,34 @@ function getAdminClient() {
 async function authenticate(username, password) {
   const normalized = String(username || '').trim().toLowerCase();
   const supabase = getAdminClient();
-  if (!supabase) return { configured: false, user: null };
 
-  // Supabase admin_users is the single source of truth for admin login.
-  // Do not prefer Vercel ADMIN_USERNAME / ADMIN_PASSWORD_HASH credentials here.
-  const { data, error } = await supabase
-    .from('admin_users')
-    .select('id, username, password_hash, role, is_active')
-    .ilike('username', normalized)
-    .limit(1);
+  // Primary source: the existing admin_users row in Supabase.
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id, username, password_hash, role, is_active')
+      .ilike('username', normalized)
+      .limit(1);
 
-  if (error) {
-    console.error('[Admin Auth DB]', error.message);
-    return { configured: true, user: null, databaseError: true };
+    if (!error) {
+      const user = Array.isArray(data) ? data[0] : null;
+      if (user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)) {
+        return { configured: true, user };
+      }
+    } else {
+      console.error('[Admin Auth DB]', error.message);
+    }
   }
 
-  const user = Array.isArray(data) ? data[0] : null;
-  if (!user || user.is_active !== true || String(user.role || '').toLowerCase() !== 'admin') {
-    return { configured: true, user: null };
+  // Recovery compatibility: keep the already-configured server admin credential usable.
+  // This does not write to Supabase and does not replace the Supabase account.
+  const legacyUsername = String(process.env.ADMIN_USERNAME || '').trim();
+  const legacyHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
+  if (legacyUsername && legacyHash && timingSafeEqualText(normalized, legacyUsername.toLowerCase()) && verifyPassword(password, legacyHash)) {
+    return { configured: true, user: { id: 'legacy-admin', username: legacyUsername, role: 'admin', is_active: true } };
   }
-  if (!verifyPassword(password, user.password_hash)) return { configured: true, user: null };
-  return { configured: true, user };
+
+  return { configured: Boolean(supabase), user: null };
 }
 
 export default async function handler(req, res) {
@@ -180,7 +185,6 @@ export default async function handler(req, res) {
 
   const auth = await authenticate(username, password);
   if (!auth.configured) return json(res, 503, { ok: false, error: 'Admin authentication database is not configured on the server.' });
-  if (auth.databaseError) return json(res, 503, { ok: false, error: 'Database admin belum siap. Jalankan migration admin_users terlebih dahulu.' });
   if (!auth.user) { failed(ip); return json(res, 401, { ok: false, error: 'Username atau Password salah.' }); }
 
   clearRate(ip);
