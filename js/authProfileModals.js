@@ -79,6 +79,29 @@ function showAuthModal(mode = 'login') {
     return true;
 }
 
+function showForgotPassword() {
+    const modal = document.getElementById('modal-user-auth');
+    const emailInput = document.getElementById('forgot-input-email');
+    if (!modal || !emailInput) return false;
+    const forgotPanel = emailInput.closest('form')?.parentElement || emailInput.closest('[id^="panel-"]') || emailInput.closest('.space-y-4');
+    if (!forgotPanel) return false;
+    const loginPanel = document.getElementById('panel-auth-login');
+    const registerPanel = document.getElementById('panel-auth-register');
+    if (loginPanel) loginPanel.classList.add('hidden');
+    if (registerPanel) registerPanel.classList.add('hidden');
+    modal.querySelectorAll('[id^="panel-auth-"]').forEach((panel) => {
+        if (panel !== forgotPanel && panel.id !== 'panel-auth-login' && panel.id !== 'panel-auth-register') panel.classList.add('hidden');
+    });
+    forgotPanel.classList.remove('hidden');
+    const tabs = document.getElementById('auth-tabs-container');
+    if (tabs) tabs.classList.add('hidden');
+    document.getElementById('forgot-step-reset')?.classList.add('hidden');
+    emailInput.focus();
+    if (typeof window.refreshIcons === 'function') { try { window.refreshIcons(forgotPanel); } catch (e) {} }
+    else if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
+    return true;
+}
+
 export async function ensureAuthProfileModalsLoaded() {
     if (document.getElementById('modal-user-auth')) { installRegistrationDistrictHandler(); return true; }
     if (authProfileLoadPromise) return authProfileLoadPromise;
@@ -110,6 +133,15 @@ function installAuthClickDelegation() {
         if (!target) return;
         const id = (target.id || '').toLowerCase();
         const text = (target.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
+        if (id === 'btn-goto-forgot' || text === 'lupa password?' || text.includes('lupa password')) {
+            event.preventDefault();
+            event.stopPropagation();
+            const loaded = await ensureAuthProfileModalsLoaded();
+            if (loaded) showForgotPassword();
+            return;
+        }
+
         const isRegisterTrigger = id.includes('register') || id.includes('daftar') || text.includes('daftar akun') || text.includes('daftar sekarang');
         const isLoginTrigger = id.includes('login') || text === 'masuk' || text.includes('masuk / login');
         if (!isRegisterTrigger && !isLoginTrigger) return;
