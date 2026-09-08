@@ -68,7 +68,7 @@ await handler({
   body: { username, password: 'plaintext-password-should-never-be-accepted' },
   socket: { remoteAddress: '127.0.0.12' }
 }, malformedHashResponse);
-assert.equal(malformedHashResponse.statusCode, 401);
+assert.equal(malformedHashResponse.statusCode, 503);
 assert.equal(malformedHashResponse.headers['Set-Cookie'], undefined);
 
 process.env.ADMIN_PASSWORD_HASH = `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$16384,8,1`;
