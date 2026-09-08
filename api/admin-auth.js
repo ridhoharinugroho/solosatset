@@ -4,10 +4,10 @@
  * Admin credentials live in Supabase table `admin_users`.
  * Only the session-signing secret remains in the server environment.
  *
- * During migration, an existing legacy Vercel admin credential is accepted when
- * the Supabase row is missing OR its stored hash no longer matches, then copied
- * into Supabase. This prevents a stale/incorrect migrated hash from locking out
- * the only administrator.
+ * During migration, the existing legacy Vercel admin credential is also accepted
+ * when it matches the supplied username/password. A successful legacy login is
+ * repaired into Supabase when possible, so a bad/missing migrated row cannot
+ * lock out the only administrator.
  */
 
 import crypto from 'node:crypto';
@@ -174,6 +174,7 @@ async function bootstrapLegacyAdmin(supabase, legacy, password, normalizedUserna
     .from('admin_users')
     .select('id, username, password_hash, role, is_active')
     .ilike('username', normalizedUsername)
+    .limit(1)
     .maybeSingle();
 
   if (lookupError) {
@@ -221,32 +222,52 @@ async function authenticateFromSupabase(username, password) {
 
   const normalizedUsername = String(username || '').trim().toLowerCase();
   const legacy = getLegacyAdminCredential();
+
+  // The legacy server credential is the recovery authority during migration.
+  // Validate it before consulting Supabase so a stale, duplicate, or malformed
+  // migrated row cannot turn a valid administrator credential into a 401.
+  if (
+    legacy &&
+    timingSafeEqualText(normalizedUsername, legacy.username.toLowerCase()) &&
+    verifyPassword(password, legacy.passwordHash)
+  ) {
+    try {
+      const repaired = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
+      if (repaired) return { configured: true, user: repaired };
+    } catch (error) {
+      console.error('[Admin Auth Legacy Repair]', error?.message || 'repair failed');
+    }
+
+    return {
+      configured: true,
+      user: {
+        id: 'legacy-admin',
+        username: legacy.username.toLowerCase(),
+        role: 'admin',
+        is_active: true
+      }
+    };
+  }
+
   const { data, error } = await supabase
     .from('admin_users')
     .select('id, username, password_hash, role, is_active')
     .ilike('username', normalizedUsername)
+    .limit(1)
     .maybeSingle();
 
   if (error) {
     console.error('[Admin Auth DB]', error.message);
-    const bootstrapped = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
-    if (bootstrapped) return { configured: true, user: bootstrapped };
     return { configured: true, user: null, databaseError: true };
   }
 
-  if (!data) {
-    const bootstrapped = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
-    if (bootstrapped) return { configured: true, user: bootstrapped };
-    return { configured: true, user: null };
-  }
+  if (!data) return { configured: true, user: null };
 
   if (data.is_active !== true || String(data.role || '').toLowerCase() !== 'admin') {
     return { configured: true, user: null };
   }
 
   if (!verifyPassword(password, data.password_hash)) {
-    const repaired = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
-    if (repaired) return { configured: true, user: repaired };
     return { configured: true, user: null };
   }
 
