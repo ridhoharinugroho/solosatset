@@ -58,6 +58,8 @@ async function getDynamicSmtpConfig() {
   return { host, port, secure, user, pass, fromName, fromEmail };
 }
 
+let lastSmtpTestAt = 0;
+
 /**
  * Serverless Email Dispatcher & SMTP Gateway.
  * Public transactional email is restricted to known application flows.
@@ -88,12 +90,57 @@ export default async function handler(req, res) {
     }
 
     const { action, to, subject, html, text, type } = body || {};
+    const isSmtpTest = action === 'test_connection' || type === 'test_smtp';
 
-    // Admin SMTP test must wait for server-verifiable admin authorization.
-    if (action === 'test_connection' || type === 'test_smtp') {
-      return res.status(403).json({
-        success: false,
-        error: 'SMTP test requires server-side admin authorization and is temporarily disabled.'
+    const smtpConfig = await getDynamicSmtpConfig();
+
+    // The admin panel must never be able to supply SMTP credentials from the browser.
+    // For the diagnostic test, only the configured test recipient (or the SMTP sender)
+    // is accepted. This prevents the endpoint from becoming a public mail relay.
+    if (isSmtpTest) {
+      const now = Date.now();
+      const cooldownMs = 60 * 1000;
+      if (now - lastSmtpTestAt < cooldownMs) {
+        return res.status(429).json({
+          success: false,
+          error: 'Tes SMTP terlalu sering. Tunggu sekitar 1 menit lalu coba lagi.'
+        });
+      }
+
+      const allowedRecipient = (process.env.SMTP_TEST_RECIPIENT || smtpConfig.fromEmail).trim().toLowerCase();
+      const target = String(to || '').trim().toLowerCase();
+      if (!target || target !== allowedRecipient) {
+        return res.status(403).json({
+          success: false,
+          error: `Tes SMTP hanya boleh dikirim ke alamat pengirim SMTP (${allowedRecipient}).`
+        });
+      }
+
+      lastSmtpTestAt = now;
+
+      const transporter = nodemailer.createTransport({
+        host: smtpConfig.host,
+        port: smtpConfig.port,
+        secure: smtpConfig.secure,
+        auth: { user: smtpConfig.user, pass: smtpConfig.pass },
+        tls: { rejectUnauthorized: true },
+        connectionTimeout: 15000
+      });
+
+      await transporter.verify();
+
+      const info = await transporter.sendMail({
+        from: `"${smtpConfig.fromName}" <${smtpConfig.fromEmail}>`,
+        to: allowedRecipient,
+        subject: 'Uji Coba Pengiriman Email SMTP - Pusat Jual Beli Solo Raya',
+        text: 'SMTP server berhasil terhubung dan siap mengirim email.',
+        html: '<p>SMTP server berhasil terhubung dan siap mengirim email.</p>'
+      });
+
+      return res.status(200).json({
+        success: true,
+        messageId: info.messageId,
+        message: 'Koneksi SMTP berhasil diverifikasi dan email uji coba berhasil dikirim.'
       });
     }
 
@@ -113,19 +160,17 @@ export default async function handler(req, res) {
       });
     }
 
-    const { host, port, secure, user, pass, fromName, fromEmail } = await getDynamicSmtpConfig();
-
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
+      auth: { user: smtpConfig.user, pass: smtpConfig.pass },
       tls: { rejectUnauthorized: true },
       connectionTimeout: 15000
     });
 
     const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
+      from: `"${smtpConfig.fromName}" <${smtpConfig.fromEmail}>`,
       to: to.trim(),
       subject: subject || 'Pemberitahuan Akun - Pusat Jual Beli Solo Raya',
       text: text || '',
