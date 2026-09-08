@@ -2,7 +2,7 @@
  * Shared runtime helpers and application-wide constants.
  */
 
-export const CURRENT_SW_VERSION = '20260902_v214';
+export const CURRENT_SW_VERSION = '20260902_v215';
 
 const iconRefreshQueue = new Set();
 let iconRefreshScheduled = false;
