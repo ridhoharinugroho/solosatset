@@ -181,7 +181,9 @@ async function authenticate(username, password) {
       return { configured: true, user };
     }
 
-    return { configured: true, user: null };
+    if (user) {
+      return { configured: true, user: null };
+    }
   }
 
   const legacyUsername = String(process.env.ADMIN_USERNAME || '').trim();
@@ -199,7 +201,7 @@ async function authenticate(username, password) {
     return { configured: true, user: { id: 'legacy-admin', username: legacyUsername, role: 'admin', is_active: true } };
   }
 
-  return { configured: false, user: null };
+  return { configured: Boolean(supabase), user: null };
 }
 
 export default async function handler(req, res) {
