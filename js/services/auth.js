@@ -2,7 +2,6 @@
  * Client authentication/session facade. Authentication authority lives on /api/*.
  * No password, OTP, SMTP or service-role credential is stored in browser state.
  */
-import { supabase } from '../lib/supabase.js';
 import { sbUploadAvatar, sbDeleteAvatar, extractAvatarFilePath } from './supabaseDB.js';
 
 const listeners = [];
@@ -24,10 +23,6 @@ function stripCredentialFields(user) {
   const clean = { ...user };
   for (const key of ['password', 'password_hash', 'otp_code', 'otp_expires_at', 'resetCode', 'pendingReset']) delete clean[key];
   return clean;
-}
-function mapSupabaseUser(row) {
-  if (!row) return null;
-  return stripCredentialFields({ id: row.id, name: row.name, storeName: row.store_name || row.name, email: row.email, phone: row.phone, region: row.region, district: row.district, avatar: row.avatar ?? null, bio: row.bio ?? '', status: row.status || 'active', deletedAt: row.deleted_at || null, isDemo: row.is_demo || false, createdAt: row.created_at });
 }
 let inMemoryRegisteredUsers = DEFAULT_REGISTERED_USERS.map(stripCredentialFields);
 let inMemoryActiveUser = null;
@@ -56,7 +51,9 @@ window.formatJoinedDate = formatJoinedDate;
 
 export function getRegisteredUsers() { return inMemoryRegisteredUsers; }
 export async function syncRegisteredUsersToSupabase(users) { if (Array.isArray(users)) inMemoryRegisteredUsers = users.map(stripCredentialFields); return inMemoryRegisteredUsers; }
-export async function syncUsersFromCloud() { if (!supabase) return getRegisteredUsers(); try { const { data, error } = await supabase.from('users').select('id,name,store_name,email,phone,region,district,avatar,bio,status,deleted_at,is_demo,created_at').order('created_at', { ascending: false }); if (!error && Array.isArray(data)) { inMemoryRegisteredUsers = data.map(mapSupabaseUser).filter(Boolean); window.__registeredUsers = inMemoryRegisteredUsers; window.dispatchEvent(new CustomEvent('registeredUsersChanged', { detail: inMemoryRegisteredUsers })); } } catch (error) { console.warn('[Auth Users Sync]', error); } return getRegisteredUsers(); }
+// Browser code must never query the private users table directly. Keep this legacy API as a
+// compatibility no-op so older callers cannot accidentally bypass the server-authoritative model.
+export async function syncUsersFromCloud() { return getRegisteredUsers(); }
 export async function cleanupAndDeduplicateUsers() { return; }
 export function purgeLegacyDemoCache() { if (typeof window === 'undefined') return; try { for (const key of [STORAGE_KEY_REGISTERED_USERS, STORAGE_KEY_USER, 'barkas_user_session', 'solosatset_profile_cache', 'solosatset_seller_cache', 'solosatset_user_cache']) { localStorage.removeItem(key); sessionStorage.removeItem(key); } } catch (error) { console.warn('[Auth Legacy Cache Cleanup]', error); } }
 purgeLegacyDemoCache();
