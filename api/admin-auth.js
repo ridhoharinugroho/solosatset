@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js';
 
 export const SESSION_COOKIE = 'solosatset_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
-const MAX_LOGIN_ATTEMPTS = 5;
-const WINDOW_MS = 10 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 20;
+const WINDOW_MS = 5 * 60 * 1000;
 const attempts = new Map();
 
 function json(res, status, payload, headers = {}) {
