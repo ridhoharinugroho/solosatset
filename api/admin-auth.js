@@ -1,13 +1,12 @@
 /**
  * Server-authoritative admin authentication.
  *
- * Required environment variables:
- * - ADMIN_USERNAME
- * - ADMIN_PASSWORD_HASH (scrypt hash produced by scripts/generate-admin-password-hash.mjs)
- * - ADMIN_SESSION_SECRET (random high-entropy secret)
+ * Admin credentials live in Supabase table `admin_users`.
+ * Only the session-signing secret remains in the server environment.
  */
 
 import crypto from 'node:crypto';
+import { createClient } from '@supabase/supabase-js';
 
 export const SESSION_COOKIE = 'solosatset_admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 8;
@@ -98,8 +97,8 @@ function parsePasswordHash(value) {
   };
 }
 
-function verifyPassword(password) {
-  const parsed = parsePasswordHash(process.env.ADMIN_PASSWORD_HASH);
+function verifyPassword(password, passwordHash) {
+  const parsed = parsePasswordHash(passwordHash);
   if (!parsed) return false;
   try {
     const derived = crypto.scryptSync(String(password), parsed.salt, parsed.key.length, {
@@ -146,6 +145,52 @@ function clearSessionCookie() {
   return `${SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict; Secure`;
 }
 
+function getAdminClient() {
+  const url = String(process.env.SUPABASE_URL || '').trim();
+  const serviceKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (!url || !serviceKey) return null;
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+
+async function authenticateFromSupabase(username, password) {
+  const supabase = getAdminClient();
+  if (!supabase) return { configured: false, user: null };
+
+  const normalizedUsername = String(username || '').trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('admin_users')
+    .select('id, username, password_hash, role, is_active')
+    .eq('username', normalizedUsername)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[Admin Auth DB]', error.message);
+    return { configured: true, user: null, databaseError: true };
+  }
+
+  if (!data || data.is_active !== true || String(data.role || '').toLowerCase() !== 'admin') {
+    return { configured: true, user: null };
+  }
+
+  if (!verifyPassword(password, data.password_hash)) {
+    return { configured: true, user: null };
+  }
+
+  return { configured: true, user: data };
+}
+
+async function authenticateAdmin(username, password) {
+  // Explicit test-only fallback keeps the unit/negative tests independent of a live database.
+  if (process.env.ADMIN_AUTH_TEST_MODE === '1') {
+    const expectedUsername = String(process.env.ADMIN_USERNAME || '').trim();
+    const valid = timingSafeEqualText(username, expectedUsername) && verifyPassword(password, process.env.ADMIN_PASSWORD_HASH);
+    return { configured: true, user: valid ? { id: 'test-admin', username: expectedUsername, role: 'admin' } : null };
+  }
+  return authenticateFromSupabase(username, password);
+}
+
 export default async function handler(req, res) {
   const method = String(req.method || 'GET').toUpperCase();
   const action = String(req.query?.action || (method === 'POST' ? 'login' : 'session')).toLowerCase();
@@ -154,8 +199,8 @@ export default async function handler(req, res) {
     return json(res, 405, { ok: false, error: 'Method not allowed.' }, { Allow: 'GET, POST' });
   }
 
-  if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD_HASH || !process.env.ADMIN_SESSION_SECRET) {
-    return json(res, 503, { ok: false, error: 'Admin authentication is not configured on the server.' });
+  if (!process.env.ADMIN_SESSION_SECRET) {
+    return json(res, 503, { ok: false, error: 'Admin session service is not configured on the server.' });
   }
 
   if (action === 'session' && method === 'GET') {
@@ -164,7 +209,7 @@ export default async function handler(req, res) {
     return json(res, 200, {
       ok: true,
       authenticated: true,
-      user: { username: process.env.ADMIN_USERNAME, role: 'admin', exp: session.exp }
+      user: { id: session.sub, username: session.username, role: session.role, exp: session.exp }
     });
   }
 
@@ -192,10 +237,19 @@ export default async function handler(req, res) {
 
   const username = String(body.username || '').trim();
   const password = String(body.password || '');
-  const valid = username.length > 0 && password.length > 0 &&
-    timingSafeEqualText(username, process.env.ADMIN_USERNAME) && verifyPassword(password);
+  if (!username || !password) {
+    recordFailedAttempt(ip);
+    return json(res, 401, { ok: false, error: 'Username atau Password salah.' });
+  }
 
-  if (!valid) {
+  const auth = await authenticateAdmin(username, password);
+  if (!auth.configured) {
+    return json(res, 503, { ok: false, error: 'Admin authentication database is not configured on the server.' });
+  }
+  if (auth.databaseError) {
+    return json(res, 503, { ok: false, error: 'Database admin belum siap. Jalankan migration admin_users terlebih dahulu.' });
+  }
+  if (!auth.user) {
     recordFailedAttempt(ip);
     return json(res, 401, { ok: false, error: 'Username atau Password salah.' });
   }
@@ -203,8 +257,9 @@ export default async function handler(req, res) {
   clearAttempts(ip);
   const now = Math.floor(Date.now() / 1000);
   const token = signPayload({
+    sub: auth.user.id,
     role: 'admin',
-    username: process.env.ADMIN_USERNAME,
+    username: auth.user.username,
     iat: now,
     exp: now + SESSION_TTL_SECONDS,
     nonce: crypto.randomBytes(12).toString('hex')
@@ -213,6 +268,6 @@ export default async function handler(req, res) {
   return json(res, 200, {
     ok: true,
     authenticated: true,
-    user: { username: process.env.ADMIN_USERNAME, role: 'admin' }
+    user: { id: auth.user.id, username: auth.user.username, role: 'admin' }
   }, { 'Set-Cookie': sessionCookie(token) });
 }
