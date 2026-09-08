@@ -16,7 +16,7 @@ function admin(){
 function hash(v){return crypto.createHash('sha256').update(String(v)).digest('hex');}
 function otp(){return crypto.randomInt(100000,1000000).toString();}
 function cleanEmail(v){return String(v||'').trim().toLowerCase();}
-function makeVerificationMarker(code){return `verified:${hash(code)}:${crypto.randomBytes(16).toString('hex')}`;}
+function makeVerificationMarker(){return `verified:${crypto.randomBytes(32).toString('hex')}`;}
 
 async function smtp(){
   const db=admin();
@@ -82,7 +82,8 @@ async function saveOtp(db,user,code,now){
     if(age<RESEND_MS) throw new Error('Tunggu 60 detik sebelum meminta OTP lagi.');
   }
   const expiresAt=new Date(now+OTP_TTL_MS).toISOString();
-  const {error}=await db.from('users').update({otp_code:hash(code),otp_expires_at:expiresAt,updated_at:new Date(now).toISOString()}).eq('id',user.id);
+  const stored=`${hash(code)}:0`;
+  const {error}=await db.from('users').update({otp_code:stored,otp_expires_at:expiresAt,updated_at:new Date(now).toISOString()}).eq('id',user.id);
   if(error) throw new Error('Gagal menyimpan OTP.');
 }
 
@@ -91,23 +92,27 @@ async function verifyCode(db,email,code){
   const expiresAt=user.otp_expires_at?new Date(user.otp_expires_at).getTime():0;
   if(!user.otp_code||!expiresAt||Date.now()>expiresAt) throw new Error('Kode OTP tidak ditemukan atau sudah kedaluwarsa.');
   if(user.otp_code.startsWith('verified:')) throw new Error('Kode OTP sudah digunakan.');
-  if(hash(code)!==user.otp_code) throw new Error('Kode OTP salah.');
-  const marker=makeVerificationMarker(code);
+  const [storedHash,attemptText='0']=String(user.otp_code).split(':');
+  const attempts=Number.parseInt(attemptText,10)||0;
+  if(attempts>=MAX_ATTEMPTS) throw new Error('Terlalu banyak percobaan OTP. Minta kode baru.');
+  if(hash(code)!==storedHash){
+    const nextAttempts=attempts+1;
+    const nextCode=`${storedHash}:${nextAttempts}`;
+    await db.from('users').update({otp_code:nextCode,updated_at:new Date().toISOString()}).eq('id',user.id).eq('otp_code',user.otp_code);
+    if(nextAttempts>=MAX_ATTEMPTS) throw new Error('Terlalu banyak percobaan OTP. Minta kode baru.');
+    throw new Error('Kode OTP salah.');
+  }
+  const marker=makeVerificationMarker();
   const {error}=await db.from('users').update({otp_code:marker,otp_expires_at:new Date(Date.now()+VERIFY_TTL_MS).toISOString(),updated_at:new Date().toISOString()}).eq('id',user.id).eq('otp_code',user.otp_code);
   if(error) throw new Error('Verifikasi OTP gagal.');
   return marker;
 }
 
-async function completeWithMarker(db,email,purpose,verificationToken){
+async function completeWithMarker(db,email,verificationToken){
   const user=await requireUser(db,email);
-  if(!verificationToken||!user.otp_code||!user.otp_code.startsWith('verified:')||user.otp_code!==verificationToken) throw new Error('Token verifikasi tidak valid atau sudah kedaluwarsa.');
+  if(!verificationToken||!user.otp_code||user.otp_code!==verificationToken||!user.otp_code.startsWith('verified:')) throw new Error('Token verifikasi tidak valid atau sudah kedaluwarsa.');
   if(!user.otp_expires_at||Date.now()>new Date(user.otp_expires_at).getTime()) throw new Error('Token verifikasi sudah kedaluwarsa.');
   return user;
-}
-
-async function consumeVerification(db,user){
-  const {error}=await db.from('users').update({otp_code:null,otp_expires_at:null,updated_at:new Date().toISOString()}).eq('id',user.id).eq('otp_code',user.otp_code);
-  if(error) throw new Error('Token verifikasi tidak dapat digunakan.');
 }
 
 export default async function handler(req,res){
@@ -143,7 +148,7 @@ export default async function handler(req,res){
 
     if(action==='complete_registration'){
       const v=String(b.verificationToken||'');
-      const user=await completeWithMarker(db,email,'registration',v);
+      const user=await completeWithMarker(db,email,v);
       const name=String(b.name||'').trim();
       const storeName=String(b.storeName||'').trim();
       const phone=String(b.phone||'').trim();
@@ -151,8 +156,6 @@ export default async function handler(req,res){
       const district=String(b.district||'').trim();
       const password=String(b.password||'');
       if(name.length<2||storeName.length<2||!phone||!region||!district||password.length<5||password.length>128)throw new Error('Data pendaftaran tidak lengkap.');
-      const current=await getUserByEmail(db,email);
-      if(!current||current.id!==user.id)throw new Error('Data pendaftaran tidak ditemukan.');
       const {error}=await db.from('users').update({name,store_name:storeName,email,phone,region,district,password,is_verified:true,status:'active',deleted_at:null,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
       if(error)throw new Error('Akun gagal dibuat.');
       return res.status(200).json({success:true,user:{id:user.id,name,storeName,email,phone,region,district,isVerified:true}});
@@ -162,7 +165,7 @@ export default async function handler(req,res){
       const newPassword=String(b.newPassword||'');
       const v=String(b.verificationToken||'');
       if(newPassword.length<5||newPassword.length>128)return res.status(400).json({success:false,error:'Password harus 5-128 karakter.'});
-      const user=await completeWithMarker(db,email,purpose,v);
+      const user=await completeWithMarker(db,email,v);
       const {error}=await db.from('users').update({password:newPassword,is_verified:true,updated_at:new Date().toISOString(),otp_code:null,otp_expires_at:null}).eq('id',user.id).eq('otp_code',v);
       if(error)throw new Error('Password gagal diperbarui.');
       return res.status(200).json({success:true,message:'Password berhasil diperbarui.'});
