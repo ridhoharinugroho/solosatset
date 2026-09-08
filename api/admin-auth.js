@@ -4,8 +4,10 @@
  * Admin credentials live in Supabase table `admin_users`.
  * Only the session-signing secret remains in the server environment.
  *
- * During migration, an existing legacy Vercel admin credential is accepted only
- * when the Supabase admin row does not yet exist, then copied into Supabase.
+ * During migration, an existing legacy Vercel admin credential is accepted when
+ * the Supabase row is missing OR its stored hash no longer matches, then copied
+ * into Supabase. This prevents a stale/incorrect migrated hash from locking out
+ * the only administrator.
  */
 
 import crypto from 'node:crypto';
@@ -219,6 +221,11 @@ async function authenticateFromSupabase(username, password) {
   }
 
   if (!verifyPassword(password, data.password_hash)) {
+    // If the old server credential is still configured and the supplied password
+    // matches it, repair the stale Supabase hash automatically. No password is
+    // stored in plaintext; only the existing password hash is copied.
+    const repaired = await bootstrapLegacyAdmin(supabase, legacy, password, normalizedUsername);
+    if (repaired) return { configured: true, user: repaired };
     return { configured: true, user: null };
   }
 
