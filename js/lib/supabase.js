@@ -1,23 +1,16 @@
 /**
  * solosatset - Supabase Client Connection
- * Koneksi database utama menggunakan Supabase v2
+ * Koneksi database utama menggunakan Supabase v2.
  *
- * CARA KONFIGURASI:
- * 1. Ganti SUPABASE_URL dan SUPABASE_ANON_KEY di bawah ini
- *    dengan nilai dari Supabase Dashboard > Project Settings > API
- * 2. Di Vercel: tambahkan environment variable SUPABASE_URL dan SUPABASE_ANON_KEY
- *
- * Supabase anon key AMAN untuk diekspos di frontend karena dilindungi oleh Row Level Security (RLS)
+ * Browser may use the public anon key for non-sensitive tables protected by RLS.
+ * The users table is explicitly blocked at this client boundary because account
+ * reads/writes are server-authoritative through /api/*.
  */
 
-// ============================================================
-// GANTI DUA BARIS INI DENGAN CREDENTIALS SUPABASE ANDA:
-// ============================================================
 const SUPABASE_URL = 'https://rwjqqoulqdmtsweuvbef.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
-// ============================================================
 
-// Load Supabase JS v2 dari CDN (ESM-compatible, no build tool needed)
+// Load Supabase JS v2 from CDN (ESM-compatible, no build tool needed)
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 function validateConfig() {
@@ -32,13 +25,59 @@ function validateConfig() {
   return true;
 }
 
+function createBlockedUsersQuery() {
+  const blockedResult = Promise.resolve({
+    data: null,
+    error: new Error('Direct browser access to the users table is disabled.')
+  });
+
+  const chain = {
+    select() { return chain; },
+    insert() { return chain; },
+    upsert() { return chain; },
+    update() { return chain; },
+    delete() { return chain; },
+    eq() { return chain; },
+    neq() { return chain; },
+    in() { return chain; },
+    ilike() { return chain; },
+    like() { return chain; },
+    order() { return chain; },
+    limit() { return chain; },
+    range() { return chain; },
+    maybeSingle() { return blockedResult; },
+    single() { return blockedResult; },
+    then(onFulfilled, onRejected) { return blockedResult.then(onFulfilled, onRejected); },
+    catch(onRejected) { return blockedResult.catch(onRejected); },
+    finally(onFinally) { return blockedResult.finally(onFinally); }
+  };
+
+  return chain;
+}
+
 let supabase = null;
 
 if (validateConfig()) {
-  supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  const rawSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     realtime: { params: { eventsPerSecond: 10 } },
     global: { headers: { 'x-app-name': 'solosatset' } }
   });
+
+  supabase = new Proxy(rawSupabase, {
+    get(target, property, receiver) {
+      if (property === 'from') {
+        return (table) => {
+          if (String(table || '').trim().toLowerCase() === 'users') {
+            console.warn('[Supabase Security] Browser access to users table blocked; use /api/* instead.');
+            return createBlockedUsersQuery();
+          }
+          return target.from(table);
+        };
+      }
+      return Reflect.get(target, property, receiver);
+    }
+  });
+
   console.log('[Supabase] Client terhubung:', SUPABASE_URL.replace(/https:\/\/(.{8}).*\.supabase\.co/, 'https://$1****.supabase.co'));
 }
 
