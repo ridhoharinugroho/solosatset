@@ -69,37 +69,54 @@ function parsePasswordHash(value) {
   if (parts.length === 4 && parts[0] === 'scrypt') {
     const [, saltText, keyText, params] = parts;
     const [N, r, p] = params.split(',').map(Number);
-    if (!saltText || !keyText || !Number.isSafeInteger(N) || !Number.isSafeInteger(r) || !Number.isSafeInteger(p) || N <= 1 || r <= 0 || p <= 0) return null;
-    const salt = Buffer.from(saltText, 'base64url');
-    const key = Buffer.from(keyText, 'base64url');
-    if (!salt.length || !key.length) return null;
-    return { salt, key, N, r, p };
+    if (parts.length === 4 && saltText && keyText && Number.isSafeInteger(N) && Number.isSafeInteger(r) && Number.isSafeInteger(p) && N > 1 && r > 0 && p > 0) {
+      const salt = Buffer.from(saltText, 'base64url');
+      const key = Buffer.from(keyText, 'base64url');
+      if (salt.length && key.length) return { salt, key, N, r, p };
+    }
   }
 
   if (parts.length === 5 && parts[0] === 'scrypt') {
     const [, nText, rText, pText, payload] = parts;
     const [saltHex, hashHex] = payload.split(':');
     const N = Number(nText), r = Number(rText), p = Number(pText);
-    if (!Number.isSafeInteger(N) || !Number.isSafeInteger(r) || !Number.isSafeInteger(p) || N <= 1 || r <= 0 || p <= 0) return null;
-    if (!saltHex || !hashHex || !/^[0-9a-f]+$/i.test(saltHex) || !/^[0-9a-f]+$/i.test(hashHex)) return null;
-    return { salt: Buffer.from(saltHex, 'hex'), key: Buffer.from(hashHex, 'hex'), N, r, p };
+    if (Number.isSafeInteger(N) && Number.isSafeInteger(r) && Number.isSafeInteger(p) && N > 1 && r > 0 && p > 0 && saltHex && hashHex && /^[0-9a-f]+$/i.test(saltHex) && /^[0-9a-f]+$/i.test(hashHex)) {
+      return { salt: Buffer.from(saltHex, 'hex'), key: Buffer.from(hashHex, 'hex'), N, r, p };
+    }
   }
   return null;
 }
 
 function verifyPassword(password, passwordHash) {
-  const parsed = parsePasswordHash(passwordHash);
-  if (!parsed) return false;
-  try {
-    const derived = crypto.scryptSync(String(password), parsed.salt, parsed.key.length, {
-      N: parsed.N,
-      r: parsed.r,
-      p: parsed.p,
-      maxmem: Math.max(32 * 1024 * 1024, 128 * parsed.N * parsed.r + 1024 * 1024)
-    });
-    return crypto.timingSafeEqual(derived, parsed.key);
-  } catch { return false; }
+  const raw = String(passwordHash || '').trim();
+  const parsed = parsePasswordHash(raw);
+  if (parsed) {
+    try {
+      const derived = crypto.scryptSync(String(password), parsed.salt, parsed.key.length, {
+        N: parsed.N,
+        r: parsed.r,
+        p: parsed.p,
+        maxmem: Math.max(32 * 1024 * 1024, 128 * parsed.N * parsed.r + 1024 * 1024)
+      });
+      return crypto.timingSafeEqual(derived, parsed.key);
+    } catch { return false; }
+  }
+
+  // Legacy compatibility: some existing admin rows contain the password directly
+  // in password_hash. Accept it once, then migrate the row to scrypt immediately.
+  return timingSafeEqualText(raw, String(password));
 }
+
+function hashPassword(password) {
+  const N = 16384, r = 8, p = 1;
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(String(password), salt, 64, {
+    N, r, p, maxmem: 32 * 1024 * 1024
+  });
+  return `scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$${N},${r},${p}`;
+}
+
+function isScryptHash(value) { return Boolean(parsePasswordHash(value)); }
 
 function rateLimited(ip) {
   const now = Date.now();
@@ -129,7 +146,6 @@ async function authenticate(username, password) {
   const normalized = String(username || '').trim().toLowerCase();
   const supabase = getAdminClient();
 
-  // Primary source: the existing admin_users row in Supabase.
   if (supabase) {
     const { data, error } = await supabase
       .from('admin_users')
@@ -140,6 +156,14 @@ async function authenticate(username, password) {
     if (!error) {
       const user = Array.isArray(data) ? data[0] : null;
       if (user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)) {
+        // Transparently upgrade legacy plaintext storage to the intended scrypt format.
+        if (!isScryptHash(user.password_hash)) {
+          const { error: upgradeError } = await supabase
+            .from('admin_users')
+            .update({ password_hash: hashPassword(password), updated_at: new Date().toISOString() })
+            .eq('id', user.id);
+          if (upgradeError) console.error('[Admin Auth Migration]', upgradeError.message);
+        }
         return { configured: true, user };
       }
     } else {
@@ -147,8 +171,6 @@ async function authenticate(username, password) {
     }
   }
 
-  // Recovery compatibility: keep the already-configured server admin credential usable.
-  // This does not write to Supabase and does not replace the Supabase account.
   const legacyUsername = String(process.env.ADMIN_USERNAME || '').trim();
   const legacyHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
   if (legacyUsername && legacyHash && timingSafeEqualText(normalized, legacyUsername.toLowerCase()) && verifyPassword(password, legacyHash)) {
