@@ -4,7 +4,7 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/supabaseDB.js && node --check api/auth-login.js && node --check api/auth-otp.js && node --check js/services/otpAuth.js && node --check js/services/passwordChangeOtp.js && node --check js/authProfileModals.js",
+    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/auth.js && node --check js/services/supabaseDB.js && node --check api/auth-login.js && node --check api/auth-otp.js && node --check js/services/otpAuth.js && node --check js/services/passwordChangeOtp.js && node --check js/authProfileModals.js",
     "sync:reviews": "node scripts/sync-app-reviews.js"
   },
   "dependencies": {
