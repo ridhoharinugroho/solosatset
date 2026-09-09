@@ -31,3 +31,8 @@ node_modules/
 
 .vercel
 .env*
+
+# Supabase Temporary CLI Cache
+supabase/.temp/
+supabase/.temp/*
+

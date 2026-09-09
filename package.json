@@ -8,7 +8,8 @@
     "test": "node scripts/test-formatting.js && node scripts/test-syntax.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
     "sync:reviews": "node scripts/sync-app-reviews.js",
-    "security:audit": "node scripts/security-audit.mjs"
+    "security:audit": "node scripts/security-audit.mjs",
+    "quota": "node scripts/vercel-quota.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",

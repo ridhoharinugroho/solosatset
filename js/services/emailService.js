@@ -38,8 +38,8 @@ export async function saveSmtpConfig(config = {}) {
     secure: Boolean(config.secure ?? DEFAULT_SMTP_CONFIG.secure),
     fromName: String(config.fromName || DEFAULT_SMTP_CONFIG.fromName).trim(),
     from: String(config.from || '').trim(),
-    user: '',
-    pass: ''
+    user: String(config.user || '').trim(),
+    pass: String(config.pass || '').trim()
   };
   return getSmtpConfig();
 }

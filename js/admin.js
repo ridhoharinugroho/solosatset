@@ -394,7 +394,7 @@ function initAdminEventListeners() {
     const from = document.getElementById('smtp-from-email').value.trim() || user;
     const fromEmailInput = document.getElementById('smtp-from-email');
     if (fromEmailInput) fromEmailInput.value = from;
-    await saveSmtpConfig({ host, port, secure, user, pass, fromName, from, senderEmail: from });
+    await saveSmtpConfig({ host, port, secure, user, pass, fromName, from });
     updateSmtpStatusPill(pass ? 'configured' : 'unconfigured');
     showToast('Konfigurasi SMTP Mail Server berhasil disimpan.', 'success');
   });
@@ -422,7 +422,7 @@ function initAdminEventListeners() {
     updateSmtpStatusPill('testing');
     try {
       saveSmtpConfig({ host, port, secure, user, pass, fromName, from });
-      const res = await sendTestEmail({ toEmail: targetEmail, smtpConfig: { host, port, secure, user, pass, fromName, from } });
+      const res = await sendTestEmail({ toEmail: targetEmail });
       resultBox?.classList.remove('hidden');
       if (res.success) {
         resultBox.className = 'p-3.5 rounded-2xl text-xs leading-relaxed space-y-1 bg-emerald-950/80 border border-emerald-700 text-emerald-200';
