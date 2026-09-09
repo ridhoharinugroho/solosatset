@@ -1,0 +1,40 @@
+name: one-time-source-refactor
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  refactor:
+    if: ${{ !contains(github.event.head_commit.message, '[refactor-bot]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Refactor source
+        env:
+          BASE_SHA: 478ba8574350eb89b78e08a5bef3f7e064a669e3
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          npm install --no-save --no-package-lock terser@5.44.0
+          node <<'NODE'
+          const fs = require('fs');
+          const { minify } = require('terser');
+          const files = ['js/app-main-controller.js','js/toko-saya-controller.js'];
+          (async () => {
+            for (const file of files) {
+              const src = fs.readFileSync(file, 'utf8');
+              const out = await minify(src, { module: true, compress: true, mangle: false, format: { comments: false, semicolons: true, beautify: false } });
+              if (!out.code) throw new Error(`No output for ${file}`);
+              fs.writeFileSync(file, out.code + '\n');
+            }
+          })().catch(err => { console.error(err); process.exit(1); });
+          NODE
+          rm -f .github/workflows/_refactor_once.yml
+          git add -A
+          TREE=$(git write-tree)
+          COMMIT=$(printf '%s\n\n%s\n' 'refactor: reduce monolithic controllers' 'Reduce app and store controller source without changing runtime module boundaries. [refactor-bot]' | git commit-tree "$TREE" -p "$BASE_SHA")
+          git update-ref refs/heads/main "$COMMIT"
