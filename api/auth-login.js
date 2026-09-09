@@ -5,10 +5,12 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const LOGIN_WINDOW_MS = 5 * 60 * 1000;
 const MAX_LOGIN_ATTEMPTS = 10;
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_SECRET = process.env.AUTH_SESSION_SECRET || SERVICE_KEY;
 const loginAttempts = new Map();
 
 function admin() {
-  if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Server database configuration is unavailable.');
+  if (!SUPABASE_URL || !SERVICE_KEY || !SESSION_SECRET) throw new Error('Server database configuration is unavailable.');
   return createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 function hashPassword(password, salt = crypto.randomBytes(16)) {
@@ -48,6 +50,11 @@ function failedLogin(ip) {
   else item.count += 1;
 }
 function clearLoginRate(ip) { loginAttempts.delete(ip); }
+function issueSession(userId) {
+  const payload = Buffer.from(JSON.stringify({ sub: String(userId), exp: Date.now() + SESSION_TTL_MS })).toString('base64url');
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(payload).digest('base64url');
+  return `${payload}.${signature}`;
+}
 
 const USER_FIELDS = 'id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,created_at,password_hash,password';
 
@@ -97,7 +104,7 @@ export default async function handler(req, res) {
     if (!valid) { failedLogin(ip); throw new Error('Password yang Anda masukkan salah.'); }
     clearLoginRate(ip);
 
-    return res.status(200).json({ success: true, migrated, user: {
+    return res.status(200).json({ success: true, migrated, sessionToken: issueSession(user.id), user: {
       id: user.id, name: user.name, storeName: user.store_name || user.name, email: user.email,
       phone: user.phone, region: user.region, district: user.district, avatar: user.avatar,
       bio: user.bio, status: user.status || 'active', deletedAt: user.deleted_at || null,
