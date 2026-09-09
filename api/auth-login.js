@@ -14,7 +14,7 @@ function hashPassword(password, salt = crypto.randomBytes(16)) {
 }
 function verifyPassword(password, encoded) {
   const parts = String(encoded || '').split('$');
-  if (parts.length !== 7 || parts[0] !== 'scrypt') return false;
+  if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
   const [, n, r, p, saltText, hashText] = parts;
   const salt = Buffer.from(saltText, 'base64url');
   const expected = Buffer.from(hashText, 'base64url');
