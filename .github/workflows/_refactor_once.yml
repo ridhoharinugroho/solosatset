@@ -1,4 +1,4 @@
-name: one-time-source-refactor
+name: one-shot-monolith-refactor
 on:
   push:
     branches: [main]
@@ -6,35 +6,26 @@ permissions:
   contents: write
 jobs:
   refactor:
-    if: ${{ !contains(github.event.head_commit.message, '[refactor-bot]') }}
+    if: github.event.head_commit.message == 'chore: stage one-shot monolith refactor'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Refactor source
-        env:
-          BASE_SHA: 478ba8574350eb89b78e08a5bef3f7e064a669e3
+      - name: Rebuild from baseline and compact monoliths
         run: |
-          set -euo pipefail
+          cp scripts/refactor-monoliths.mjs /tmp/refactor-monoliths.mjs
+          git fetch origin 478ba8574350eb89b78e08a5bef3f7e064a669e3
+          git checkout 478ba8574350eb89b78e08a5bef3f7e064a669e3 -- js/app.js js/toko-saya.js
+          node /tmp/refactor-monoliths.mjs
+          rm -f scripts/refactor-monoliths.mjs .github/workflows/one-shot-monolith-refactor.yml
+          node --check js/app.js
+          node --check js/toko-saya.js
+          node --check js/utils/toast.js
+          node --check js/utils/modalController.js
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          npm install --no-save --no-package-lock terser@5.44.0
-          node <<'NODE'
-          const fs = require('fs');
-          const { minify } = require('terser');
-          const files = ['js/app-main-controller.js','js/toko-saya-controller.js'];
-          (async () => {
-            for (const file of files) {
-              const src = fs.readFileSync(file, 'utf8');
-              const out = await minify(src, { module: true, compress: true, mangle: false, format: { comments: false, semicolons: true, beautify: false } });
-              if (!out.code) throw new Error(`No output for ${file}`);
-              fs.writeFileSync(file, out.code + '\n');
-            }
-          })().catch(err => { console.error(err); process.exit(1); });
-          NODE
-          rm -f .github/workflows/_refactor_once.yml
+          git reset --soft 478ba8574350eb89b78e08a5bef3f7e064a669e3
           git add -A
-          TREE=$(git write-tree)
-          COMMIT=$(printf '%s\n\n%s\n' 'refactor: reduce monolithic controllers' 'Reduce app and store controller source without changing runtime module boundaries. [refactor-bot]' | git commit-tree "$TREE" -p "$BASE_SHA")
-          git update-ref refs/heads/main "$COMMIT"
+          git commit -m 'refactor: materially reduce monolithic app and store controllers'
+          git push --force origin HEAD:main
