@@ -3,6 +3,9 @@ import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const LOGIN_WINDOW_MS = 5 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+const loginAttempts = new Map();
 
 function admin() {
   if (!SUPABASE_URL || !SERVICE_KEY) throw new Error('Server database configuration is unavailable.');
@@ -16,9 +19,12 @@ function verifyPassword(password, encoded) {
   const parts = String(encoded || '').split('$');
   if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
   const [, n, r, p, saltText, hashText] = parts;
+  const N = Number(n), R = Number(r), P = Number(p);
+  if (!Number.isSafeInteger(N) || !Number.isSafeInteger(R) || !Number.isSafeInteger(P) || N < 2 || R < 1 || P < 1) return false;
   const salt = Buffer.from(saltText, 'base64url');
   const expected = Buffer.from(hashText, 'base64url');
-  const actual = crypto.scryptSync(String(password), salt, expected.length, { N: Number(n), r: Number(r), p: Number(p), maxmem: 64 * 1024 * 1024 });
+  if (!salt.length || !expected.length || expected.length > 1024) return false;
+  const actual = crypto.scryptSync(String(password), salt, expected.length, { N, r: R, p: P, maxmem: 64 * 1024 * 1024 });
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 function sameSecret(a, b) {
@@ -28,6 +34,21 @@ function sameSecret(a, b) {
 }
 function clean(v) { return String(v || '').trim(); }
 function cleanEmail(v) { return clean(v).toLowerCase(); }
+function clientIp(req) { return String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || 'unknown'; }
+function rateLimited(ip) {
+  const now = Date.now();
+  const item = loginAttempts.get(ip);
+  if (!item || now - item.start >= LOGIN_WINDOW_MS) { loginAttempts.set(ip, { start: now, count: 0 }); return false; }
+  return item.count >= MAX_LOGIN_ATTEMPTS;
+}
+function failedLogin(ip) {
+  const now = Date.now();
+  const item = loginAttempts.get(ip);
+  if (!item || now - item.start >= LOGIN_WINDOW_MS) loginAttempts.set(ip, { start: now, count: 1 });
+  else item.count += 1;
+}
+function clearLoginRate(ip) { loginAttempts.delete(ip); }
+
 const USER_FIELDS = 'id,name,email,phone,region,district,store_name,avatar,bio,status,deleted_at,is_demo,created_at,password_hash,password';
 
 async function firstUser(query) {
@@ -35,37 +56,34 @@ async function firstUser(query) {
   if (error) throw new Error('Data akun tidak dapat dibaca.');
   return Array.isArray(data) ? (data[0] || null) : null;
 }
-
 async function findUser(db, identifier) {
   const value = clean(identifier);
   const email = cleanEmail(value);
   const digits = value.replace(/\D/g, '');
-
   const byEmail = await firstUser(db.from('users').eq('email', email));
   if (byEmail) return byEmail;
-
   if (digits.length >= 7) {
     const byPhone = await firstUser(db.from('users').eq('phone', value));
     if (byPhone) return byPhone;
   }
-
   const byName = await firstUser(db.from('users').eq('name', value));
   if (byName) return byName;
-
   return firstUser(db.from('users').eq('store_name', value));
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+  const ip = clientIp(req);
+  if (rateLimited(ip)) return res.status(429).json({ success: false, error: 'Terlalu banyak percobaan login. Coba lagi beberapa menit lagi.' });
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const identifier = clean(body.identifier);
     const password = String(body.password || '');
-    if (!identifier || !password) return res.status(400).json({ success: false, error: 'Identifier dan password wajib diisi.' });
+    if (!identifier || !password) { failedLogin(ip); return res.status(400).json({ success: false, error: 'Identifier dan password wajib diisi.' }); }
     const db = admin();
     const user = await findUser(db, identifier);
-    if (!user || user.deleted_at || (user.status || 'active').toLowerCase() === 'deleted') throw new Error('Akun tidak ditemukan.');
-    if ((user.status || 'active').toLowerCase() === 'suspended') throw new Error('Akun sedang ditangguhkan oleh Admin.');
+    if (!user || user.deleted_at || (user.status || 'active').toLowerCase() === 'deleted') { failedLogin(ip); throw new Error('Akun tidak ditemukan.'); }
+    if ((user.status || 'active').toLowerCase() === 'suspended') { failedLogin(ip); throw new Error('Akun sedang ditangguhkan oleh Admin.'); }
 
     let valid = user.password_hash ? verifyPassword(password, user.password_hash) : false;
     let migrated = false;
@@ -76,7 +94,8 @@ export default async function handler(req, res) {
       if (error) throw new Error('Password akun gagal diamankan.');
       migrated = true;
     }
-    if (!valid) throw new Error('Password yang Anda masukkan salah.');
+    if (!valid) { failedLogin(ip); throw new Error('Password yang Anda masukkan salah.'); }
+    clearLoginRate(ip);
 
     return res.status(200).json({ success: true, migrated, user: {
       id: user.id, name: user.name, storeName: user.store_name || user.name, email: user.email,
