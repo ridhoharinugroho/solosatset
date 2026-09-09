@@ -13,7 +13,21 @@ function normalizeIdentifier(value) { return String(value || '').trim(); }
 function normalizeEmail(value) { return String(value || '').trim().toLowerCase(); }
 function normalizePhone(value) { const digits = String(value || '').replace(/\D/g, ''); return digits.startsWith('62') ? `0${digits.slice(2)}` : digits; }
 function constantTimeStringEqual(a, b) { const left = Buffer.from(String(a ?? ''), 'utf8'); const right = Buffer.from(String(b ?? ''), 'utf8'); if (left.length !== right.length) return false; return crypto.timingSafeEqual(left, right); }
-function parseScryptHash(value) { const parts = String(value || '').split('$'); if (parts.length !== 5 || parts[0] !== 'scrypt') return null; const [, nRaw, rRaw, pRaw, payload] = parts; const [saltHex, hashHex] = payload.split(':'); const n = Number(nRaw), r = Number(rRaw), p = Number(pRaw); if (!Number.isSafeInteger(n) || !Number.isSafeInteger(r) || !Number.isSafeInteger(p) || !saltHex || !hashHex || !/^[0-9a-f]+$/i.test(saltHex) || !/^[0-9a-f]+$/i.test(hashHex)) return null; return { n, r, p, salt: Buffer.from(saltHex, 'hex'), hash: Buffer.from(hashHex, 'hex') }; }
+function parseScryptHash(value) {
+  const parts = String(value || '').split('$');
+  if (parts.length === 6 && parts[0] === 'scrypt') {
+    const [, nRaw, rRaw, pRaw, saltText, hashText] = parts;
+    const n = Number(nRaw), r = Number(rRaw), p = Number(pRaw);
+    if (!Number.isSafeInteger(n) || !Number.isSafeInteger(r) || !Number.isSafeInteger(p) || !saltText || !hashText) return null;
+    try { const salt = Buffer.from(saltText, 'base64url'), hash = Buffer.from(hashText, 'base64url'); if (!salt.length || !hash.length) return null; return { n, r, p, salt, hash }; } catch { return null; }
+  }
+  if (parts.length !== 5 || parts[0] !== 'scrypt') return null;
+  const [, nRaw, rRaw, pRaw, payload] = parts;
+  const [saltHex, hashHex] = payload.split(':');
+  const n = Number(nRaw), r = Number(rRaw), p = Number(pRaw);
+  if (!Number.isSafeInteger(n) || !Number.isSafeInteger(r) || !Number.isSafeInteger(p) || !saltHex || !hashHex || !/^[0-9a-f]+$/i.test(saltHex) || !/^[0-9a-f]+$/i.test(hashHex)) return null;
+  return { n, r, p, salt: Buffer.from(saltHex, 'hex'), hash: Buffer.from(hashHex, 'hex') };
+}
 function hashPassword(password) { const salt = crypto.randomBytes(16), n = 16384, r = 8, p = 1; const hash = crypto.scryptSync(String(password), salt, 64, { N: n, r, p, maxmem: 32 * 1024 * 1024 }); return `scrypt$${n}$${r}$${p}$${salt.toString('hex')}:${hash.toString('hex')}`; }
 function verifyPassword(password, encoded) { const parsed = parseScryptHash(encoded); if (!parsed) return false; try { const hash = crypto.scryptSync(String(password), parsed.salt, parsed.hash.length, { N: parsed.n, r: parsed.r, p: parsed.p, maxmem: 32 * 1024 * 1024 }); return crypto.timingSafeEqual(hash, parsed.hash); } catch { return false; } }
 function getRateKey(req, identifier) { const forwarded = req.headers?.['x-forwarded-for']; const ip = Array.isArray(forwarded) ? forwarded[0] : String(forwarded || req.socket?.remoteAddress || 'unknown').split(',')[0].trim(); return `${ip}:${normalizeIdentifier(identifier).toLowerCase()}`; }
