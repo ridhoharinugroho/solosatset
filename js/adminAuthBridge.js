@@ -15,8 +15,14 @@ async function getAdminSession() {
     });
     if (!response.ok) return null;
     const payload = await response.json();
-    return payload?.authenticated ? payload : null;
+    if (payload?.authenticated) {
+      window.__solosatsetAdminSecurity?.setValidated(true);
+      return payload;
+    }
+    window.__solosatsetAdminSecurity?.setValidated(false);
+    return null;
   } catch {
+    window.__solosatsetAdminSecurity?.setValidated(false);
     return null;
   }
 }
@@ -38,6 +44,7 @@ async function loginAdmin(username, password) {
     throw error;
   }
 
+  window.__solosatsetAdminSecurity?.setValidated(true);
   sessionStorage.setItem(ADMIN_AUTH_KEY, 'true');
   return payload;
 }
@@ -50,6 +57,7 @@ async function logoutAdmin() {
       headers: { Accept: 'application/json' }
     });
   } finally {
+    window.__solosatsetAdminSecurity?.setValidated(false);
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
   }
 }
