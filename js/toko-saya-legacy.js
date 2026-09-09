@@ -1,3 +1,5 @@
 // SoloSatSet Toko Saya controller entrypoint.
-// The full controller stays byte-identical in toko-saya-core.js.
-export * from './toko-saya-core.js';
+// Defer the heavy controller module so the initial document remains responsive.
+import('./toko-saya-core.js').catch((error) => {
+  console.error('[Toko Saya bootstrap] Gagal memuat controller.', error);
+});

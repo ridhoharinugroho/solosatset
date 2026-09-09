@@ -1,3 +1,5 @@
 // SoloSatSet application controller entrypoint.
-// The full controller stays byte-identical in app-main-core.js.
-export * from './app-main-core.js';
+// Defer the heavy controller module so the initial document remains responsive.
+import('./app-main-core.js').catch((error) => {
+  console.error('[App bootstrap] Gagal memuat controller utama.', error);
+});
