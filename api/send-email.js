@@ -1,159 +1,83 @@
 import nodemailer from 'nodemailer';
 import { createClient } from '@supabase/supabase-js';
+import { isAdminRequest } from './admin-auth.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function getSupabaseAdmin() {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return null;
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false }
-  });
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-/**
- * SMTP credentials are resolved server-side only.
- * The browser-supplied smtpConfig payload is intentionally ignored.
- */
 async function getDynamicSmtpConfig() {
   const supabaseAdmin = getSupabaseAdmin();
-  if (!supabaseAdmin) {
-    throw new Error('Server SMTP configuration is unavailable. Required server environment variables are missing.');
-  }
-
-  const { data: dbRow, error: dbErr } = await supabaseAdmin
-    .from('app_smtp_config')
-    .select('settings_json')
-    .eq('id', 'config')
-    .maybeSingle();
-
+  if (!supabaseAdmin) throw new Error('Server SMTP configuration is unavailable. Required server environment variables are missing.');
+  const { data: dbRow, error: dbErr } = await supabaseAdmin.from('app_smtp_config').select('settings_json').eq('id', 'config').maybeSingle();
   if (dbErr) throw new Error('Unable to load server-side SMTP configuration.');
-
   let config = {};
   if (dbRow?.settings_json) {
-    try {
-      const parsed = typeof dbRow.settings_json === 'string'
-        ? JSON.parse(dbRow.settings_json)
-        : dbRow.settings_json;
-      if (parsed && typeof parsed === 'object') config = parsed;
-    } catch {
-      throw new Error('Server-side SMTP configuration is invalid.');
-    }
+    try { config = typeof dbRow.settings_json === 'string' ? JSON.parse(dbRow.settings_json) : dbRow.settings_json; }
+    catch { throw new Error('Server-side SMTP configuration is invalid.'); }
   }
-
   const host = (process.env.SMTP_HOST || config.host || 'smtp.gmail.com').trim();
   const port = Number(process.env.SMTP_PORT || config.port || (host === 'smtp.gmail.com' ? 465 : 587));
-  const secure = process.env.SMTP_SECURE !== undefined
-    ? process.env.SMTP_SECURE === 'true'
-    : (config.secure !== undefined ? Boolean(config.secure) : port === 465);
+  const secure = process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : (config.secure !== undefined ? Boolean(config.secure) : port === 465);
   const user = (process.env.SMTP_USER || config.user || '').trim();
   const pass = (process.env.SMTP_PASS || config.pass || '').replace(/\s+/g, '');
   const fromName = (process.env.SMTP_FROM_NAME || config.senderName || config.fromName || 'Pusat Jual Beli Solo Raya').trim();
   const fromEmail = (process.env.SMTP_FROM_EMAIL || config.senderEmail || config.from || user).trim();
-
-  if (!user || !pass) {
-    throw new Error('SMTP server credentials are not configured.');
-  }
-
+  if (!user || !pass) throw new Error('SMTP server credentials are not configured.');
   return { host, port, secure, user, pass, fromName, fromEmail };
 }
 
-/**
- * Serverless Email Dispatcher & SMTP Gateway.
- * Public transactional email is restricted to known application flows.
- */
+let lastSmtpTestAt = 0;
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
-
   if (req.method === 'OPTIONS') return res.status(204).end();
-
-  if (req.method === 'GET') {
-    return res.status(200).json({
-      service: 'Pusat Jual Beli Solo Raya - SMTP Mail Engine',
-      status: 'active',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
-  }
+  if (req.method === 'GET') return res.status(200).json({ service: 'Pusat Jual Beli Solo Raya - SMTP Mail Engine', status: 'active', timestamp: new Date().toISOString() });
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'Method Not Allowed' });
 
   try {
     let body = req.body;
-    if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch { body = {}; }
-    }
-
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { body = {}; } }
     const { action, to, subject, html, text, type } = body || {};
+    const isSmtpTest = action === 'test_connection' || type === 'test_smtp';
 
-    // Admin SMTP test must wait for server-verifiable admin authorization.
-    if (action === 'test_connection' || type === 'test_smtp') {
-      return res.status(403).json({
-        success: false,
-        error: 'SMTP test requires server-side admin authorization and is temporarily disabled.'
-      });
+    if (isSmtpTest && !isAdminRequest(req)) {
+      return res.status(401).json({ success: false, error: 'Sesi admin diperlukan untuk tes SMTP.' });
     }
 
-    // Only application-owned transactional flows may use this public endpoint.
+    const smtpConfig = await getDynamicSmtpConfig();
+
+    if (isSmtpTest) {
+      const now = Date.now();
+      const cooldownMs = 60 * 1000;
+      if (now - lastSmtpTestAt < cooldownMs) return res.status(429).json({ success: false, error: 'Tes SMTP terlalu sering. Tunggu sekitar 1 menit lalu coba lagi.' });
+      const allowedRecipient = (process.env.SMTP_TEST_RECIPIENT || smtpConfig.fromEmail).trim().toLowerCase();
+      const target = String(to || '').trim().toLowerCase();
+      if (!target || target !== allowedRecipient) return res.status(403).json({ success: false, error: `Tes SMTP hanya boleh dikirim ke alamat pengirim SMTP (${allowedRecipient}).` });
+      lastSmtpTestAt = now;
+      const transporter = nodemailer.createTransport({ host: smtpConfig.host, port: smtpConfig.port, secure: smtpConfig.secure, auth: { user: smtpConfig.user, pass: smtpConfig.pass }, tls: { rejectUnauthorized: true }, connectionTimeout: 15000 });
+      await transporter.verify();
+      const info = await transporter.sendMail({ from: `"${smtpConfig.fromName}" <${smtpConfig.fromEmail}>`, to: allowedRecipient, subject: 'Uji Coba Pengiriman Email SMTP - Pusat Jual Beli Solo Raya', text: 'SMTP server berhasil terhubung dan siap mengirim email.', html: '<p>SMTP server berhasil terhubung dan siap mengirim email.</p>' });
+      return res.status(200).json({ success: true, messageId: info.messageId, message: 'Koneksi SMTP berhasil diverifikasi dan email uji coba berhasil dikirim.' });
+    }
+
     const allowedTypes = new Set(['registration_welcome', 'password_reset']);
-    if (!allowedTypes.has(type)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unsupported email type.'
-      });
-    }
+    if (!allowedTypes.has(type)) return res.status(403).json({ success: false, error: 'Unsupported email type.' });
+    if (!to || (!html && !text)) return res.status(400).json({ success: false, error: 'Penerima email dan isi pesan wajib diisi.' });
 
-    if (!to || (!html && !text)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Penerima email dan isi pesan wajib diisi.'
-      });
-    }
-
-    const { host, port, secure, user, pass, fromName, fromEmail } = await getDynamicSmtpConfig();
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      auth: { user, pass },
-      tls: { rejectUnauthorized: true },
-      connectionTimeout: 15000
-    });
-
-    const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to: to.trim(),
-      subject: subject || 'Pemberitahuan Akun - Pusat Jual Beli Solo Raya',
-      text: text || '',
-      html: html || text
-    });
-
+    const transporter = nodemailer.createTransport({ host: smtpConfig.host, port: smtpConfig.port, secure: smtpConfig.secure, auth: { user: smtpConfig.user, pass: smtpConfig.pass }, tls: { rejectUnauthorized: true }, connectionTimeout: 15000 });
+    const info = await transporter.sendMail({ from: `"${smtpConfig.fromName}" <${smtpConfig.fromEmail}>`, to: to.trim(), subject: subject || 'Pemberitahuan Akun - Pusat Jual Beli Solo Raya', text: text || '', html: html || text });
     console.log(`[SMTP EMAIL SUCCESS] Sent transactional email to: ${to}`);
-
-    return res.status(200).json({
-      success: true,
-      messageId: info.messageId,
-      message: 'Email berhasil dikirim.'
-    });
+    return res.status(200).json({ success: true, messageId: info.messageId, message: 'Email berhasil dikirim.' });
   } catch (error) {
-    console.error('[SMTP Server Error]', {
-      name: error.name,
-      code: error.code,
-      responseCode: error.responseCode,
-      message: error.message
-    });
-
+    console.error('[SMTP Server Error]', { name: error.name, code: error.code, responseCode: error.responseCode, message: error.message });
     const isAuthError = error.code === 'EAUTH' || error.responseCode === 535;
-    return res.status(500).json({
-      success: false,
-      code: error.code || (isAuthError ? 'EAUTH' : 'SMTP_ERROR'),
-      error: isAuthError
-        ? 'Autentikasi SMTP gagal. Periksa konfigurasi SMTP server.'
-        : (error.message || 'Gagal mengirim email melalui server SMTP.')
-    });
+    return res.status(500).json({ success: false, code: error.code || (isAuthError ? 'EAUTH' : 'SMTP_ERROR'), error: isAuthError ? 'Autentikasi SMTP gagal. Periksa konfigurasi SMTP server.' : (error.message || 'Gagal mengirim email melalui server SMTP.') });
   }
 }
