@@ -265,17 +265,31 @@ export function closeAdminLoginModal() {
   if (modal) modal.classList.add('hidden');
 }
 
-export function handleModalAdminLogin(e) {
-  e.preventDefault();
-  const u = document.getElementById('modal-admin-username')?.value.trim() || '';
-  const p = document.getElementById('modal-admin-password')?.value.trim() || '';
+export async function handleModalAdminLogin(e) {
+  if (e) e.preventDefault();
+  const username = document.getElementById('modal-admin-username')?.value.trim() || '';
+  const password = document.getElementById('modal-admin-password')?.value || '';
   const errorBox = document.getElementById('modal-login-error');
 
-  if (u === 'ratakanan' && p === '280995') {
+  try {
+    const response = await fetch('/api/admin-auth?action=login', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok || !payload?.authenticated) {
+      throw new Error(payload?.error || 'Login admin gagal.');
+    }
+
+    if (window.__solosatsetAdminSecurity?.setValidated) {
+      window.__solosatsetAdminSecurity.setValidated(true);
+    }
     sessionStorage.setItem('pusat_barkas_admin_auth', 'true');
     closeAdminLoginModal();
     window.location.href = 'admin.html?tab=studio';
-  } else {
+  } catch (error) {
     if (errorBox) {
       errorBox.classList.remove('hidden');
       errorBox.classList.add('animate-bounce');
