@@ -58,3 +58,5 @@ jobs:
 
       - name: Run duplication audit
         run: npm run audit:duplication
+
+# one-shot trigger
