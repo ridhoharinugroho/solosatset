@@ -38,7 +38,14 @@ export default async function handler(req, res) {
     const p256dh = typeof subscription.keys?.p256dh === 'string' ? subscription.keys.p256dh.trim() : '';
     const auth = typeof subscription.keys?.auth === 'string' ? subscription.keys.auth.trim() : '';
     const userId = String(session.sub).trim().slice(0, 128);
-    if (!userId) return res.status(401).json({ success: false, error: 'Authentication required.' });
+
+    // Security: Verify user status in DB
+    const { data: authUser, error: authErr } = await supabase.from('users').select('email, status, deleted_at').eq('id', userId).maybeSingle();
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Authentication failed. User account not found.' });
+    const statusStr = String(authUser.status || 'active').toLowerCase();
+    if (authUser.deleted_at || statusStr === 'deleted' || statusStr === 'suspended') {
+      return res.status(403).json({ success: false, error: 'Account is suspended or deleted.' });
+    }
 
     if (action === 'unsubscribe') {
       const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint).eq('user_id', userId);

@@ -56,6 +56,17 @@ export default async function handler(req, res) {
   const supabase = getAdminClient();
   if (!supabase) return res.status(503).json({ success: false, error: 'Storage service is not configured on the server.' });
 
+  let authUserId = authenticatedUser?.sub;
+  if (!authenticatedAdmin && authUserId) {
+    // Security: Verify user status in DB
+    const { data: authUser, error: authErr } = await supabase.from('users').select('status, deleted_at').eq('id', authUserId).maybeSingle();
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Authentication failed. User account not found.' });
+    const statusStr = String(authUser.status || 'active').toLowerCase();
+    if (authUser.deleted_at || statusStr === 'deleted' || statusStr === 'suspended') {
+      return res.status(403).json({ success: false, error: 'Account is suspended or deleted.' });
+    }
+  }
+
   try {
     let body = req.body;
     if (typeof body === 'string') {

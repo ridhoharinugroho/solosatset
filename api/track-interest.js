@@ -29,12 +29,15 @@ export default async function handler(req, res) {
     if (!cleanCatId || cleanCatId === 'all') return res.status(400).json({ success: false, error: 'Missing categoryId' });
 
     const userId = String(session.sub).trim().slice(0, 128);
-    const { data: uData, error: uErr } = await supabase.from('users').select('id,interests').eq('id', userId).maybeSingle();
-    if (uErr) {
-      console.error('[Serverless Track Interest] users select error:', uErr.message);
-      return res.status(500).json({ success: false, error: 'Unable to load user interests.' });
+    const { data: uData, error: uErr } = await supabase.from('users').select('id,interests,status,deleted_at').eq('id', userId).maybeSingle();
+    if (uErr || !uData) {
+      console.error('[Serverless Track Interest] users select error:', uErr?.message);
+      return res.status(401).json({ success: false, error: 'Authentication failed. User account not found.' });
     }
-    if (!uData?.id) return res.status(401).json({ success: false, error: 'Authentication required.' });
+    const statusStr = String(uData.status || 'active').toLowerCase();
+    if (uData.deleted_at || statusStr === 'deleted' || statusStr === 'suspended') {
+      return res.status(403).json({ success: false, error: 'Account is suspended or deleted.' });
+    }
 
     let interests = Array.isArray(uData.interests) ? [...uData.interests] : [];
     interests = interests.filter((value) => String(value).toLowerCase().trim() !== cleanCatId);

@@ -72,6 +72,21 @@ async function handleUserNotificationAction(req, res, action) {
   if (!supabase) return res.status(503).json({ success: false, error: 'Notification service is not configured on the server.' });
   const userId = clean(session.sub, 128);
 
+  // Security: Verify user status in DB because session HMAC only proves authenticity, not active status
+  const { data: user, error: userError } = await supabase
+    .from('users')
+    .select('status, deleted_at')
+    .eq('id', userId)
+    .maybeSingle();
+    
+  if (userError || !user) {
+    return res.status(401).json({ success: false, error: 'Authentication failed. User account not found.' });
+  }
+  const statusStr = String(user.status || 'active').toLowerCase();
+  if (user.deleted_at || statusStr === 'deleted' || statusStr === 'suspended') {
+    return res.status(403).json({ success: false, error: 'Account is suspended or deleted.' });
+  }
+
   if (action === 'list_notifications') {
     const { data, error } = await supabase
       .from('notifications')

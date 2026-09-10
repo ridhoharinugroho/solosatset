@@ -21,10 +21,18 @@ export default async function handler(req, res) {
 
   try {
     const userId = clean(session.sub, 128);
+    
+    // Security: Verify user status in DB for all actions
+    const { data: authUser, error: authErr } = await supabase.from('users').select('status, deleted_at').eq('id', userId).maybeSingle();
+    if (authErr || !authUser) return res.status(401).json({ success: false, error: 'Authentication failed. User account not found.' });
+    const statusStr = String(authUser.status || 'active').toLowerCase();
+    if (authUser.deleted_at || statusStr === 'deleted' || statusStr === 'suspended') {
+      return res.status(403).json({ success: false, error: 'Account is suspended or deleted.' });
+    }
+
     if (req.method === 'GET') {
       const { data, error } = await supabase.from('users').select(publicFields()).eq('id', userId).maybeSingle();
       if (error) throw error;
-      if (!data || data.deleted_at || String(data.status || 'active').toLowerCase() === 'deleted') return res.status(401).json({ success: false, error: 'Authentication required.' });
       return res.status(200).json({ success: true, user: data });
     }
 

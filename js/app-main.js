@@ -1,5 +1,7 @@
 import { loadController } from './utils/controllerLoader.js';
 
-loadController('./app-main-core.js').catch((error) => {
+const controllerUrl = new URL('./app-main-core.js', import.meta.url).href;
+export const bootstrapPromise = loadController(controllerUrl).catch((error) => {
   console.error('[App bootstrap] Gagal memuat controller utama.', error);
+  throw error;
 });

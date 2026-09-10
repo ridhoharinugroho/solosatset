@@ -34,7 +34,26 @@ global.fetch = async (url) => ({
 let errors = [];
 
 async function runTests() {
-  console.log('[1/5] Testing App Main Controller imports and initial state...');
+  console.log('[1/5] Testing Entrypoints runtime resolution...');
+  try {
+    const appModule = await import('../js/app-main.js');
+    if (appModule.bootstrapPromise) await appModule.bootstrapPromise;
+    console.log('      app-main.js runtime resolution: OK');
+  } catch (err) {
+    console.error('      ❌ Error in app-main.js:', err);
+    errors.push(`app-main.js runtime: ${err.message}`);
+  }
+  
+  try {
+    const tokoModule = await import('../js/toko-saya-legacy.js');
+    if (tokoModule.bootstrapPromise) await tokoModule.bootstrapPromise;
+    console.log('      toko-saya-legacy.js runtime resolution: OK');
+  } catch (err) {
+    console.error('      ❌ Error in toko-saya-legacy.js:', err);
+    errors.push(`toko-saya-legacy.js runtime: ${err.message}`);
+  }
+
+  console.log('[1b/5] Testing App Main Controller imports and initial state...');
   try {
     const controller = await import('../js/app-main-controller.js');
     console.log('      Controller state verified:', typeof controller.state === 'object' ? 'OK' : 'FAIL');
