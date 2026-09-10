@@ -140,14 +140,8 @@ async function authenticate(username, password) {
   const hasSupabaseUrl = Boolean(supabaseUrl);
   const hasSupabaseServiceKey = Boolean(String(process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim());
   const supabase = getAdminClient();
-  console.info('[Admin Auth Diagnostic]', JSON.stringify({
-    source: supabase ? 'supabase' : 'env',
-    hasSupabaseUrl,
-    hasSupabaseServiceKey,
-    supabaseHost: supabaseUrl ? (() => { try { return new URL(supabaseUrl).hostname; } catch { return 'invalid-url'; } })() : null,
-    username: normalized,
-    passwordProvided: Boolean(password)
-  }));
+  // Internal-only: log source of authentication, never leak config details
+  const authSource = supabase ? 'supabase' : 'env';
 
   if (supabase) {
     const { data, error } = await supabase
@@ -162,15 +156,11 @@ async function authenticate(username, password) {
     }
 
     const user = data || null;
-    const checks = {
-      rowFound: Boolean(user),
-      active: user ? user.is_active === true : false,
-      roleAdmin: user ? String(user.role || '').toLowerCase() === 'admin' : false,
-      passwordMatch: user ? verifyPassword(password, user.password_hash) : false
-    };
-    console.info('[Admin Auth Diagnostic]', JSON.stringify(checks));
+    const isValid = Boolean(
+      user && user.is_active === true && String(user.role || '').toLowerCase() === 'admin' && verifyPassword(password, user.password_hash)
+    );
 
-    if (user && checks.active && checks.roleAdmin && checks.passwordMatch) {
+    if (user && isValid) {
       if (!isScryptHash(user.password_hash)) {
         const { error: upgradeError } = await supabase
           .from('admin_users')
@@ -190,13 +180,6 @@ async function authenticate(username, password) {
   const legacyHash = String(process.env.ADMIN_PASSWORD_HASH || '').trim();
   const legacyUsernameMatch = Boolean(legacyUsername && timingSafeEqualText(normalized, legacyUsername.toLowerCase()));
   const legacyPasswordMatch = Boolean(legacyHash && verifyPassword(password, legacyHash));
-  console.info('[Admin Auth Diagnostic]', JSON.stringify({
-    source: 'env',
-    legacyUsernameConfigured: Boolean(legacyUsername),
-    legacyHashConfigured: Boolean(legacyHash),
-    legacyUsernameMatch,
-    legacyPasswordMatch
-  }));
   if (legacyUsernameMatch && legacyPasswordMatch) {
     return { configured: true, user: { id: 'legacy-admin', username: legacyUsername, role: 'admin', is_active: true } };
   }

@@ -18,6 +18,20 @@ function getSecret() {
   return process.env.USER_SESSION_SECRET || '';
 }
 
+/**
+ * Returns true when the current environment requires Secure cookie flag.
+ * Defaults to true (secure) when req is not available or in production.
+ * Only skips Secure flag in explicit local HTTP development (non-production,
+ * no HTTPS headers, no encrypted socket).
+ */
+export function isSecureEnv(req) {
+  if (!req) return true;
+  if (process.env.NODE_ENV === 'production') return true;
+  if (req?.headers?.['x-forwarded-proto'] === 'https') return true;
+  if (req?.socket?.encrypted) return true;
+  return false;
+}
+
 export function signUserSession(user) {
   const secret = getSecret();
   if (!secret || !user?.id) return '';
@@ -49,10 +63,12 @@ export function getUserSessionFromRequest(req) {
   }
 }
 
-export function userSessionCookie(token) {
-  return `${USER_SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${USER_SESSION_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax; Secure`;
+export function userSessionCookie(token, req) {
+  const secureFlag = isSecureEnv(req) ? '; Secure' : '';
+  return `${USER_SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${USER_SESSION_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Lax${secureFlag}`;
 }
 
-export function clearUserSessionCookie() {
-  return `${USER_SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure`;
+export function clearUserSessionCookie(req) {
+  const secureFlag = isSecureEnv(req) ? '; Secure' : '';
+  return `${USER_SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax${secureFlag}`;
 }

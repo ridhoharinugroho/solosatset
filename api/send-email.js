@@ -63,8 +63,7 @@ async function getDynamicSmtpConfig() {
  * Public transactional email is restricted to known application flows.
  */
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept');
 
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -132,7 +131,7 @@ export default async function handler(req, res) {
       html: html || text
     });
 
-    console.log(`[SMTP EMAIL SUCCESS] Sent transactional email to: ${to}`);
+    console.log('[SMTP EMAIL SUCCESS] Transactional email dispatched successfully.');
 
     return res.status(200).json({
       success: true,

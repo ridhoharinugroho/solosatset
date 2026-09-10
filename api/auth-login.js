@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     if (needsLegacyMigration) { const upgradedHash = hashPassword(password); const { error: upgradeError } = await supabase.from('users').update({ password_hash: upgradedHash, password: null, updated_at: new Date().toISOString() }).eq('id', user.id); if (upgradeError) console.error('[Auth Migration]', upgradeError.message); }
     const sessionToken = signUserSession(user);
     if (!sessionToken) return res.status(503).json({ success: false, error: 'User session service is not configured on the server.' });
-    res.setHeader('Set-Cookie', userSessionCookie(sessionToken));
+    res.setHeader('Set-Cookie', userSessionCookie(sessionToken, req));
     return res.status(200).json({ success: true, user: publicUser(user) });
   } catch (error) { console.error('[Auth Login Error]', { name: error.name, message: error.message }); return res.status(500).json({ success: false, error: 'Internal Server Error' }); }
 }

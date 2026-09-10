@@ -63,7 +63,7 @@ export async function sbUpdateUser(idOrEmail, updates) {
 }
 
 // ============================================================
-// SITE SETTINGS - Pengaturan Tampilan Admin
+// INTEREST TRACKING - Minat Pengguna
 // ============================================================
 
 export async function updateUserInterest(userId, newCategory) {
@@ -125,24 +125,14 @@ export async function updateUserInterest(userId, newCategory) {
         .eq(queryField, userRow[queryField]);
 
       if (updErr) {
-        console.error('❌ [updateUserInterest] Gagal update kolom interests:', updErr.message);
-      } else {
-        console.log(`✅ [updateUserInterest] Sukses update interests user "${userRow.id}":`, currentInterests);
+        console.error('[updateUserInterest] Gagal update kolom interests:', updErr.message);
       }
     }
 
-    // 6. Sinkronkan juga ke currentUser di auth session jika user sedang login
-    if (typeof window !== 'undefined') {
-      try {
-        const storedUser = JSON.parse(localStorage.getItem('pusat_barkas_current_user') || 'null');
-        if (storedUser && (storedUser.id === userId || storedUser.email === userId || (userRow && storedUser.id === userRow.id))) {
-          storedUser.interests = currentInterests;
-          localStorage.setItem('pusat_barkas_current_user', JSON.stringify(storedUser));
-        }
-      } catch (e) {}
-    }
+    // Note: session user data (interests) is refreshed server-authoritatively
+    // via /api/track-interest. No direct localStorage write here.
   } catch (err) {
-    console.error('❌ [updateUserInterest Exception]', err);
+    console.error('[updateUserInterest Exception]', err);
   }
 }
 
@@ -181,16 +171,3 @@ export async function sbGetUserInterests(userId) {
     return [];
   }
 }
-
-// ============================================================
-// NOTIFICATIONS - Broadcast Tertarget Fitur BU Berdasarkan Array interests
-// ============================================================
-
-/**
- * Kirim notifikasi BU tertarget HANYA ke pengguna yang memiliki minat (category_id yang cocok)
- * di kolom array interests tabel users
- * @param {string} productId - ID produk BU
- * @param {string} categoryId - Kategori produk
- * @param {object} [productDetails] - Metadata produk (title, price, image, etc.)
- * @returns {Promise<{success: boolean, userCount: number, error?: string, message?: string}>}
- */

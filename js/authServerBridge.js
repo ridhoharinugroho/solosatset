@@ -168,13 +168,13 @@ function bind() {
 
       busy(button, true, 'Mengirim kode...');
       try {
-        const result = await postJson('/api/password-reset', { action: 'request', email });
+        const result = await postJson('/api/auth-otp', { action: 'request', purpose: 'password_reset', email });
         resetEmailInFlight = email;
         document.getElementById('forgot-step-reset')?.classList.remove('hidden');
         document.getElementById('forgot-input-email')?.setAttribute('readonly', 'readonly');
-        if (result.expiresAt) {
+        if (result.expiresInSeconds) {
           const expiry = document.getElementById('forgot-otp-expiry');
-          if (expiry) expiry.dataset.expiresAt = result.expiresAt;
+          if (expiry) expiry.dataset.expiresInSeconds = result.expiresInSeconds;
         }
       } catch (error) {
         show('forgot-error-alert', error.message || 'Gagal mengirim kode pemulihan.');
@@ -205,7 +205,10 @@ function bind() {
 
       busy(button, true, 'Menyimpan...');
       try {
-        await postJson('/api/password-reset', { action: 'reset', email, otpCode, newPassword });
+        // Step 1: verify OTP dan dapatkan verificationToken
+        const verifyResult = await postJson('/api/auth-otp', { action: 'verify', purpose: 'password_reset', email, code: otpCode });
+        // Step 2: gunakan verificationToken untuk reset password
+        await postJson('/api/auth-otp', { action: 'reset_password', purpose: 'password_reset', email, verificationToken: verifyResult.verificationToken, newPassword });
         resetEmailInFlight = '';
         form.reset();
         document.getElementById('forgot-input-email')?.removeAttribute('readonly');

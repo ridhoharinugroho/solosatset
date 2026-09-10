@@ -197,7 +197,6 @@ async function handleUserNotificationAction(req, res, action) {
     return res.status(200).json({
       success: true,
       userCount: targetUserIds.length,
-      targetUserIds,
       title,
       message,
       sentCount: push.sentCount,
