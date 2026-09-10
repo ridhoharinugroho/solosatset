@@ -1,7 +1,7 @@
 import { getRegionById } from '../../data/regions.js';
-import { SAMPLE_LISTINGS } from '../../data/categories.js';
-import { getCurrentUser, isUserLoggedIn, isDemoUser, isSellerVerified } from '../../services/auth.js';
-import { getPublicListings, isFavorite, toggleFavorite } from '../../services/storage.js';
+import { SAMPLE_LISTINGS } from '../../data/sampleListings.js';
+import { getCurrentUser, isUserLoggedIn, isDemoUser } from '../../services/auth.js';
+import { getPublicListings, isFavorite, toggleFavorite, isSellerVerified } from '../../services/storage.js';
 import { formatRupiah, generateWhatsAppUrl, timeAgo } from '../../services/whatsapp.js';
 import { refreshIcons } from '../../utils/runtime.js';
 import { showToast } from '../common/toast.js';

@@ -1,6 +1,6 @@
 // js/services/supabaseHelper.js
 // Generic async helper for Supabase CRUD operations used across the app.
-import { supabase } from '../../lib/supabase.js';
+import { supabase } from '../lib/supabase.js';
 
 function ensureClient(fnName) {
   if (!supabase) {

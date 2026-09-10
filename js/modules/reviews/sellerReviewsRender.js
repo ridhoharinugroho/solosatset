@@ -1,7 +1,6 @@
 import { getCurrentUser, isUserLoggedIn, getUserByReviewAuthor } from '../../services/auth.js';
 import { toggleHideSellerReview, deleteSellerReview, getSellerReviews, getSellerRatingStats } from '../../services/storage.js';
-import { formatRegionTitle, formatDistrictTitle } from '../../services/whatsapp.js';
-import { refreshIcons } from '../../utils/runtime.js';
+import { formatRegionTitle, formatDistrictTitle, refreshIcons } from '../../utils/runtime.js';
 import { showToast } from '../common/toast.js';
 import { openModal } from '../common/modalManager.js';
 import { openSellerProfileModal } from './sellerReviews.js';
