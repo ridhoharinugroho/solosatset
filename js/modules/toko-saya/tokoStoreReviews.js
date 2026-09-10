@@ -25,6 +25,8 @@ export function getStoreReviews(currentUser) {
   return getSellerReviews(sellerId);
 }
 
+export { renderStoreReviews as renderStoreReviewsModule };
+
 export function renderStoreReviews(currentUser) {
   if (!currentUser) return;
   const isAdmin = "true" === sessionStorage.getItem("pusat_barkas_admin_auth");

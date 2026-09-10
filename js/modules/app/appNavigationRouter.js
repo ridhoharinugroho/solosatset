@@ -11,7 +11,7 @@ import { syncUserNotifications } from '../notifications/notificationUI.js';
 import { initLiveActivityWidget } from '../../services/liveActivity.js';
 import { fetchAppReviewsFromSupabase } from '../../services/storage.js';
 import { refreshIcons } from '../../utils/runtime.js';
-import { handleProductClick } from './appAnalytics.js';
+import { handleProductClick } from '../listings/productDetailModal.js';
 
 export function handleUrlNavigation(state) {
   const params = new URLSearchParams(window.location.search);

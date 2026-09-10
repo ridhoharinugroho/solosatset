@@ -36,6 +36,18 @@ export {
 let formUploadedImages = [];
 let editingListingId = null;
 
+export function openEditListingModal(listingId) {
+  return openCreateListingModal(listingId);
+}
+
+export function updateCreateListingSellerInfo() {
+  const user = getCurrentUser();
+  const sellerNameEl = document.getElementById("form-seller-name-preview");
+  const sellerPhoneEl = document.getElementById("form-seller-phone-preview");
+  if (sellerNameEl && user) sellerNameEl.textContent = user.storeName || user.name || "Penjual";
+  if (sellerPhoneEl && user) sellerPhoneEl.textContent = user.phone || "";
+}
+
 export function openCreateListingModal(editListingId = null) {
   if (!isUserLoggedIn()) {
     if (typeof window.openUserAuthModal === 'function') {
@@ -295,6 +307,7 @@ export async function handleSaveListing() {
 
 if (typeof window !== 'undefined') {
   window.openCreateListingModal = openCreateListingModal;
+  window.openEditListingModal = openEditListingModal;
   window.selectFormCategory = selectFormCategory;
   window.selectFormCondition = selectFormCondition;
   window.selectFormNego = selectFormNego;

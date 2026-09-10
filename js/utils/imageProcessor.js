@@ -1,4 +1,4 @@
-import { showToast } from '../common/toast.js';
+import { showToast } from './modalRouter.js';
 
 export function processSquareImage(file) {
   return new Promise((resolve, reject) => {

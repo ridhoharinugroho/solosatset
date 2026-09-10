@@ -1,19 +1,19 @@
-import { initSplashScreen } from "./modules/app/appSplashScreen.js";
-import { handleUrlNavigation } from "./modules/app/appNavigationRouter.js";
-import { initGlobalEventListeners } from "./modules/app/appEventListeners.js";
-import { showHomeLoadingSkeleton, renderRegionPills, renderCategoryPills, initHeroBannerCarousel, applyCustomTexts, applySiteSettings } from "./modules/home/homeUI.js";
-import { renderListings, updateSortRadioUI } from "./modules/products/listingsController.js";
-import { fetchPublicListingsFromSupabase, initializeStorage, getSiteSettings, getCustomTexts, getCurrentUser } from "./services/storage.js";
-import { syncAllUsersToCloudOnStartup, fetchFreshCurrentUserFromSupabase, subscribeAuth } from "./services/auth.js";
-import { renderAuthNav } from "./modules/auth/authUI.js";
-import { renderAppReviews, initAppReviews } from "./modules/reviews/appReviews.js";
-import { updateCreateListingSellerInfo } from "./modules/listings/listingFormModal.js";
-import { populateFormRegions, populateFilterModalOptions, selectFilterRegion, selectFilterCategory, selectFilterCondition } from "./modules/filter/filterController.js";
-import { initProfileModule } from "./modules/profile/userProfile.js";
-import { initLiveVisualEditor } from "./modules/editor/liveVisualEditor.js";
-import { initBackHandler } from "./utils/modalRouter.js";
-import { initNotificationsCenter } from "./modules/notifications/notificationUI.js";
-import { refreshIcons, CURRENT_SW_VERSION } from "./utils/runtime.js";
+import { initSplashScreen } from "./appSplashScreen.js";
+import { handleUrlNavigation } from "./appNavigationRouter.js";
+import { initGlobalEventListeners } from "./appEventListeners.js";
+import { showHomeLoadingSkeleton, renderRegionPills, renderCategoryPills, initHeroBannerCarousel, applyCustomTexts, applySiteSettings } from "../home/homeUI.js";
+import { renderListings, updateSortRadioUI } from "../products/listingsController.js";
+import { fetchPublicListingsFromSupabase, initializeStorage, getSiteSettings, getCustomTexts, getCurrentUser } from "../../services/storage.js";
+import { syncAllUsersToCloudOnStartup, fetchFreshCurrentUserFromSupabase, subscribeAuth } from "../../services/auth.js";
+import { renderAuthNav } from "../auth/authUI.js";
+import { renderAppReviews, initAppReviews } from "../reviews/appReviews.js";
+import { updateCreateListingSellerInfo } from "../listings/listingFormModal.js";
+import { populateFormRegions, populateFilterModalOptions, selectFilterRegion, selectFilterCategory, selectFilterCondition } from "../filter/filterController.js";
+import { initProfileModule } from "../profile/userProfile.js";
+import { initLiveVisualEditor } from "../editor/liveVisualEditor.js";
+import { initBackHandler } from "../../utils/modalRouter.js";
+import { initNotificationsCenter } from "../notifications/notificationUI.js";
+import { refreshIcons, CURRENT_SW_VERSION } from "../../utils/runtime.js";
 
 let isAppStarted = false;
 

@@ -268,7 +268,7 @@ export function checkSellerVerification(sellerUserOrId) {
   };
 }
 
-export function isSellerVerified(sellerUserOrId) {
+export function checkSellerVerifiedStatus(sellerUserOrId) {
   const result = checkSellerVerification(sellerUserOrId);
   return result.isVerified;
 }

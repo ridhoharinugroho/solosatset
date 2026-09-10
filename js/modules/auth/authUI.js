@@ -156,6 +156,14 @@ export function openUserAuthModal(tab = "login", noticeMsg = null) {
   refreshIcons();
 }
 
+export function renderAuthNav() {
+  const user = typeof window.getCurrentUser === "function" ? window.getCurrentUser() : null;
+  const navProfileLabel = document.getElementById("nav-profile-label");
+  if (navProfileLabel) {
+    navProfileLabel.textContent = user ? "Profil" : "Masuk";
+  }
+}
+
 if (typeof window !== "undefined") {
   window.showRegisterError = showRegisterError;
   window.showForgotError = showForgotError;
@@ -164,4 +172,5 @@ if (typeof window !== "undefined") {
   window.populateRegisterDistricts = populateRegisterDistricts;
   window.switchAuthTab = switchAuthTab;
   window.openUserAuthModal = openUserAuthModal;
+  window.renderAuthNav = renderAuthNav;
 }

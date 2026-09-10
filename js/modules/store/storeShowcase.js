@@ -19,6 +19,8 @@ export function renderAuthHeader(currentUser) {
   }
 }
 
+export { renderAuthHeader as renderAuthHeaderModule, renderStoreShowcase as renderStoreShowcaseModule };
+
 export function renderStoreShowcase(currentUser) {
   if (!currentUser) return;
   const user = currentUser;

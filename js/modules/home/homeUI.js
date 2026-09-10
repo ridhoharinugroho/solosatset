@@ -223,13 +223,17 @@ export function initHeroBannerCarousel() {
     const slide = allSlides[slideIndex];
     const offsetLeft =
       slide.offsetLeft - carousel.clientWidth / 2 + slide.clientWidth / 2;
-    if (smooth) {
-      carousel.scrollTo({ left: offsetLeft, behavior: "smooth" });
+    if (typeof carousel.scrollTo === "function") {
+      if (smooth) {
+        carousel.scrollTo({ left: offsetLeft, behavior: "smooth" });
+      } else {
+        carousel.style.scrollBehavior = "auto";
+        carousel.scrollTo({ left: offsetLeft, behavior: "auto" });
+        carousel.offsetWidth;
+        carousel.style.scrollBehavior = "smooth";
+      }
     } else {
-      carousel.style.scrollBehavior = "auto";
-      carousel.scrollTo({ left: offsetLeft, behavior: "auto" });
-      carousel.offsetWidth;
-      carousel.style.scrollBehavior = "smooth";
+      carousel.scrollLeft = offsetLeft;
     }
     updateDots();
   }
@@ -250,8 +254,8 @@ export function initHeroBannerCarousel() {
     });
   }
 
-  scrollToSlide(1, false);
-  requestAnimationFrame(() => {
+  const rAF = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
+  rAF(() => {
     scrollToSlide(1, false);
     refreshIcons();
   });

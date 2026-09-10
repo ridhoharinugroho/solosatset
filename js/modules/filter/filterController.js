@@ -22,6 +22,7 @@ export {
 // ─── RE-EXPORT ACTIONS ────────────────────────────────────────────────────────
 export {
   populateFilterModalOptions,
+  populateFormRegions,
   openFilterModal,
   applyFilterModal,
   setRegionFilter,

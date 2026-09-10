@@ -5,6 +5,9 @@ import { getRegionById } from "../../data/regions.js";
 import { openModal, showToast } from "../../utils/modalRouter.js";
 import { openUserAuthModal } from "../auth/authUI.js";
 
+import { handleSaveProfileSettings, handleProfileLogout, handleDeleteProfileAvatar } from './profileActions.js';
+
+export { handleSaveProfileSettings, handleProfileLogout, handleDeleteProfileAvatar };
 export let isProfileEditMode = false;
 export let isProfileModuleInitialized = false;
 export let userProfileAvatarData = null;
@@ -432,6 +435,9 @@ if (typeof window !== "undefined") {
   window.setProfileEditMode = setProfileEditMode;
   window.enableProfileEditMode = enableProfileEditMode;
   window.cancelProfileEditMode = cancelProfileEditMode;
+  window.handleSaveProfileSettings = handleSaveProfileSettings;
+  window.handleDeleteProfileAvatar = handleDeleteProfileAvatar;
+  window.handleProfileLogout = handleProfileLogout;
   window.initProfileModule = initProfileModule;
   window.openUserProfileModal = openUserProfileModal;
   window.renderMyListings = renderMyListings;

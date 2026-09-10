@@ -1,6 +1,7 @@
 import { getRegionById } from "../../data/regions.js";
 import { CATEGORIES, CONDITIONS } from "../../data/categories.js";
-import { formatRupiah, refreshIcons } from "../../utils/runtime.js";
+import { refreshIcons } from "../../utils/runtime.js";
+import { formatRupiah } from "../../services/whatsapp.js";
 import { setRegionFilter, resetAllFilters } from "../filter/filterController.js";
 import { renderCategoryPills } from "../home/homeUI.js";
 

@@ -11,7 +11,7 @@ const SUPABASE_URL = 'https://rwjqqoulqdmtsweuvbef.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ3anFxb3VscWRtdHN3ZXV2YmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2NzY0MjYsImV4cCI6MjEwMzI1MjQyNn0.xof6x2BoNkNp2ssXIiPJ4Dr3m-l7rFP9MaZFCSxfvZY';
 const BLOCKED_USERS_MESSAGE = 'Direct browser access to the users table is disabled.';
 
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+import { createClient } from '@supabase/supabase-js';
 
 function validateConfig() {
   if (!SUPABASE_URL || SUPABASE_URL.includes('XXXX')) {

@@ -177,7 +177,12 @@ function startRealtimeStream(callbacks) {
   }
 
   try {
-    eventSource = new EventSource(`${PRIMARY_SYNC_URL}/sse`);
+    if (typeof EventSource !== 'undefined') {
+      eventSource = new EventSource(`${PRIMARY_SYNC_URL}/sse`);
+    } else {
+      console.warn('[CloudSync] EventSource not supported in this environment.');
+      return;
+    }
 
     eventSource.onopen = () => {
       isConnected = true;

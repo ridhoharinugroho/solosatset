@@ -363,3 +363,7 @@ export function populateFilterModalOptions() {
     console.warn("[ErrorBoundary: populateFilterModalOptions]", err);
   }
 }
+
+export function populateFormRegions() {
+  populateFilterModalOptions();
+}
