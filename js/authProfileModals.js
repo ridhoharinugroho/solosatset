@@ -107,18 +107,44 @@ export async function ensureAuthProfileModalsLoaded() {
     if (authProfileLoadPromise) return authProfileLoadPromise;
     authProfileLoadPromise = (async () => {
         try {
-            const response = await fetch('components/modals/auth-profile.html', { cache: 'no-cache' });
-            if (!response.ok) return false;
-            const html = await response.text();
-            if (!document.getElementById('modal-user-auth')) {
-                document.body.insertAdjacentHTML('beforeend', html);
-                if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
+            // Muat kedua file HTML secara paralel untuk efisiensi
+            const [authRes, profileRes] = await Promise.all([
+                fetch('components/modals/auth-user.html', { cache: 'no-cache' }),
+                fetch('components/modals/profile-settings.html', { cache: 'no-cache' })
+            ]);
+
+            if (!authRes.ok) {
+                // Fallback ke file monolitik lama jika file baru belum ada
+                const fallback = await fetch('components/modals/auth-profile.html', { cache: 'no-cache' });
+                if (!fallback.ok) return false;
+                const html = await fallback.text();
+                if (!document.getElementById('modal-user-auth')) {
+                    document.body.insertAdjacentHTML('beforeend', html);
+                    if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
+                }
+                installRegistrationDistrictHandler();
+                window.dispatchEvent(new CustomEvent('auth-profile-modals:ready'));
+                return true;
             }
+
+            const [authHtml, profileHtml] = await Promise.all([
+                authRes.text(),
+                profileRes.ok ? profileRes.text() : Promise.resolve('')
+            ]);
+
+            if (!document.getElementById('modal-user-auth')) {
+                document.body.insertAdjacentHTML('beforeend', authHtml);
+            }
+            if (profileHtml && !document.getElementById('modal-user-profile')) {
+                document.body.insertAdjacentHTML('beforeend', profileHtml);
+            }
+
+            if (typeof window.lucide !== 'undefined' && typeof window.lucide.createIcons === 'function') { try { window.lucide.createIcons(); } catch (e) {} }
             installRegistrationDistrictHandler();
             window.dispatchEvent(new CustomEvent('auth-profile-modals:ready'));
             return true;
         } catch (err) {
-            console.error('[AUTH PROFILE MODALS] Error loading auth & profile modals partial:', err);
+            console.error('[AUTH PROFILE MODALS] Error loading modals:', err);
             return false;
         } finally { authProfileLoadPromise = null; }
     })();
