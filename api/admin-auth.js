@@ -204,19 +204,25 @@ async function authenticate(username, password) {
   return { configured: Boolean(supabase), user: null };
 }
 
+function isSecureRequest(req) {
+  return process.env.NODE_ENV === 'production' || req?.headers?.['x-forwarded-proto'] === 'https' || Boolean(req?.socket?.encrypted);
+}
+
 export default async function handler(req, res) {
   const method = String(req.method || 'GET').toUpperCase();
   const action = String(req.query?.action || (method === 'POST' ? 'login' : 'session')).toLowerCase();
   if (!['GET', 'POST'].includes(method)) return json(res, 405, { ok: false, error: 'Method not allowed.' }, { Allow: 'GET, POST' });
   if (!process.env.ADMIN_SESSION_SECRET) return json(res, 503, { ok: false, error: 'Admin session service is not configured on the server.' });
 
+  const secureFlag = isSecureRequest(req) ? '; Secure' : '';
+
   if (action === 'session' && method === 'GET') {
     const session = getAdminSessionFromRequest(req);
-    if (!session) return json(res, 401, { ok: false, authenticated: false });
+    if (!session) return json(res, 200, { ok: true, authenticated: false });
     return json(res, 200, { ok: true, authenticated: true, user: { id: session.sub, username: session.username, role: session.role, exp: session.exp } });
   }
   if (action === 'logout' && method === 'POST') {
-    return json(res, 200, { ok: true }, { 'Set-Cookie': `${SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict; Secure` });
+    return json(res, 200, { ok: true }, { 'Set-Cookie': `${SESSION_COOKIE}=; Max-Age=0; Path=/; HttpOnly; SameSite=Strict${secureFlag}` });
   }
   if (action !== 'login' || method !== 'POST') return json(res, 400, { ok: false, error: 'Unsupported admin authentication action.' });
 
@@ -243,5 +249,5 @@ export default async function handler(req, res) {
   clearRate(ip);
   const now = Math.floor(Date.now() / 1000);
   const token = signPayload({ sub: auth.user.id, role: 'admin', username: auth.user.username, iat: now, exp: now + SESSION_TTL_SECONDS, nonce: crypto.randomBytes(12).toString('hex') });
-  return json(res, 200, { ok: true, authenticated: true, user: { id: auth.user.id, username: auth.user.username, role: 'admin' } }, { 'Set-Cookie': `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${SESSION_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Strict; Secure` });
+  return json(res, 200, { ok: true, authenticated: true, user: { id: auth.user.id, username: auth.user.username, role: 'admin' } }, { 'Set-Cookie': `${SESSION_COOKIE}=${encodeURIComponent(token)}; Max-Age=${SESSION_TTL_SECONDS}; Path=/; HttpOnly; SameSite=Strict${secureFlag}` });
 }

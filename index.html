@@ -535,19 +535,21 @@
         </div>
       </div>
 
-      <div id="empty-state" class="hidden py-16 px-4 text-center max-w-md mx-auto space-y-3">
-        <div class="w-16 h-16 bg-rose-50 text-rose-900 rounded-full flex items-center justify-center mx-auto">
-          <i data-lucide="package-search" class="w-8 h-8"></i>
+      <div id="empty-state" class="hidden w-full py-8 sm:py-12">
+        <div class="flex flex-col items-center justify-center px-4 text-center max-w-md mx-auto">
+          <div class="w-16 h-16 bg-rose-50 text-rose-900 rounded-full flex items-center justify-center mx-auto mb-3">
+            <i data-lucide="package-search" class="w-8 h-8"></i>
+          </div>
+          <h3 data-text-key="empty_title" class="text-base font-bold text-slate-800 mb-1.5">Tidak ada barang ditemukan</h3>
+          <p data-text-key="empty_desc" class="text-xs text-slate-500 leading-relaxed mb-4">
+            Coba ganti kata kunci pencarian, ubah pilihan wilayah Solo Raya, atau atur ulang filter Anda.
+          </p>
+          <button id="btn-reset-filters-empty"
+            class="inline-flex items-center gap-1.5 bg-rose-900 text-white text-xs font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:bg-rose-800 transition-all cursor-pointer">
+            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+            <span data-text-key="btn_reset_filter">Hapus Semua</span>
+          </button>
         </div>
-        <h3 data-text-key="empty_title" class="text-base font-bold text-slate-800">Tidak ada barang ditemukan</h3>
-        <p data-text-key="empty_desc" class="text-xs text-slate-500 leading-relaxed">
-          Coba ganti kata kunci pencarian, ubah pilihan wilayah Solo Raya, atau atur ulang filter Anda.
-        </p>
-        <button id="btn-reset-filters-empty"
-          class="inline-flex items-center gap-1.5 bg-rose-900 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-sm hover:bg-rose-800">
-          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
-          <span data-text-key="btn_reset_filter">Reset Semua Filter</span>
-        </button>
       </div>
     </section>
 

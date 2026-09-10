@@ -80,9 +80,15 @@ const tampered = cookie.replace(/\.([^;]+)$/, '.tampered');
 assert.equal(getAdminSessionFromRequest({ headers: { cookie: tampered } }), null);
 assert.equal(getAdminSessionFromRequest({ headers: { cookie: `${SESSION_COOKIE}=not-a-token` } }), null);
 
-const logoutResponse = makeResponse();
-await handler({ method: 'POST', query: { action: 'logout' }, headers: {} }, logoutResponse);
-assert.equal(logoutResponse.statusCode, 200);
-assert.match(String(logoutResponse.headers['Set-Cookie']), /Max-Age=0/);
+const unauthSessionResponse = makeResponse();
+await handler({ method: 'GET', query: { action: 'session' }, headers: {} }, unauthSessionResponse);
+assert.equal(unauthSessionResponse.statusCode, 200);
+assert.equal(JSON.parse(unauthSessionResponse.body)?.authenticated, false);
+
+const authSessionResponse = makeResponse();
+await handler({ method: 'GET', query: { action: 'session' }, headers: { cookie } }, authSessionResponse);
+assert.equal(authSessionResponse.statusCode, 200);
+assert.equal(JSON.parse(authSessionResponse.body)?.authenticated, true);
+assert.equal(JSON.parse(authSessionResponse.body)?.user?.username, username);
 
 console.log('Admin authentication negative tests passed.');

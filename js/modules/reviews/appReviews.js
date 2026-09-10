@@ -1,10 +1,47 @@
 import { getCurrentUser, getUserByReviewAuthor } from '../../services/auth.js';
-import { getAppReviews, getAppRatingStats, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview } from '../../services/storage.js';
+import { getAppReviews, getAppRatingStats, addAppReview, updateAppReview, deleteAppReview, toggleHideAppReview, fetchAppReviewsFromSupabase } from '../../services/storage.js';
 import { formatRegionTitle, formatDistrictTitle, refreshIcons } from '../../utils/runtime.js';
 import { timeAgo } from '../../services/whatsapp.js';
 import { showToast } from '../common/toast.js';
 import { openModal, closeModal } from '../common/modalManager.js';
 import { openSellerProfileModal } from './sellerReviews.js';
+import { ensureAppReviewsModalLoaded } from '../../appReviewsModal.js';
+
+export async function openAppReviewsModal() {
+  if (!document.getElementById("modal-app-reviews")) {
+    await ensureAppReviewsModalLoaded();
+  }
+  if (!document.getElementById("modal-app-reviews")) return;
+
+  const currentUser = getCurrentUser();
+  const authReqBox = document.getElementById("app-review-auth-required");
+  const reviewForm = document.getElementById("form-submit-app-review");
+  const userNameEl = document.getElementById("app-review-user-name");
+  const userAvatarEl = document.getElementById("app-review-user-avatar");
+
+  if (currentUser) {
+    authReqBox?.classList.add("hidden");
+    reviewForm?.classList.remove("hidden");
+    const firstName = (currentUser.name || currentUser.storeName || currentUser.store_name || "Pengguna").trim().split(/\s+/)[0] || "Pengguna";
+    const rawDistrict = currentUser.district || currentUser.region || "Solo";
+    const displayReviewerName = `${firstName} ${formatDistrictTitle(rawDistrict) || formatRegionTitle(rawDistrict) || "Solo"}`.trim();
+    if (userNameEl) userNameEl.textContent = displayReviewerName;
+    if (userAvatarEl) {
+      userAvatarEl.src = currentUser.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(currentUser.email || currentUser.id || firstName)}`;
+    }
+  } else {
+    authReqBox?.classList.remove("hidden");
+    reviewForm?.classList.add("hidden");
+  }
+
+  setAppReviewRating(5);
+  renderAppReviews();
+  fetchAppReviewsFromSupabase().then(() => {
+    renderAppReviews();
+  }).catch(() => {});
+  openModal("modal-app-reviews");
+  refreshIcons();
+}
 
 export const APP_REVIEW_CATEGORY_META = {
   'Pengalaman Pengguna': { name: 'Pengalaman Pengguna (UX / UI)', icon: 'sparkles' },
