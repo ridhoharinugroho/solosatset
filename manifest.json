@@ -17,7 +17,7 @@
   ],
   "screenshots": [
     {
-      "src": "assets/img/app-splash.png",
+      "src": "/assets/img/app-splash.png",
       "sizes": "1024x1024",
       "type": "image/png",
       "form_factor": "wide"

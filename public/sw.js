@@ -11,7 +11,7 @@ const PRECACHE_ASSETS = [
   "./admin.html",
   "./css/styles.css",
   "/assets/img/app-logo.png",
-  "./assets/img/app-splash.png",
+  "/assets/img/app-splash.png",
   "./manifest.json",
   "./favicon.ico",
   "./favicon.png",

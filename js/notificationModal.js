@@ -22,7 +22,7 @@ export function ensureNotificationsModalLoaded() {
 
   loadPromise = (async () => {
     try {
-      const response = await fetch("components/modals/notifications.html");
+      const response = await fetch("/components/modals/notifications.html");
       if (!response.ok) {
         console.error("[Notifications] Error loading modal partial: HTTP", response.status);
         return false;

@@ -9,7 +9,7 @@ export async function ensureTraktirModalLoaded() {
     return true;
   }
   try {
-    const response = await fetch("components/modals/traktir-kopi.html");
+    const response = await fetch("/components/modals/traktir-kopi.html");
     if (!response.ok) return false;
     const html = await response.text();
     if (!document.getElementById("modal-traktir-kopi")) {

@@ -9,7 +9,7 @@ export async function ensureFilterModalsLoaded() {
     return true;
   }
   try {
-    const response = await fetch("components/modals/filters.html");
+    const response = await fetch("/components/modals/filters.html");
     if (!response.ok) return false;
     const html = await response.text();
     if (!document.getElementById("modal-filter")) {

@@ -58,13 +58,13 @@ export async function ensureAuthProfileModalsLoaded() {
     try {
       // Muat kedua file HTML secara paralel untuk efisiensi
       const [authRes, profileRes] = await Promise.all([
-        fetch("components/modals/auth-user.html", { cache: "no-cache" }),
-        fetch("components/modals/profile-settings.html", { cache: "no-cache" }),
+        fetch("/components/modals/auth-user.html", { cache: "no-cache" }),
+        fetch("/components/modals/profile-settings.html", { cache: "no-cache" }),
       ]);
 
       if (!authRes.ok) {
         // Fallback ke file monolitik lama jika file baru belum ada
-        const fallback = await fetch("components/modals/auth-profile.html", { cache: "no-cache" });
+        const fallback = await fetch("/components/modals/auth-profile.html", { cache: "no-cache" });
         if (!fallback.ok) return false;
         const html = await fallback.text();
         if (!document.getElementById("modal-user-auth")) {

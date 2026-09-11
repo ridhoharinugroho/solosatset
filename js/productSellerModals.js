@@ -10,7 +10,7 @@ export async function ensureProductSellerModalsLoaded() {
     return true;
   }
   try {
-    const response = await fetch("components/modals/product-seller.html");
+    const response = await fetch("/components/modals/product-seller.html");
     if (!response.ok) return false;
     const html = await response.text();
     if (!document.getElementById("modal-product-detail")) {

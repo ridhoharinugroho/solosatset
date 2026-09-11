@@ -113,7 +113,7 @@ export async function initializeStorage() {
 
     try {
       const cb = Date.now();
-      fetch(`db/site_settings.json?_cb=${cb}`, {
+      fetch(`/db/site_settings.json?_cb=${cb}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache, no-store, must-revalidate", Pragma: "no-cache" },
       })
@@ -126,7 +126,7 @@ export async function initializeStorage() {
         })
         .catch(() => {});
 
-      fetch(`db/custom_texts.json?_cb=${cb}`, {
+      fetch(`/db/custom_texts.json?_cb=${cb}`, {
         cache: "no-store",
         headers: { "Cache-Control": "no-cache, no-store, must-revalidate", Pragma: "no-cache" },
       })
