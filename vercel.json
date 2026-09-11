@@ -1,8 +1,8 @@
 {
   "framework": null,
   "cleanUrls": true,
-  "buildCommand": null,
-  "outputDirectory": ".",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "headers": [
     {
       "source": "/api/(.*)",
