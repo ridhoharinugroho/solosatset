@@ -3,11 +3,13 @@
 
 const controllerCache = new Map();
 
-// Static glob for Vite bundler to analyze and bundle all controllers
-const controllerModules =
-  typeof import.meta !== "undefined" && import.meta.glob
-    ? import.meta.glob("../**/*.js")
-    : null;
+let globMap = null;
+try {
+  globMap = import.meta.glob("../**/*.js");
+} catch {
+  // Ignored in non-Vite environments (e.g., Node.js test runner)
+}
+const controllerModules = globMap;
 
 /**
  * Normalizes any module path string into relative glob key starting with "../"
