@@ -30,6 +30,10 @@ function getGlobKey(modulePath) {
     clean = clean.slice(1);
   }
 
+  if (clean.startsWith("/")) {
+    clean = clean.slice(1);
+  }
+
   return `../${clean}`;
 }
 
@@ -45,7 +49,7 @@ export function resolveModulePath(modulePath) {
     return modulePath;
   }
 
-  // If already absolute URL or root path, keep as-is
+  // If already absolute URL or root path or protocol URL, keep as-is
   if (
     modulePath.startsWith("/") ||
     modulePath.startsWith("http://") ||
@@ -60,12 +64,19 @@ export function resolveModulePath(modulePath) {
   // Strip leading './' if present
   const cleanPath = modulePath.startsWith("./") ? modulePath.slice(2) : modulePath;
 
-  // Resolve relative to /js/ base directory (one level up from /js/utils/)
-  try {
-    return new URL(`../${cleanPath}`, import.meta.url).href;
-  } catch {
-    return `/js/${cleanPath}`;
+  // In Node.js / test runner environment, construct file URL without new URL(..., import.meta.url) AST pattern
+  if (typeof import.meta !== "undefined" && import.meta.url && import.meta.url.startsWith("file:")) {
+    try {
+      const parentDir = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
+      const jsDir = parentDir.substring(0, parentDir.lastIndexOf("/"));
+      return `${jsDir}/${cleanPath}`;
+    } catch {
+      // ignore
+    }
   }
+
+  // Relative to /js/ base directory (one level up from /js/utils/)
+  return `../${cleanPath}`;
 }
 
 /**
@@ -102,4 +113,6 @@ export function loadController(modulePath) {
 export function clearControllerCache() {
   controllerCache.clear();
 }
+
+
 
