@@ -5,7 +5,7 @@ const controllerCache = new Map();
 
 // Define static glob for Vite bundler to analyze and include controller modules in build
 const viteControllerModules =
-  typeof import.meta !== "undefined" && typeof import.meta.glob === "function"
+  typeof import.meta.glob !== "undefined"
     ? import.meta.glob("../**/*.js")
     : null;
 
