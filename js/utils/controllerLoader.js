@@ -3,13 +3,17 @@
 
 const controllerCache = new Map();
 
-// Define static glob for Vite bundler to analyze and include controller modules in build
-const viteControllerModules =
-  typeof import.meta.glob !== "undefined"
+// Static glob for Vite bundler to analyze and bundle all controllers
+const controllerModules =
+  typeof import.meta !== "undefined" && import.meta.glob
     ? import.meta.glob("../**/*.js")
     : null;
 
-function getGlobKey(modulePath) {
+/**
+ * Normalizes any module path string into relative glob key starting with "../"
+ * relative to /js/utils/controllerLoader.js
+ */
+export function getGlobKey(modulePath) {
   if (!modulePath || typeof modulePath !== "string") return null;
 
   let clean = modulePath;
@@ -38,18 +42,13 @@ function getGlobKey(modulePath) {
 }
 
 /**
- * Resolves controller module path relative to /js/ base directory.
- * Prevents 404 errors caused by relative paths resolving to /js/utils/.
- *
- * @param {string} modulePath - Relative or absolute path to controller
- * @returns {string} Fully resolved absolute or root-relative URL
+ * Resolves controller module path relative to /js/ base directory for Node.js environments.
  */
 export function resolveModulePath(modulePath) {
   if (!modulePath || typeof modulePath !== "string") {
     return modulePath;
   }
 
-  // If already absolute URL or root path or protocol URL, keep as-is
   if (
     modulePath.startsWith("/") ||
     modulePath.startsWith("http://") ||
@@ -61,10 +60,8 @@ export function resolveModulePath(modulePath) {
     return modulePath;
   }
 
-  // Strip leading './' if present
   const cleanPath = modulePath.startsWith("./") ? modulePath.slice(2) : modulePath;
 
-  // In Node.js / test runner environment, construct file URL without new URL(..., import.meta.url) AST pattern
   if (typeof import.meta !== "undefined" && import.meta.url && import.meta.url.startsWith("file:")) {
     try {
       const parentDir = import.meta.url.substring(0, import.meta.url.lastIndexOf("/"));
@@ -75,44 +72,49 @@ export function resolveModulePath(modulePath) {
     }
   }
 
-  // Relative to /js/ base directory (one level up from /js/utils/)
   return `../${cleanPath}`;
 }
 
 /**
  * Loads controller dynamically with caching to prevent duplicate imports.
- *
- * @param {string} modulePath - Path to controller module
- * @returns {Promise<any>} Import promise for the requested controller
  */
 export function loadController(modulePath) {
-  const resolvedPath = resolveModulePath(modulePath);
+  const globKey = getGlobKey(modulePath);
 
+  // 1. Primary Vite production/dev pathway via import.meta.glob
+  if (controllerModules && globKey && controllerModules[globKey]) {
+    if (controllerCache.has(globKey)) {
+      return controllerCache.get(globKey);
+    }
+
+    const loadPromise = controllerModules[globKey]().catch((error) => {
+      controllerCache.delete(globKey);
+      throw error;
+    });
+
+    controllerCache.set(globKey, loadPromise);
+    return loadPromise;
+  }
+
+  // 2. Fallback pathway for Node.js test runner only
+  const resolvedPath = resolveModulePath(modulePath);
   if (controllerCache.has(resolvedPath)) {
     return controllerCache.get(resolvedPath);
   }
 
-  let loadPromise;
-  const globKey = getGlobKey(modulePath);
-
-  if (viteControllerModules && globKey && viteControllerModules[globKey]) {
-    loadPromise = viteControllerModules[globKey]();
-  } else {
-    loadPromise = import(/* @vite-ignore */ resolvedPath);
-  }
-
-  const cachedPromise = loadPromise.catch((error) => {
+  const loadPromise = import(/* @vite-ignore */ resolvedPath).catch((error) => {
     controllerCache.delete(resolvedPath);
     throw error;
   });
 
-  controllerCache.set(resolvedPath, cachedPromise);
-  return cachedPromise;
+  controllerCache.set(resolvedPath, loadPromise);
+  return loadPromise;
 }
 
 export function clearControllerCache() {
   controllerCache.clear();
 }
+
 
 
 
