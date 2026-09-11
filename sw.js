@@ -10,7 +10,7 @@ const PRECACHE_ASSETS = [
   "./toko-saya.html",
   "./admin.html",
   "./css/styles.css",
-  "./assets/img/app-logo.png",
+  "/assets/img/app-logo.png",
   "./assets/img/app-splash.png",
   "./manifest.json",
   "./favicon.ico",
@@ -139,9 +139,9 @@ self.addEventListener("push", (event) => {
   let data = {
     title: "📢 Pusat Jual Beli Solo Raya",
     body: "Ada info barang seken dan pembaruan sistem terbaru!",
-    icon: "./assets/img/app-logo.png?v=2.1",
+    icon: "/assets/img/app-logo.png?v=2.1",
     image: null,
-    badge: "./assets/img/app-logo.png?v=2.1",
+    badge: "/assets/img/app-logo.png?v=2.1",
     url: "./",
     tag: "solosatset-notification",
   };
@@ -157,9 +157,9 @@ self.addEventListener("push", (event) => {
   const isBu = data.tag && data.tag.includes("bu-");
   const options = {
     body: data.body || data.message,
-    icon: data.icon || "./assets/img/app-logo.png?v=2.1",
+    icon: data.icon || "/assets/img/app-logo.png?v=2.1",
     image: data.image || null,
-    badge: data.badge || "./assets/img/app-logo.png?v=2.1",
+    badge: data.badge || "/assets/img/app-logo.png?v=2.1",
     tag: data.tag || "solosatset-notification",
     renotify: true,
     requireInteraction: true,

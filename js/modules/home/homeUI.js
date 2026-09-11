@@ -435,7 +435,7 @@ export function applySiteSettings(settings) {
 
   const logoContainer = document.getElementById("brand-logo-icon-container");
   if (logoContainer) {
-    let finalImgUrl = "assets/img/app-logo.png?v=2.1";
+    let finalImgUrl = "/assets/img/app-logo.png?v=2.1";
     if (settings && settings.logoImageUrl && settings.logoImageUrl.trim() !== "") {
       const rawUrl = settings.logoImageUrl.trim();
       if (rawUrl.startsWith("data:")) finalImgUrl = rawUrl;
@@ -445,7 +445,7 @@ export function applySiteSettings(settings) {
     }
     logoContainer.className =
       "w-9 h-9 sm:w-10 sm:h-10 rounded-xl overflow-hidden flex items-center justify-center flex-shrink-0 cursor-pointer shadow-sm hover:scale-105 transition-transform bg-[#58111a] border border-white/20";
-    logoContainer.innerHTML = `<img src="${finalImgUrl}" alt="Logo solosatset" class="w-full h-full object-contain pointer-events-none rounded-xl" onerror="this.src='assets/img/app-logo.png?v=2.1'">`;
+    logoContainer.innerHTML = `<img src="${finalImgUrl}" alt="Logo solosatset" class="w-full h-full object-contain pointer-events-none rounded-xl" onerror="this.src='/assets/img/app-logo.png?v=2.1'">`;
   }
 }
 

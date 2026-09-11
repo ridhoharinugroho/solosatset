@@ -3,6 +3,36 @@
 
 const controllerCache = new Map();
 
+// Define static glob for Vite bundler to analyze and include controller modules in build
+const viteControllerModules =
+  typeof import.meta !== "undefined" && typeof import.meta.glob === "function"
+    ? import.meta.glob("../**/*.js")
+    : null;
+
+function getGlobKey(modulePath) {
+  if (!modulePath || typeof modulePath !== "string") return null;
+
+  let clean = modulePath;
+  if (clean.includes("://")) {
+    try {
+      clean = new URL(clean).pathname;
+    } catch {
+      // ignore
+    }
+  }
+
+  const jsIndex = clean.lastIndexOf("/js/");
+  if (jsIndex !== -1) {
+    clean = clean.slice(jsIndex + 4);
+  } else if (clean.startsWith("./")) {
+    clean = clean.slice(2);
+  } else if (clean.startsWith("/")) {
+    clean = clean.slice(1);
+  }
+
+  return `../${clean}`;
+}
+
 /**
  * Resolves controller module path relative to /js/ base directory.
  * Prevents 404 errors caused by relative paths resolving to /js/utils/.
@@ -51,15 +81,25 @@ export function loadController(modulePath) {
     return controllerCache.get(resolvedPath);
   }
 
-  const loadPromise = import(/* @vite-ignore */ resolvedPath).catch((error) => {
+  let loadPromise;
+  const globKey = getGlobKey(modulePath);
+
+  if (viteControllerModules && globKey && viteControllerModules[globKey]) {
+    loadPromise = viteControllerModules[globKey]();
+  } else {
+    loadPromise = import(/* @vite-ignore */ resolvedPath);
+  }
+
+  const cachedPromise = loadPromise.catch((error) => {
     controllerCache.delete(resolvedPath);
     throw error;
   });
 
-  controllerCache.set(resolvedPath, loadPromise);
-  return loadPromise;
+  controllerCache.set(resolvedPath, cachedPromise);
+  return cachedPromise;
 }
 
 export function clearControllerCache() {
   controllerCache.clear();
 }
+
