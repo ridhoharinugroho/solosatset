@@ -71,14 +71,7 @@ export function startApp(state) {
     initializeStorage();
     renderRegionPills();
     renderListings();
-    fetchPublicListingsFromSupabase()
-      .then(() => {
-        renderRegionPills();
-        renderListings();
-      })
-      .catch(() => {
-        renderListings();
-      });
+    fetchPublicListingsFromSupabase().catch(() => {});
   } catch (e) {
     console.warn("[Storage init]", e);
   }
@@ -233,6 +226,33 @@ export function startApp(state) {
 
 export function initServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
+
+  const isLocalhost = Boolean(
+    window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "[::1]" ||
+      window.location.hostname.endsWith(".local"),
+  );
+
+  if (isLocalhost) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().catch(() => {});
+        }
+      })
+      .catch(() => {});
+    if ("caches" in window) {
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .catch(() => {});
+    }
+    console.log("[SW Bootstrap] Service Worker disabled on localhost to prevent dev cache collisions.");
+    return;
+  }
+
   const storedVersion = window.__solosatset_sw_version || null;
   if (storedVersion !== CURRENT_SW_VERSION && "caches" in window) {
     caches

@@ -37,7 +37,13 @@ window.handleFilterTabClick = (tabEl, filterVal) => handleFilterTabClick(tabEl, 
 window.filterStoreListings = window.handleFilterTabClick;
 window.handleProfileNavClick = (e) => {
   if (e && e.preventDefault) e.preventDefault();
-  openUserProfileModal();
+  if (getCurrentUser()) {
+    openUserProfileModal();
+  } else {
+    import("./modules/auth/authUI.js").then((m) => {
+      m.openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk melihat profil Anda.");
+    }).catch(() => openUserProfileModal());
+  }
 };
 window.openModal = openModal;
 window.closeModal = closeModal;

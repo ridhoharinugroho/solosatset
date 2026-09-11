@@ -90,10 +90,13 @@ export async function initializeStorage() {
     window.__siteSettings = { ...DEFAULT_SITE_SETTINGS };
 
     try {
-      const { data: textsData } = await supabase.from("custom_texts").select("*").limit(1);
-      const firstText = textsData && textsData.length > 0 ? textsData[0] : null;
-      window.__customTexts = firstText ? { ...DEFAULT_CUSTOM_TEXTS, ...firstText } : { ...DEFAULT_CUSTOM_TEXTS };
-  // eslint-disable-next-line no-unused-vars
+      const { data: textsData, error: textsErr } = await supabase.from("custom_texts").select("*").limit(1);
+      if (textsErr) {
+        window.__customTexts = { ...DEFAULT_CUSTOM_TEXTS };
+      } else {
+        const firstText = textsData && textsData.length > 0 ? textsData[0] : null;
+        window.__customTexts = firstText ? { ...DEFAULT_CUSTOM_TEXTS, ...firstText } : { ...DEFAULT_CUSTOM_TEXTS };
+      }
     } catch (tErr) {
       window.__customTexts = { ...DEFAULT_CUSTOM_TEXTS };
     }
@@ -261,8 +264,16 @@ export function processAndBroadcastSupabaseListings(cloudData) {
     });
 
   const finalData = cleanCloud.length > 0 ? cleanCloud : [...SAMPLE_LISTINGS];
+  const isDataChanged =
+    !inMemoryListings ||
+    inMemoryListings.length !== finalData.length ||
+    JSON.stringify(inMemoryListings.map((i) => `${i.id}:${i.price}:${i.status}`)) !==
+      JSON.stringify(finalData.map((i) => `${i.id}:${i.price}:${i.status}`));
+
   inMemoryListings = finalData;
-  window.dispatchEvent(new CustomEvent("listingsChanged", { detail: finalData }));
+  if (isDataChanged) {
+    window.dispatchEvent(new CustomEvent("listingsChanged", { detail: finalData }));
+  }
   return finalData;
 }
 

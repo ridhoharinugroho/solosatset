@@ -10,17 +10,23 @@
   "icons": [
     {
       "src": "/assets/img/app-logo.png?v=2.1",
-      "sizes": "192x192 512x512 800x800",
+      "sizes": "192x192 512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/img/app-splash.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "screenshots": [
     {
       "src": "/assets/img/app-splash.png",
-      "sizes": "1024x1024",
+      "sizes": "512x512",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "narrow"
     }
   ]
 }

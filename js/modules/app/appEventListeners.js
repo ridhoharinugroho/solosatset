@@ -2,12 +2,30 @@ import { renderListings, updateSortRadioUI } from "../products/listingsControlle
 import { openModal, closeModal } from "../../utils/modalRouter.js";
 import { openCreateListingModal } from "../listings/listingFormModal.js";
 import { openUserProfileModal } from "../profile/userProfile.js";
+import { openAppReviewsModal } from "../reviews/appReviews.js";
+import { openUserAuthModal } from "../auth/authUI.js";
+import { isUserLoggedIn, getCurrentUser } from "../../services/auth.js";
+import { ensureTraktirModalLoaded, initTraktirModal } from "../../traktirModal.js";
 import {
   selectFormCategory,
   selectFormCondition,
   selectFormNego,
   selectFormPaymentMethod,
 } from "../listings/listingFormPickers.js";
+
+export function handleProfileNavClick(e) {
+  if (e && typeof e.preventDefault === "function") {
+    e.preventDefault();
+  }
+  if (isUserLoggedIn() || getCurrentUser()) {
+    openUserProfileModal();
+  } else {
+    openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk melihat profil Anda.");
+  }
+}
+if (typeof window !== "undefined") {
+  window.handleProfileNavClick = handleProfileNavClick;
+}
 
 export function initGlobalEventListeners(state) {
   const desktopSearch = document.getElementById("desktop-search-input");
@@ -269,4 +287,59 @@ export function initGlobalEventListeners(state) {
       }
     });
   });
+
+  // Global Event Delegation for Bottom Navigation Dock Buttons
+  document.addEventListener("click", (e) => {
+    const target = e.target;
+    if (!target || typeof target.closest !== "function") return;
+
+    const profileBtn = target.closest("#nav-btn-profile");
+    if (profileBtn) {
+      handleProfileNavClick(e);
+      return;
+    }
+
+    const reviewsBtn = target.closest("#nav-btn-reviews");
+    if (reviewsBtn) {
+      e.preventDefault();
+      openAppReviewsModal();
+      return;
+    }
+
+    const homeBtn = target.closest("#nav-btn-home");
+    if (homeBtn) {
+      if (!window.location.pathname.endsWith("toko-saya.html")) {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      return;
+    }
+
+    const myListingsBtn = target.closest("#nav-btn-my-listings");
+    if (myListingsBtn) {
+      if (!window.location.pathname.endsWith("toko-saya.html")) {
+        e.preventDefault();
+        if (isUserLoggedIn() || getCurrentUser()) {
+          window.location.href = "toko-saya.html";
+        } else {
+          openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk mengakses Toko Saya Anda.");
+        }
+      }
+      return;
+    }
+
+    const traktirBtn = target.closest("#nav-btn-traktir");
+    if (traktirBtn) {
+      e.preventDefault();
+      ensureTraktirModalLoaded().then(() => {
+        openModal("modal-traktir-kopi");
+      });
+      return;
+    }
+  });
+
+  const traktirBtn = document.getElementById("nav-btn-traktir");
+  if (traktirBtn) {
+    initTraktirModal();
+  }
 }

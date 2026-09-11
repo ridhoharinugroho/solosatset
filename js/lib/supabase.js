@@ -105,7 +105,6 @@ let supabase = null;
 if (validateConfig()) {
   const rawSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     realtime: { params: { eventsPerSecond: 10 } },
-    global: { headers: { "x-app-name": "solosatset" } },
   });
 
   supabase = new Proxy(rawSupabase, {

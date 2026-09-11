@@ -60,6 +60,10 @@ self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
 
   if (
+    requestUrl.hostname === "localhost" ||
+    requestUrl.hostname === "127.0.0.1" ||
+    requestUrl.hostname === "[::1]" ||
+    requestUrl.hostname.endsWith(".local") ||
     event.request.method !== "GET" ||
     requestUrl.protocol.startsWith("chrome-extension") ||
     requestUrl.pathname.startsWith("/api/") ||

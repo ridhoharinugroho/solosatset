@@ -494,6 +494,32 @@ function initBackHandler() {
 
 export function initServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
+
+  const isLocalhost = Boolean(
+    window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "[::1]" ||
+      window.location.hostname.endsWith(".local"),
+  );
+
+  if (isLocalhost) {
+    navigator.serviceWorker
+      .getRegistrations()
+      .then((registrations) => {
+        for (const registration of registrations) {
+          registration.unregister().catch(() => {});
+        }
+      })
+      .catch(() => {});
+    if ("caches" in window) {
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .catch(() => {});
+    }
+    return;
+  }
+
   const storedVersion = window.__solosatset_sw_version || null;
   if (storedVersion !== CURRENT_SW_VERSION) {
     if ("caches" in window)

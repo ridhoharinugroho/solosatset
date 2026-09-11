@@ -53,6 +53,7 @@ export {
   showBuBroadcastToast,
   verifyBuQrisPayment,
 } from "./modules/notifications/appBuNotification.js";
+export { handleProfileNavClick } from "./modules/app/appEventListeners.js";
 
 export let state = {
   selectedRegion: "all",

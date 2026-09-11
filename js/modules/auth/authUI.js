@@ -1,6 +1,7 @@
 import { refreshIcons } from "../../utils/runtime.js";
 import { getDistrictsByRegionId } from "../../data/regions.js";
 import { openModal, showToast } from "../../utils/modalRouter.js";
+import { ensureAuthProfileModalsLoaded } from "../../authProfileModals.js";
 
 export function showRegisterError(message) {
   const alertBox = document.getElementById("register-error-alert");
@@ -109,7 +110,10 @@ export function switchAuthTab(tab) {
   }
 }
 
-export function openUserAuthModal(tab = "login", noticeMsg = null) {
+export async function openUserAuthModal(tab = "login", noticeMsg = null) {
+  if (!document.getElementById("modal-user-auth")) {
+    await ensureAuthProfileModalsLoaded();
+  }
   clearAllAuthErrors();
   const noticeBox = document.getElementById("auth-notice-box");
   const noticeText = document.getElementById("auth-notice-text");

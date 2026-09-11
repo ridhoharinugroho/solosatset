@@ -61,8 +61,12 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
 
-  // Bypass non-GET, dynamic APIs, WebSockets, Supabase & analytics
+  // Bypass localhost, non-GET, dynamic APIs, WebSockets, Supabase & analytics
   if (
+    requestUrl.hostname === "localhost" ||
+    requestUrl.hostname === "127.0.0.1" ||
+    requestUrl.hostname === "[::1]" ||
+    requestUrl.hostname.endsWith(".local") ||
     event.request.method !== "GET" ||
     requestUrl.protocol.startsWith("chrome-extension") ||
     requestUrl.pathname.startsWith("/api/") ||

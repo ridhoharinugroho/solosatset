@@ -49,7 +49,7 @@ export async function initTokoSayaPage(currentUserRef, uploadedImagesRef) {
   let sessionUser = getCurrentUser();
   if (!sessionUser) {
     console.log("[Toko Saya] Pengguna belum masuk/login. Mengarahkan kembali ke Beranda.");
-    window.location.href = "index.html";
+    window.location.replace("index.html");
     return;
   }
 

@@ -14,6 +14,10 @@ export const NESTED_PICKER_MODALS = new Set([
   "modal-profile-region-picker",
   "modal-profile-district-picker",
   "modal-notifications",
+  "modal-traktir-kopi",
+  "modal-app-reviews",
+  "modal-share-product",
+  "modal-admin-login",
 ]);
 
 export const modalHistoryStack = [];
@@ -150,6 +154,19 @@ export function initBackHandler() {
     }
 
     isPopStateActive = false;
+  });
+}
+
+// Global event delegation for data-close-modal triggers (buttons & backdrops)
+if (typeof document !== "undefined") {
+  document.addEventListener("click", (e) => {
+    const trigger = e.target && typeof e.target.closest === "function" ? e.target.closest("[data-close-modal]") : null;
+    if (trigger) {
+      const targetModalId = trigger.getAttribute("data-close-modal");
+      if (targetModalId) {
+        closeModal(targetModalId);
+      }
+    }
   });
 }
 
