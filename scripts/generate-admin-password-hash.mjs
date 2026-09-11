@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
 const password = process.argv[2];
 if (!password) {
@@ -16,7 +16,7 @@ const key = crypto.scryptSync(password, salt, keyLength, {
   N,
   r,
   p,
-  maxmem: 128 * N * r + 1024 * 1024
+  maxmem: 128 * N * r + 1024 * 1024,
 });
 
-console.log(`scrypt$${salt.toString('base64url')}$${key.toString('base64url')}$${N},${r},${p}`);
+console.log(`scrypt$${salt.toString("base64url")}$${key.toString("base64url")}$${N},${r},${p}`);

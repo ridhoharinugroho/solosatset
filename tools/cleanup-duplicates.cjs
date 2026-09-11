@@ -1,31 +1,32 @@
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+  // eslint-disable-next-line no-unused-vars
+const path = require("path");
 
 function removeDuplicates(filePath) {
-  let content = fs.readFileSync(filePath, 'utf8');
+  let content = fs.readFileSync(filePath, "utf8");
 
   // Define the functions to remove
   const functionsToRemove = [
-    'selectFormCategory',
-    'selectFormCondition',
-    'selectFormNego',
-    'selectFormPaymentMethod',
-    'openCreateListingModal',
-    'updateCreateListingSellerInfo',
-    'populateFormRegions',
-    'renderFormImagePreviews',
-    'normalizeProfileRegionId',
-    'renderProfileRegionPicker',
-    'renderProfileDistrictPicker',
-    'selectProfileRegion',
-    'selectProfileDistrict'
+    "selectFormCategory",
+    "selectFormCondition",
+    "selectFormNego",
+    "selectFormPaymentMethod",
+    "openCreateListingModal",
+    "updateCreateListingSellerInfo",
+    "populateFormRegions",
+    "renderFormImagePreviews",
+    "normalizeProfileRegionId",
+    "renderProfileRegionPicker",
+    "renderProfileDistrictPicker",
+    "selectProfileRegion",
+    "selectProfileDistrict",
   ];
 
   let removedCount = 0;
   for (const func of functionsToRemove) {
     const regex1 = new RegExp(`function ${func}\\s*\\([^{]*\\)\\s*\\{`);
     const match = content.match(regex1);
-    
+
     if (match) {
       const startIndex = match.index;
       let braceCount = 0;
@@ -33,30 +34,30 @@ function removeDuplicates(filePath) {
       let inString = false;
       let stringChar = null;
       let inComment = false;
-      
+
       for (let i = startIndex; i < content.length; i++) {
         const char = content[i];
-        const nextChar = content[i+1];
-        
+        const nextChar = content[i + 1];
+
         if (!inComment && !inString) {
-          if (char === '/' && nextChar === '/') {
+          if (char === "/" && nextChar === "/") {
             inComment = true;
             i++;
             continue;
           }
-          if (char === '/' && nextChar === '*') {
+          if (char === "/" && nextChar === "*") {
             inComment = true;
             i++;
             continue;
           }
-          if (char === '"' || char === "'" || char === '\`') {
+          if (char === '"' || char === "'" || char === "\`") {
             inString = true;
             stringChar = char;
             continue;
           }
-          if (char === '{') {
+          if (char === "{") {
             braceCount++;
-          } else if (char === '}') {
+          } else if (char === "}") {
             braceCount--;
             if (braceCount === 0) {
               endIndex = i;
@@ -64,23 +65,23 @@ function removeDuplicates(filePath) {
             }
           }
         } else if (inString) {
-          if (char === '\\') {
+          if (char === "\\") {
             i++; // Skip escaped character
           } else if (char === stringChar) {
             inString = false;
           }
         } else if (inComment) {
-          if (char === '\n') {
+          if (char === "\n") {
             // End of line comment
             inComment = false; // Actually this is just for // comments, for /* */ we need to check */
           }
-          if (char === '*' && nextChar === '/') {
+          if (char === "*" && nextChar === "/") {
             inComment = false;
             i++;
           }
         }
       }
-      
+
       if (endIndex !== -1) {
         content = content.substring(0, startIndex) + content.substring(endIndex + 1);
         console.log(`Removed ${func} from ${filePath}`);
@@ -117,17 +118,17 @@ import { renderFormImagePreviews } from "./modules/listings/listingFormImages.js
 } from "./modules/profile/regionPickers.js";
 `;
 
-    if (!content.includes('selectFormCategory } from')) {
+    if (!content.includes("selectFormCategory } from")) {
       // Find the first import statement and insert there
-      const firstImportIndex = content.indexOf('import ');
+      const firstImportIndex = content.indexOf("import ");
       if (firstImportIndex !== -1) {
         content = content.slice(0, firstImportIndex) + importListings + importProfile + content.slice(firstImportIndex);
       }
     }
-    fs.writeFileSync(filePath, content, 'utf8');
+    fs.writeFileSync(filePath, content, "utf8");
   }
 }
 
-removeDuplicates('js/app-main-controller.js');
-removeDuplicates('js/toko-saya-controller.js');
-console.log('Cleanup completed!');
+removeDuplicates("js/app-main-controller.js");
+removeDuplicates("js/toko-saya-controller.js");
+console.log("Cleanup completed!");

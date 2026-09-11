@@ -73,9 +73,7 @@
     "district": "Jaten",
     "codPoint": "COD Rumah Palur / Sekitar UNS Solo - Jaten",
     "description": "Barang rumahan mesin cuci Sharp Aquamagic 2 tabung kapasitas 8 kg. Tabung cuci & pengering normal kencang semua. Selang pembuangan & kabel utuh. Dijual karena ganti yang 1 tabung otomatis. Monggo diangkut bawa pick-up / mobil sendiri ya lur.",
-    "images": [
-      "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80"
-    ],
+    "images": ["https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80"],
     "seller": {
       "id": "user-102",
       "name": "Joko Supriyanto",
@@ -103,9 +101,7 @@
     "district": "Gemolong",
     "codPoint": "COD Pasar Gemolong Sragen",
     "description": "Meja belajar anak sekolah bahan kayu jati asli + rak buku susun. Rangka kokoh, laci normal, tidak goyang. Cocok untuk belajar anak SD/SMP/SMA maupun mahasiswa. Lokasi Gemolong Sragen.",
-    "images": [
-      "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80"
-    ],
+    "images": ["https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80"],
     "seller": {
       "id": "user-104",
       "name": "Siti Aisyah",

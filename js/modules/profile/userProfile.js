@@ -5,7 +5,7 @@ import { getRegionById } from "../../data/regions.js";
 import { openModal, showToast } from "../../utils/modalRouter.js";
 import { openUserAuthModal } from "../auth/authUI.js";
 
-import { handleSaveProfileSettings, handleProfileLogout, handleDeleteProfileAvatar } from './profileActions.js';
+import { handleSaveProfileSettings, handleProfileLogout, handleDeleteProfileAvatar } from "./profileActions.js";
 
 export { handleSaveProfileSettings, handleProfileLogout, handleDeleteProfileAvatar };
 export let isProfileEditMode = false;
@@ -149,8 +149,7 @@ export function cancelProfileEditMode(e) {
     pendingAvatarFile = null;
     shouldRemoveAvatar = false;
     const defaultAvatar =
-      "https://api.dicebear.com/7.x/bottts/svg?seed=" +
-      encodeURIComponent(user.email || user.id || "user");
+      "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || user.id || "user");
     const previewEl = document.getElementById("profile-edit-avatar-preview");
     if (previewEl) previewEl.src = user.avatar || defaultAvatar;
 
@@ -195,7 +194,7 @@ export function initProfileModule() {
         if (btnDel) btnDel.classList.remove("hidden");
         showToast(
           "Foto avatar dipilih untuk preview. Klik 'Simpan Perubahan' untuk mengunggah dan menyimpan profil.",
-          "info"
+          "info",
         );
       });
 
@@ -203,43 +202,33 @@ export function initProfileModule() {
       if (btnDeleteAvatar && typeof window.handleDeleteProfileAvatar === "function") {
         btnDeleteAvatar.onclick = window.handleDeleteProfileAvatar;
       }
-      document
-        .getElementById("btn-open-profile-region-picker")
-        ?.addEventListener("click", (e) => {
-          e.preventDefault();
-          if (!isProfileEditMode) return;
-          if (typeof window.renderProfileRegionPicker === "function") {
-            window.renderProfileRegionPicker(
-              document.getElementById("profile-input-region")?.value || "solo"
-            );
-          }
-          openModal("modal-profile-region-picker");
-        });
+      document.getElementById("btn-open-profile-region-picker")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!isProfileEditMode) return;
+        if (typeof window.renderProfileRegionPicker === "function") {
+          window.renderProfileRegionPicker(document.getElementById("profile-input-region")?.value || "solo");
+        }
+        openModal("modal-profile-region-picker");
+      });
 
-      document
-        .getElementById("btn-open-profile-district-picker")
-        ?.addEventListener("click", (e) => {
-          e.preventDefault();
-          if (!isProfileEditMode) return;
-          if (typeof window.renderProfileDistrictPicker === "function") {
-            window.renderProfileDistrictPicker(
-              document.getElementById("profile-input-region")?.value || "solo",
-              document.getElementById("profile-input-district")?.value || ""
-            );
-          }
-          openModal("modal-profile-district-picker");
-        });
+      document.getElementById("btn-open-profile-district-picker")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (!isProfileEditMode) return;
+        if (typeof window.renderProfileDistrictPicker === "function") {
+          window.renderProfileDistrictPicker(
+            document.getElementById("profile-input-region")?.value || "solo",
+            document.getElementById("profile-input-district")?.value || "",
+          );
+        }
+        openModal("modal-profile-district-picker");
+      });
 
       const profileForm = document.getElementById("form-user-profile-settings");
       if (profileForm && typeof window.handleSaveProfileSettings === "function") {
         profileForm.onsubmit = window.handleSaveProfileSettings;
       }
-      document
-        .getElementById("btn-profile-enable-edit")
-        ?.addEventListener("click", enableProfileEditMode);
-      document
-        .getElementById("btn-profile-cancel-edit")
-        ?.addEventListener("click", cancelProfileEditMode);
+      document.getElementById("btn-profile-enable-edit")?.addEventListener("click", enableProfileEditMode);
+      document.getElementById("btn-profile-cancel-edit")?.addEventListener("click", cancelProfileEditMode);
 
       const btnLogout = document.getElementById("btn-profile-logout");
       if (btnLogout && typeof window.handleProfileLogout === "function") {
@@ -261,16 +250,12 @@ export function openUserProfileModal() {
     const state = window.state || {};
     const user = state.currentUser || getCurrentUser();
     if (!user) {
-      return openUserAuthModal(
-        "login",
-        "Silakan masuk atau daftar akun terlebih dahulu untuk mengatur profil."
-      );
+      return openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk mengatur profil.");
     }
     state.currentUser = user;
     userProfileAvatarData = user.avatar || null;
     const defaultAvatar =
-      "https://api.dicebear.com/7.x/bottts/svg?seed=" +
-      encodeURIComponent(user.email || user.id || "user");
+      "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || user.id || "user");
     const avatarPreview = document.getElementById("profile-edit-avatar-preview");
     const namePreview = document.getElementById("profile-edit-name-preview");
     const joinedPreview = document.getElementById("profile-edit-joined-preview");
@@ -279,8 +264,7 @@ export function openUserProfileModal() {
     if (namePreview) namePreview.textContent = user.storeName || user.name || "Pengguna";
 
     const rawCreatedAt = user.created_at || user.createdAt;
-    if (joinedPreview)
-      joinedPreview.textContent = `Bergabung: ${formatJoinedDate(rawCreatedAt)}`;
+    if (joinedPreview) joinedPreview.textContent = `Bergabung: ${formatJoinedDate(rawCreatedAt)}`;
 
     const nameInput = document.getElementById("profile-input-name");
     const storeNameInput = document.getElementById("profile-input-store-name");
@@ -311,8 +295,7 @@ export function openUserProfileModal() {
           userProfileAvatarData = fresh.avatar || null;
           if (avatarPreview && fresh.avatar) avatarPreview.src = fresh.avatar;
           if (namePreview) {
-            namePreview.textContent =
-              fresh.storeName || fresh.store_name || fresh.name || "Pengguna";
+            namePreview.textContent = fresh.storeName || fresh.store_name || fresh.name || "Pengguna";
           }
           const freshCreatedAt = fresh.created_at || fresh.createdAt;
           if (joinedPreview) {
@@ -356,9 +339,7 @@ export function renderMyListings(filter = "all") {
 
   let displayListings = myListings;
   if (filter === "available") {
-    displayListings = myListings.filter(
-      (l) => !l.isSold && "sold" !== l.status && "booked" !== l.status
-    );
+    displayListings = myListings.filter((l) => !l.isSold && "sold" !== l.status && "booked" !== l.status);
   } else if (filter === "booked") {
     displayListings = myListings.filter((l) => "booked" === l.status);
   } else if (filter === "sold") {
@@ -406,9 +387,7 @@ export function renderMyListings(filter = "all") {
     }
 
     const firstImg =
-      Array.isArray(item.images) && item.images.length > 0
-        ? item.images[0]
-        : "/assets/img/app-logo.png?v=2.1";
+      Array.isArray(item.images) && item.images.length > 0 ? item.images[0] : "/assets/img/app-logo.png?v=2.1";
 
     html += `
       <div class="my-listing-card bg-white rounded-2xl border ${statusBorderColor} p-3 sm:p-4 shadow-2xs hover:shadow-md transition-all flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between">

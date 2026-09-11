@@ -1,5 +1,8 @@
+  // eslint-disable-next-line no-unused-vars
 import { getMyListings } from "../../services/storage.js";
+  // eslint-disable-next-line no-unused-vars
 import { formatRupiah } from "../../services/whatsapp.js";
+  // eslint-disable-next-line no-unused-vars
 import { getRegionById } from "../../data/regions.js";
 
 export function showStoreLoadingSkeleton() {
@@ -24,9 +27,7 @@ export function showStoreLoadingSkeleton() {
 
 export function calculateStoreItemCounts(myListings = []) {
   const totalAll = myListings.length;
-  const totalAvailable = myListings.filter(
-    (l) => !l.isSold && "sold" !== l.status && "booked" !== l.status
-  ).length;
+  const totalAvailable = myListings.filter((l) => !l.isSold && "sold" !== l.status && "booked" !== l.status).length;
   const totalBooked = myListings.filter((l) => "booked" === l.status).length;
   const totalSold = myListings.filter((l) => l.isSold || "sold" === l.status).length;
 

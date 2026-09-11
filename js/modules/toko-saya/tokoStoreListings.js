@@ -1,21 +1,27 @@
-import { getMyListings, getRegionById, formatRupiah, deleteListing, updateListingStatus } from "../../services/storage.js";
-import { openEditListingModal } from "../listings/listingFormModal.js";
-import { openModal, closeModal, showToast } from "../../utils/modalRouter.js";
+import {
+  getMyListings,
+  getRegionById,
+  formatRupiah,
+  deleteListing, updateListingStatus,
+} from "../../services/storage.js";
+import { openEditListingModal } from "../listings/listingFormModal.js"; import { openModal, closeModal, showToast } from "../../utils/modalRouter.js";
 import { refreshIcons } from "../../utils/runtime.js";
 
 let isInitialStoreLoading = true;
 let hasStoreListingsLoadedOnce = false;
 
-export function renderStoreListings(currentUser, filter = "all", showStoreLoadingSkeletonFn, renderStoreShowcaseFn, syncAndRenderStoreListingsFn) {
+export function renderStoreListings(
+  currentUser,
+  filter = "all",
+  showStoreLoadingSkeletonFn,
+  renderStoreShowcaseFn,
+  syncAndRenderStoreListingsFn,
+) {
   const container = document.getElementById("my-listings-container"),
     emptyView = document.getElementById("my-listings-empty");
   if (!container || !currentUser) return;
   const myListings = getMyListings(currentUser);
-  if (
-    isInitialStoreLoading &&
-    0 === myListings.length &&
-    !hasStoreListingsLoadedOnce
-  ) {
+  if (isInitialStoreLoading && 0 === myListings.length && !hasStoreListingsLoadedOnce) {
     if (typeof showStoreLoadingSkeletonFn === "function") showStoreLoadingSkeletonFn();
     return;
   }
@@ -24,13 +30,9 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
     countBookedEl = document.getElementById("store-count-booked"),
     countSoldEl = document.getElementById("store-count-sold"),
     totalAll = myListings.length,
-    totalAvailable = myListings.filter(
-      (l) => !l.isSold && "sold" !== l.status && "booked" !== l.status,
-    ).length,
+    totalAvailable = myListings.filter((l) => !l.isSold && "sold" !== l.status && "booked" !== l.status).length,
     totalBooked = myListings.filter((l) => "booked" === l.status).length,
-    totalSold = myListings.filter(
-      (l) => l.isSold || "sold" === l.status,
-    ).length;
+    totalSold = myListings.filter((l) => l.isSold || "sold" === l.status).length;
 
   if (countAllEl) countAllEl.textContent = totalAll;
   if (countAvailEl) countAvailEl.textContent = totalAvailable;
@@ -79,11 +81,15 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
 
             <div class="flex items-center gap-1.5 flex-wrap">
               <span class="text-[12px] sm:text-[13px] font-black text-rose-900 tracking-tight">${formatRupiah(item.price)}</span>
-              ${item.is_bu || item.isBu ? `
+              ${
+                item.is_bu || item.isBu
+                  ? `
                 <span class="text-[9px] font-black text-white bg-rose-600 px-1.5 py-0.5 rounded-md border border-rose-500 shadow-xs flex items-center gap-1 animate-pulse">
                   <span>🔥 BU</span>
                 </span>
-              ` : ""}
+              `
+                  : ""
+              }
               <span class="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded-md border border-slate-200">
                 ${"pas" === item.negoType ? "Nett" : "Nego"}
               </span>
@@ -103,12 +109,16 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
               </span>
             </div>
 
-            ${item.codPoint ? `
+            ${
+              item.codPoint
+                ? `
               <div class="text-[10px] text-slate-500 truncate flex items-center gap-1.5 mt-0.5">
                 <i data-lucide="navigation" class="w-3 h-3 text-emerald-600 flex-shrink-0"></i>
                 <span class="truncate">Titik: ${item.codPoint}</span>
               </div>
-            ` : ""}
+            `
+                : ""
+            }
           </div>
         </div>
 
@@ -158,7 +168,10 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
 
   container.querySelectorAll('[data-action="open-status-modal"]').forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
       const id = btn.getAttribute("data-id"),
         currentStatus = btn.getAttribute("data-current-status");
       if (id) openItemStatusPickerModal(id, currentStatus);
@@ -167,7 +180,10 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
 
   container.querySelectorAll('[data-action="edit-listing"]').forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
       const id = btn.getAttribute("data-id");
       if (id) openEditListingModal(id);
     });
@@ -176,12 +192,17 @@ export function renderStoreListings(currentUser, filter = "all", showStoreLoadin
   let isDeletingItem = false;
   container.querySelectorAll('[data-action="delete-listing"]').forEach((btn) => {
     btn.addEventListener("click", (e) => {
-      if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+      if (e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+      }
       if (isDeletingItem) return;
       const id = btn.getAttribute("data-id");
       if (confirm("Apakah kamu yakin ingin menghapus barang jualan ini dari etalase toko kamu?")) {
         isDeletingItem = true;
-        setTimeout(() => { isDeletingItem = false; }, 600);
+        setTimeout(() => {
+          isDeletingItem = false;
+        }, 600);
         deleteListing(id);
         if (typeof renderStoreShowcaseFn === "function") renderStoreShowcaseFn();
         if (typeof syncAndRenderStoreListingsFn === "function") syncAndRenderStoreListingsFn(filter);
@@ -206,19 +227,31 @@ export function openItemStatusPickerModal(itemId, currentStatus) {
 
     if (isCurrent) {
       if ("available" === statusVal) {
-        btn.className = "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-emerald-500/70 bg-emerald-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-emerald-500/20";
-        if (checkCircle) checkCircle.className = "status-check-circle w-5 h-5 rounded-full border-2 border-emerald-500 bg-emerald-500/20 flex items-center justify-center flex-shrink-0";
+        btn.className =
+          "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-emerald-500/70 bg-emerald-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-emerald-500/20";
+        if (checkCircle)
+          checkCircle.className =
+            "status-check-circle w-5 h-5 rounded-full border-2 border-emerald-500 bg-emerald-500/20 flex items-center justify-center flex-shrink-0";
       } else if ("booked" === statusVal) {
-        btn.className = "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-amber-500/70 bg-amber-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-amber-500/20";
-        if (checkCircle) checkCircle.className = "status-check-circle w-5 h-5 rounded-full border-2 border-amber-500 bg-amber-500/20 flex items-center justify-center flex-shrink-0";
+        btn.className =
+          "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-amber-500/70 bg-amber-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-amber-500/20";
+        if (checkCircle)
+          checkCircle.className =
+            "status-check-circle w-5 h-5 rounded-full border-2 border-amber-500 bg-amber-500/20 flex items-center justify-center flex-shrink-0";
       } else {
-        btn.className = "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-rose-500/70 bg-rose-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-rose-500/20";
-        if (checkCircle) checkCircle.className = "status-check-circle w-5 h-5 rounded-full border-2 border-rose-500 bg-rose-500/20 flex items-center justify-center flex-shrink-0";
+        btn.className =
+          "picker-status-btn w-full px-4 py-3.5 rounded-2xl border-2 border-rose-500/70 bg-rose-950/40 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-rose-500/20";
+        if (checkCircle)
+          checkCircle.className =
+            "status-check-circle w-5 h-5 rounded-full border-2 border-rose-500 bg-rose-500/20 flex items-center justify-center flex-shrink-0";
       }
       if (checkIcon) checkIcon.classList.remove("hidden");
     } else {
-      btn.className = "picker-status-btn w-full px-4 py-3.5 rounded-2xl border border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-900 flex items-center justify-between gap-3 text-left transition-all cursor-pointer";
-      if (checkCircle) checkCircle.className = "status-check-circle w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center flex-shrink-0";
+      btn.className =
+        "picker-status-btn w-full px-4 py-3.5 rounded-2xl border border-slate-800 hover:border-slate-700 bg-slate-950/60 hover:bg-slate-900 flex items-center justify-between gap-3 text-left transition-all cursor-pointer";
+      if (checkCircle)
+        checkCircle.className =
+          "status-check-circle w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center flex-shrink-0";
       if (checkIcon) checkIcon.classList.add("hidden");
     }
   });

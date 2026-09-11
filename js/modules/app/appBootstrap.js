@@ -1,14 +1,33 @@
 import { initSplashScreen } from "./appSplashScreen.js";
 import { handleUrlNavigation } from "./appNavigationRouter.js";
 import { initGlobalEventListeners } from "./appEventListeners.js";
-import { showHomeLoadingSkeleton, renderRegionPills, renderCategoryPills, initHeroBannerCarousel, applyCustomTexts, applySiteSettings } from "../home/homeUI.js";
+import {
+  showHomeLoadingSkeleton,
+  renderRegionPills,
+  renderCategoryPills,
+  initHeroBannerCarousel,
+  applyCustomTexts,
+  applySiteSettings,
+} from "../home/homeUI.js";
 import { renderListings, updateSortRadioUI } from "../products/listingsController.js";
-import { fetchPublicListingsFromSupabase, initializeStorage, getSiteSettings, getCustomTexts, getCurrentUser } from "../../services/storage.js";
+import {
+  fetchPublicListingsFromSupabase,
+  initializeStorage,
+  getSiteSettings,
+  getCustomTexts,
+  getCurrentUser,
+} from "../../services/storage.js";
 import { syncAllUsersToCloudOnStartup, fetchFreshCurrentUserFromSupabase, subscribeAuth } from "../../services/auth.js";
 import { renderAuthNav } from "../auth/authUI.js";
 import { renderAppReviews, initAppReviews } from "../reviews/appReviews.js";
 import { updateCreateListingSellerInfo } from "../listings/listingFormModal.js";
-import { populateFormRegions, populateFilterModalOptions, selectFilterRegion, selectFilterCategory, selectFilterCondition } from "../filter/filterController.js";
+import {
+  populateFormRegions,
+  populateFilterModalOptions,
+  selectFilterRegion,
+  selectFilterCategory,
+  selectFilterCondition,
+} from "../filter/filterController.js";
 import { initProfileModule } from "../profile/userProfile.js";
 import { initLiveVisualEditor } from "../editor/liveVisualEditor.js";
 import { initBackHandler } from "../../utils/modalRouter.js";
@@ -30,13 +49,10 @@ export function startApp(state) {
   try {
     const urlParams = new URLSearchParams(window.location.search),
       hasLogoutParam = "1" === urlParams.get("logout"),
-      hasLoggedOutFlag =
-        "true" === sessionStorage.getItem("solosatset_just_logged_out");
+      hasLoggedOutFlag = "true" === sessionStorage.getItem("solosatset_just_logged_out");
     if (
       (hasLogoutParam || hasLoggedOutFlag) &&
-      (console.log(
-        "[Boot Check] Terdeteksi status pasca-logout. Memastikan sesi lokal bersih total.",
-      ),
+      (console.log("[Boot Check] Terdeteksi status pasca-logout. Memastikan sesi lokal bersih total."),
       sessionStorage.clear(),
       (state.currentUser = null),
       hasLogoutParam)
@@ -44,10 +60,7 @@ export function startApp(state) {
       urlParams.delete("logout");
       urlParams.delete("t");
       const cleanQuery = urlParams.toString(),
-        newUrl =
-          window.location.pathname +
-          (cleanQuery ? `?${cleanQuery}` : "") +
-          window.location.hash;
+        newUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : "") + window.location.hash;
       window.history.replaceState({}, document.title, newUrl);
     }
   } catch (bootErr) {
@@ -76,42 +89,60 @@ export function startApp(state) {
         const fresh = getCurrentUser();
         if (fresh) {
           state.currentUser = fresh;
-          try { renderAuthNav(); } catch (err) {}
+          try {
+            renderAuthNav();
+          } catch (err) {}
         }
-        try { renderAppReviews(); } catch (err) {}
+        try {
+          renderAppReviews();
+        } catch (err) {}
       })
       .catch(() => {});
-  } catch (e) {}
+  } catch (_e) {}
 
   try {
     applySiteSettings(state.siteSettings);
     applyCustomTexts(state.customTexts);
-  } catch (e) {}
+  } catch (_e) {}
 
   try {
     subscribeAuth((user) => {
       state.currentUser = user;
-      try { renderAuthNav(); } catch (err) {}
-      try { updateCreateListingSellerInfo(); } catch (err) {}
+      try {
+        renderAuthNav();
+      } catch (err) {}
+      try {
+        updateCreateListingSellerInfo();
+      } catch (err) {}
       const navProfileLabel = document.getElementById("nav-profile-label");
       if (navProfileLabel) navProfileLabel.textContent = user ? "Profil" : "Masuk";
-      try { renderAppReviews(); } catch (err) {}
+      try {
+        renderAppReviews();
+      } catch (err) {}
     });
-  } catch (e) {}
+  } catch (_e) {}
 
   window.addEventListener("userProfileUpdated", (e) => {
     state.currentUser = e.detail || getCurrentUser();
-    try { renderAuthNav(); } catch (err) {}
-    try { renderAppReviews(); } catch (err) {}
+    try {
+      renderAuthNav();
+    } catch (err) {}
+    try {
+      renderAppReviews();
+    } catch (err) {}
   });
 
   window.addEventListener("registeredUsersChanged", () => {
     const fresh = getCurrentUser();
     if (fresh) {
       state.currentUser = fresh;
-      try { renderAuthNav(); } catch (err) {}
+      try {
+        renderAuthNav();
+      } catch (err) {}
     }
-    try { renderAppReviews(); } catch (err) {}
+    try {
+      renderAppReviews();
+    } catch (err) {}
   });
 
   window.addEventListener("siteSettingsChanged", (e) => {
@@ -141,14 +172,17 @@ export function startApp(state) {
     } else if ("pusat_barkas_listings" === e.key) {
       renderRegionPills();
       renderListings();
-    } else if (
-      "pusat_barkas_user" === e.key ||
-      "pusat_barkas_registered_users" === e.key
-    ) {
+    } else if ("pusat_barkas_user" === e.key || "pusat_barkas_registered_users" === e.key) {
       state.currentUser = getCurrentUser();
-      try { renderAuthNav(); } catch (err) {}
-      try { renderAppReviews(); } catch (err) {}
-      try { renderListings(); } catch (err) {}
+      try {
+        renderAuthNav();
+      } catch (err) {}
+      try {
+        renderAppReviews();
+      } catch (err) {}
+      try {
+        renderListings();
+      } catch (err) {}
     }
   });
 
@@ -172,17 +206,10 @@ export function startApp(state) {
   safeExec("FormRegions", populateFormRegions);
   safeExec("FilterModalOptions", populateFilterModalOptions);
   safeExec("FilterRegionSelector", () =>
-    selectFilterRegion(
-      state.selectedRegion || "all",
-      state.selectedDistrict || "all",
-    ),
+    selectFilterRegion(state.selectedRegion || "all", state.selectedDistrict || "all"),
   );
-  safeExec("FilterCategorySelector", () =>
-    selectFilterCategory(state.selectedCategory || "all"),
-  );
-  safeExec("FilterConditionSelector", () =>
-    selectFilterCondition(state.selectedCondition || "all"),
-  );
+  safeExec("FilterCategorySelector", () => selectFilterCategory(state.selectedCategory || "all"));
+  safeExec("FilterConditionSelector", () => selectFilterCondition(state.selectedCondition || "all"));
   safeExec("SortRadioUI", updateSortRadioUI);
 
   showHomeLoadingSkeleton();
@@ -223,19 +250,14 @@ export function initServiceWorker() {
   navigator.serviceWorker
     .register(`./sw.js?v=${CURRENT_SW_VERSION}`)
     .then((registration) => {
-      console.log(
-        "[SW Bootstrap] Service Worker registered successfully, scope:",
-        registration.scope,
-      );
+      console.log("[SW Bootstrap] Service Worker registered successfully, scope:", registration.scope);
       registration.update().catch(() => {});
       registration.addEventListener("updatefound", () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener("statechange", () => {
             if ("installed" === newWorker.state && navigator.serviceWorker.controller) {
-              console.log(
-                "[SW Bootstrap] New version found. Requesting skipWaiting & immediate activation.",
-              );
+              console.log("[SW Bootstrap] New version found. Requesting skipWaiting & immediate activation.");
               newWorker.postMessage({ action: "skipWaiting" });
             }
           });

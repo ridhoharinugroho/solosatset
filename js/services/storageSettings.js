@@ -3,24 +3,24 @@
  */
 
 export const DEFAULT_SITE_SETTINGS = {
-  fontFamily: 'sans',           // 'sans', 'serif', 'mono', 'poppins', 'inter', 'roboto', 'montserrat', 'outfit', 'playfair'
-  layoutStyle: 'grid',          // 'grid', 'list'
-  layoutColumns: 'grid2',       // 'grid2', 'grid3'
-  filterPosition: 'below_hero', // 'below_hero', 'above_hero'
-  announcementText: '📢 Selamat Datang di Pusat Jual Beli Solo Raya! Jual Beli Sat-Set Ra Nggo Ribet!!!',
+  fontFamily: "sans", // 'sans', 'serif', 'mono', 'poppins', 'inter', 'roboto', 'montserrat', 'outfit', 'playfair'
+  layoutStyle: "grid", // 'grid', 'list'
+  layoutColumns: "grid2", // 'grid2', 'grid3'
+  filterPosition: "below_hero", // 'below_hero', 'above_hero'
+  announcementText: "📢 Selamat Datang di Pusat Jual Beli Solo Raya! Jual Beli Sat-Set Ra Nggo Ribet!!!",
   showAnnouncement: true,
-  logoIcon: 'shopping-bag',
-  logoGradient: 'from-rose-900 to-rose-700',
-  logoImageUrl: 'assets/img/app-logo.png',
+  logoIcon: "shopping-bag",
+  logoGradient: "from-rose-900 to-rose-700",
+  logoImageUrl: "assets/img/app-logo.png",
   detailImageSettings: {
-    aspectRatio: 'aspect-square',
+    aspectRatio: "aspect-square",
     maxWidth: 448,
     maxHeight: 560,
-    objectFit: 'cover',
-    isAspectLocked: true
+    objectFit: "cover",
+    isAspectLocked: true,
   },
   textStyles: {},
-  updatedAt: null
+  updatedAt: null,
 };
 
 export const DEFAULT_CUSTOM_TEXTS = {
@@ -58,11 +58,11 @@ export const DEFAULT_CUSTOM_TEXTS = {
   btn_share: "Bagikan",
   btn_favorite: "Favorit",
   btn_chat_wa_card: "Chat WA",
-  btn_detail_card: "Detail"
+  btn_detail_card: "Detail",
 };
 
-const STORAGE_KEY_SITE_SETTINGS = 'pusat_barkas_site_settings';
-const STORAGE_KEY_CUSTOM_TEXTS = 'pusat_barkas_custom_texts';
+const STORAGE_KEY_SITE_SETTINGS = "pusat_barkas_site_settings";
+const STORAGE_KEY_CUSTOM_TEXTS = "pusat_barkas_custom_texts";
 
 export function getCustomTexts() {
   try {
@@ -71,21 +71,21 @@ export function getCustomTexts() {
     const parsed = JSON.parse(raw);
     return { ...DEFAULT_CUSTOM_TEXTS, ...parsed };
   } catch (err) {
-    console.warn('[getCustomTexts] Warning reading storage:', err);
+    console.warn("[getCustomTexts] Warning reading storage:", err);
     return { ...DEFAULT_CUSTOM_TEXTS };
   }
 }
 
 export async function saveCustomTexts(texts) {
-  if (!texts || typeof texts !== 'object') return getCustomTexts();
+  if (!texts || typeof texts !== "object") return getCustomTexts();
   try {
     const current = getCustomTexts();
     const merged = { ...current, ...texts };
     localStorage.setItem(STORAGE_KEY_CUSTOM_TEXTS, JSON.stringify(merged));
-    window.dispatchEvent(new CustomEvent('siteTextsChanged', { detail: merged }));
+    window.dispatchEvent(new CustomEvent("siteTextsChanged", { detail: merged }));
     return merged;
   } catch (err) {
-    console.error('[saveCustomTexts] Error saving:', err);
+    console.error("[saveCustomTexts] Error saving:", err);
     return getCustomTexts();
   }
 }
@@ -94,10 +94,10 @@ export async function resetCustomTexts() {
   try {
     localStorage.removeItem(STORAGE_KEY_CUSTOM_TEXTS);
     const resetObj = { ...DEFAULT_CUSTOM_TEXTS };
-    window.dispatchEvent(new CustomEvent('siteTextsChanged', { detail: resetObj }));
+    window.dispatchEvent(new CustomEvent("siteTextsChanged", { detail: resetObj }));
     return resetObj;
   } catch (err) {
-    console.error('[resetCustomTexts] Error resetting:', err);
+    console.error("[resetCustomTexts] Error resetting:", err);
     return { ...DEFAULT_CUSTOM_TEXTS };
   }
 }
@@ -112,17 +112,17 @@ export function getSiteSettings() {
       ...parsed,
       detailImageSettings: {
         ...DEFAULT_SITE_SETTINGS.detailImageSettings,
-        ...(parsed.detailImageSettings || {})
-      }
+        ...(parsed.detailImageSettings || {}),
+      },
     };
   } catch (err) {
-    console.warn('[getSiteSettings] Warning reading storage:', err);
+    console.warn("[getSiteSettings] Warning reading storage:", err);
     return { ...DEFAULT_SITE_SETTINGS };
   }
 }
 
 export async function saveSiteSettings(settings) {
-  if (!settings || typeof settings !== 'object') return getSiteSettings();
+  if (!settings || typeof settings !== "object") return getSiteSettings();
   try {
     const current = getSiteSettings();
     const merged = {
@@ -130,19 +130,19 @@ export async function saveSiteSettings(settings) {
       ...settings,
       detailImageSettings: {
         ...current.detailImageSettings,
-        ...(settings.detailImageSettings || {})
+        ...(settings.detailImageSettings || {}),
       },
       textStyles: {
         ...(current.textStyles || {}),
-        ...(settings.textStyles || {})
+        ...(settings.textStyles || {}),
       },
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
     localStorage.setItem(STORAGE_KEY_SITE_SETTINGS, JSON.stringify(merged));
-    window.dispatchEvent(new CustomEvent('siteSettingsChanged', { detail: merged }));
+    window.dispatchEvent(new CustomEvent("siteSettingsChanged", { detail: merged }));
     return merged;
   } catch (err) {
-    console.error('[saveSiteSettings] Error saving:', err);
+    console.error("[saveSiteSettings] Error saving:", err);
     return getSiteSettings();
   }
 }

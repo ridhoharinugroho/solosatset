@@ -5,9 +5,11 @@
 
 export const realtimeState = {
   isActive: true,
-  mode: 'serverless_cloud'
+  mode: "serverless_cloud",
 };
 
+   
+  // eslint-disable-next-line no-unused-vars
 export function broadcastRealtimeUpdate(type, payload) {
   // Dispatched directly via storage service
 }
@@ -15,4 +17,3 @@ export function broadcastRealtimeUpdate(type, payload) {
 export function initRealtimeEngine() {
   // Managed by storage engine
 }
-

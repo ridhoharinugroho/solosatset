@@ -1,17 +1,17 @@
-import { getRegionById } from '../../data/regions.js';
-import { isUserLoggedIn, getCurrentUser } from '../../services/auth.js';
-import { setRegionFilter } from '../filter/filterController.js';
-import { openCreateListingModal, openEditListingModal } from '../listings/listingFormModal.js';
-import { openUserAuthModal } from '../auth/authUI.js';
-import { openAppReviewsModal } from '../reviews/appReviews.js';
-import { openUserProfileModal } from '../profile/userProfile.js';
-import { openModal } from '../../utils/modalRouter.js';
-import { ensureNotificationsModalLoaded } from '../../notificationModal.js';
-import { syncUserNotifications } from '../notifications/notificationUI.js';
-import { initLiveActivityWidget } from '../../services/liveActivity.js';
-import { fetchAppReviewsFromSupabase } from '../../services/storage.js';
-import { refreshIcons } from '../../utils/runtime.js';
-import { handleProductClick } from '../listings/productDetailModal.js';
+import { getRegionById } from "../../data/regions.js";
+import { isUserLoggedIn, getCurrentUser } from "../../services/auth.js";
+import { setRegionFilter } from "../filter/filterController.js";
+import { openCreateListingModal, openEditListingModal } from "../listings/listingFormModal.js";
+import { openUserAuthModal } from "../auth/authUI.js";
+import { openAppReviewsModal } from "../reviews/appReviews.js";
+import { openUserProfileModal } from "../profile/userProfile.js";
+import { openModal } from "../../utils/modalRouter.js";
+import { ensureNotificationsModalLoaded } from "../../notificationModal.js";
+import { syncUserNotifications } from "../notifications/notificationUI.js";
+import { initLiveActivityWidget } from "../../services/liveActivity.js";
+import { fetchAppReviewsFromSupabase } from "../../services/storage.js";
+import { refreshIcons } from "../../utils/runtime.js";
+import { handleProductClick } from "../listings/productDetailModal.js";
 
 export function handleUrlNavigation(state) {
   const params = new URLSearchParams(window.location.search);
@@ -65,7 +65,12 @@ export function handleUrlNavigation(state) {
     }
   } else if (actionParam === "traktir" || hash === "#traktir") {
     openModal("modal-traktir-kopi");
-  } else if (actionParam === "notifikasi" || actionParam === "notifications" || hash === "#notifikasi" || hash === "#notifications") {
+  } else if (
+    actionParam === "notifikasi" ||
+    actionParam === "notifications" ||
+    hash === "#notifikasi" ||
+    hash === "#notifications"
+  ) {
     ensureNotificationsModalLoaded().then(() => {
       openModal("modal-notifications");
       if (typeof syncUserNotifications === "function") {
@@ -77,19 +82,19 @@ export function handleUrlNavigation(state) {
   try {
     initLiveActivityWidget();
     fetchAppReviewsFromSupabase().catch(() => {});
-  } catch (e) {}
+  } catch (_e) {}
 
   if (actionParam || (hash && hash !== "#" && hash !== "")) {
     try {
       window.history.replaceState(
         {},
         document.title,
-        window.location.pathname + (regionParam ? `?region=${regionParam}` : "")
+        window.location.pathname + (regionParam ? `?region=${regionParam}` : ""),
       );
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   try {
     refreshIcons();
-  } catch (e) {}
+  } catch (_e) {}
 }

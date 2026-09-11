@@ -10,14 +10,16 @@ export const SOLO_RAYA_REGIONS = [
     shortName: "Solo",
     badgeColor: "bg-red-100 text-red-800 border-red-200",
     accentColor: "#dc2626",
-    popularSpots: ["Manahan", "Pasar Klewer", "Slamet Riyadi", "Singosaren", "Kentingan UNS", "Pasar Gede", "Mangkunegaran"],
-    districts: [
-      "Banjarsari",
-      "Jebres",
-      "Laweyan",
-      "Pasar Kliwon",
-      "Serengan"
-    ]
+    popularSpots: [
+      "Manahan",
+      "Pasar Klewer",
+      "Slamet Riyadi",
+      "Singosaren",
+      "Kentingan UNS",
+      "Pasar Gede",
+      "Mangkunegaran",
+    ],
+    districts: ["Banjarsari", "Jebres", "Laweyan", "Pasar Kliwon", "Serengan"],
   },
   {
     id: "karanganyar",
@@ -43,8 +45,8 @@ export const SOLO_RAYA_REGIONS = [
       "Jumantono",
       "Jumapolo",
       "Kerjo",
-      "Jenawi"
-    ]
+      "Jenawi",
+    ],
   },
   {
     id: "sukoharjo",
@@ -52,7 +54,13 @@ export const SOLO_RAYA_REGIONS = [
     shortName: "Sukoharjo",
     badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
     accentColor: "#2563eb",
-    popularSpots: ["Solo Baru (The Park/Hartono)", "Kartasura (Goro Assalam / UMS)", "Baki", "Alun-alun Sukoharjo", "Mojolaban"],
+    popularSpots: [
+      "Solo Baru (The Park/Hartono)",
+      "Kartasura (Goro Assalam / UMS)",
+      "Baki",
+      "Alun-alun Sukoharjo",
+      "Mojolaban",
+    ],
     districts: [
       "Kartasura",
       "Grogol (Solo Baru)",
@@ -65,8 +73,8 @@ export const SOLO_RAYA_REGIONS = [
       "Nguter",
       "Polokarto",
       "Tawangsari",
-      "Weru"
-    ]
+      "Weru",
+    ],
   },
   {
     id: "wonogiri",
@@ -74,7 +82,14 @@ export const SOLO_RAYA_REGIONS = [
     shortName: "Wonogiri",
     badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
     accentColor: "#d97706",
-    popularSpots: ["Alun-alun Giri Krida Bakti", "Selogiri", "Baturetno", "Pracimantoro", "Waduk Gajah Mungkur", "Ngadirojo"],
+    popularSpots: [
+      "Alun-alun Giri Krida Bakti",
+      "Selogiri",
+      "Baturetno",
+      "Pracimantoro",
+      "Waduk Gajah Mungkur",
+      "Ngadirojo",
+    ],
     districts: [
       "Wonogiri Kota",
       "Selogiri",
@@ -94,8 +109,8 @@ export const SOLO_RAYA_REGIONS = [
       "Jatiroto",
       "Kismantoro",
       "Bulukerto",
-      "Tirtomoyo"
-    ]
+      "Tirtomoyo",
+    ],
   },
   {
     id: "sragen",
@@ -122,8 +137,8 @@ export const SOLO_RAYA_REGIONS = [
       "Miri",
       "Sukodono",
       "Tangen",
-      "Jenar"
-    ]
+      "Jenar",
+    ],
   },
   {
     id: "boyolali",
@@ -131,7 +146,13 @@ export const SOLO_RAYA_REGIONS = [
     shortName: "Boyolali",
     badgeColor: "bg-teal-100 text-teal-800 border-teal-200",
     accentColor: "#0d9488",
-    popularSpots: ["Patung Susu Tumpah Boyolali", "Ngemplak (Bandara Adi Soemarmo)", "Banyudono / Pengging", "Selo", "Ampel"],
+    popularSpots: [
+      "Patung Susu Tumpah Boyolali",
+      "Ngemplak (Bandara Adi Soemarmo)",
+      "Banyudono / Pengging",
+      "Selo",
+      "Ampel",
+    ],
     districts: [
       "Boyolali Kota",
       "Mojosongo",
@@ -151,8 +172,8 @@ export const SOLO_RAYA_REGIONS = [
       "Andong",
       "Nogosari",
       "Kemusu",
-      "Juwangi"
-    ]
+      "Juwangi",
+    ],
   },
   {
     id: "klaten",
@@ -179,9 +200,9 @@ export const SOLO_RAYA_REGIONS = [
       "Juwiring",
       "Kalikotes",
       "Ngawen",
-      "Kemalang"
-    ]
-  }
+      "Kemalang",
+    ],
+  },
 ];
 
 export function getRegionById(id) {
@@ -192,4 +213,3 @@ export function getDistrictsByRegionId(regionId) {
   const region = getRegionById(regionId);
   return region ? region.districts : [];
 }
-

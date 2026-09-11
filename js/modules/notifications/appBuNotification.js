@@ -1,5 +1,6 @@
 import { getListingById, formatRupiah, getRegionById } from "../../services/storage.js";
 import { sbGetListingById, sbBroadcastBuNotification } from "../../services/supabaseDB.js";
+  // eslint-disable-next-line no-unused-vars
 import { openProductDetail } from "../products/productDetailModal.js";
 import { showToast } from "../../utils/modalRouter.js";
 import { refreshIcons } from "../../utils/runtime.js";
@@ -7,11 +8,8 @@ import { renderListings } from "../products/listingsController.js";
 import { updateListing } from "../../services/storage.js";
 
 export async function triggerBuNotification(productId, categoryId) {
-  console.log(
-    `[BU Notification] Memicu wrapper notifikasi BU untuk produk: ${productId} (Kategori: ${categoryId})...`,
-  );
-  if (!productId)
-    return { success: false, sentUsersCount: 0, error: "Product ID required" };
+  console.log(`[BU Notification] Memicu wrapper notifikasi BU untuk produk: ${productId} (Kategori: ${categoryId})...`);
+  if (!productId) return { success: false, sentUsersCount: 0, error: "Product ID required" };
   try {
     let product = null;
     if (typeof getListingById === "function") {
@@ -23,29 +21,20 @@ export async function triggerBuNotification(productId, categoryId) {
     const finalCategory = String(categoryId || product?.category || "umum")
         .toLowerCase()
         .trim(),
-      title = product
-        ? `🔥 BUTUH UANG CEPAT: ${product.title}`
-        : "🔥 IKLAN BUTUH UANG CEPAT (BU) TERBARU!",
+      title = product ? `🔥 BUTUH UANG CEPAT: ${product.title}` : "🔥 IKLAN BUTUH UANG CEPAT (BU) TERBARU!",
       priceFormatted =
         product && typeof formatRupiah === "function"
           ? formatRupiah(product.price)
           : product?.price
             ? `Rp ${product.price}`
             : "",
-      regionObj =
-        product && typeof getRegionById === "function"
-          ? getRegionById(product.regionId)
-          : null,
-      locationName = regionObj
-        ? regionObj.shortName || regionObj.name
-        : "Solo Raya",
+      regionObj = product && typeof getRegionById === "function" ? getRegionById(product.regionId) : null,
+      locationName = regionObj ? regionObj.shortName || regionObj.name : "Solo Raya",
       message = product
         ? `Harga ${priceFormatted} di ${locationName}! Penjual sedang butuh uang cepat, segera cek sebelum keduluan!`
         : `Ada barang butuh uang (BU) untuk kategori ${finalCategory} yang Anda minati baru saja tayang!`,
       url = `https://solosatset.vercel.app/?item=${productId}`,
-      productImg =
-        (product && product.images && product.images[0]) ||
-        "/assets/img/app-logo.png?v=2.1",
+      productImg = (product && product.images && product.images[0]) || "/assets/img/app-logo.png?v=2.1",
       productDetails = {
         title: title,
         message: message,
@@ -62,9 +51,7 @@ export async function triggerBuNotification(productId, categoryId) {
       broadcastFn = window.sbBroadcastBuNotification;
     }
     if (typeof broadcastFn !== "function") {
-      console.error(
-        "[BU Notification Error] sbBroadcastBuNotification function not available.",
-      );
+      console.error("[BU Notification Error] sbBroadcastBuNotification function not available.");
       return {
         success: false,
         sentUsersCount: 0,
@@ -83,10 +70,7 @@ export async function triggerBuNotification(productId, categoryId) {
           url: url,
         });
       } else {
-        showToast(
-          `⚡ Iklan BU aktif! Belum ada user dengan riwayat minat kategori "${finalCategory}".`,
-          "info",
-        );
+        showToast(`⚡ Iklan BU aktif! Belum ada user dengan riwayat minat kategori "${finalCategory}".`, "info");
       }
     }
     return {
@@ -108,17 +92,14 @@ export function showBuBroadcastToast(detail) {
   if (!detail) return;
   const productId = detail.productId || detail.product_id || detail.listing_id,
     title = detail.title || "🔥 IKLAN BUTUH UANG (BU) TERBARU!",
-    message =
-      detail.message ||
-      detail.body ||
-      "Ada barang BU terbaru yang cocok dengan minat Anda!",
+    message = detail.message || detail.body || "Ada barang BU terbaru yang cocok dengan minat Anda!",
     image = detail.image || detail.icon || "/assets/img/app-logo.png?v=2.1",
     categoryId = detail.categoryId || detail.category_id || "BU";
 
   if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
     try {
       navigator.vibrate([150, 80, 150]);
-    } catch (e) {}
+    } catch (_e) {}
   }
   let container = document.getElementById("toast-container");
   if (!container) {
@@ -192,9 +173,7 @@ export function showBuBroadcastToast(detail) {
 }
 
 export async function verifyBuQrisPayment(productId, categoryId) {
-  console.log(
-    `[QRIS Verification] Memverifikasi pembayaran QRIS untuk iklan BU ${productId}...`,
-  );
+  console.log(`[QRIS Verification] Memverifikasi pembayaran QRIS untuk iklan BU ${productId}...`);
   try {
     if (typeof updateListing === "function") {
       updateListing(productId, {

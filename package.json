@@ -4,24 +4,38 @@
   "description": "solosatset - Platform Jual Beli Barang Se-Solo Raya",
   "type": "module",
   "scripts": {
-    "dev": "npm run serve:static",
-    "start:dev": "npx vercel dev",
+    "dev": "node local-dev.js",
     "serve:static": "npx -y serve . -p 3000",
-    "build": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/storageListings.js && node --check js/services/storageReviews.js && node --check js/services/storageSettings.js && node --check js/services/storageAppReviews.js && node --check js/services/storageFavorites.js && node --check js/modules/filter/filterMeta.js && node --check js/modules/filter/filterSelectors.js && node --check js/modules/filter/filterActions.js && node --check js/modules/reviews/sellerReviewsRender.js && node --check js/modules/listings/productInterestTracker.js && node --check js/modules/feed/feedPills.js && node --check js/modules/listings/listingFormPickers.js && node --check js/services/supabaseStorageDB.js && node --check js/services/supabaseListingsDB.js && node --check js/services/supabaseUsersDB.js && node --check js/services/supabaseSyncDB.js && node --check js/services/supabaseDB.js && node --check js/services/supabaseDBLegacy.js && node --check js/services/notifications.js && node --check js/authProfileModals.js && node --check js/authServerBridge.js && node --check js/adminAuthBridge.js && node --check js/services/auth.js && node --check js/admin.js && node --check api/auth-login.js && node --check api/auth-otp.js && node --check api/admin-auth.js && node --check api/push-subscribe.js && node --check api/push-notify.js && node --check api/send-email.js && node --check api/track-interest.js && node --check api/upload-image.js && node --check api/auth-logout.js && node --check api/user-profile.js && node --check server/user-session.js && node scripts/security-audit.mjs && node scripts/security-negative-tests.mjs && node scripts/admin-auth-negative-tests.mjs && node scripts/notification-security-audit.mjs",
+    "build:check": "node --check js/app.js && node --check js/toko-saya.js && node --check js/notificationModal.js && node --check js/services/storageListings.js && node --check js/services/storageReviews.js && node --check js/services/storageSettings.js && node --check js/services/storageAppReviews.js && node --check js/services/storageFavorites.js && node --check js/modules/filter/filterMeta.js && node --check js/modules/filter/filterSelectors.js && node --check js/modules/filter/filterActions.js && node --check js/modules/reviews/sellerReviewsRender.js && node --check js/modules/listings/productInterestTracker.js && node --check js/modules/feed/feedPills.js && node --check js/modules/listings/listingFormPickers.js && node --check js/services/supabaseStorageDB.js && node --check js/services/supabaseListingsDB.js && node --check js/services/supabaseUsersDB.js && node --check js/services/supabaseSyncDB.js && node --check js/services/supabaseDB.js && node --check js/services/supabaseDBLegacy.js && node --check js/services/notifications.js && node --check js/authProfileModals.js && node --check js/authServerBridge.js && node --check js/adminAuthBridge.js && node --check js/services/auth.js && node --check js/admin.js && node --check api/auth-login.js && node --check api/auth-otp.js && node --check api/admin-auth.js && node --check api/push-subscribe.js && node --check api/push-notify.js && node --check api/send-email.js && node --check api/track-interest.js && node --check api/upload-image.js && node --check api/auth-logout.js && node --check api/user-profile.js && node --check server/user-session.js && node scripts/security-audit.mjs && node scripts/security-negative-tests.mjs && node scripts/admin-auth-negative-tests.mjs && node scripts/notification-security-audit.mjs",
+    "build": "npm run build:check && vite build",
     "test": "node scripts/test-formatting.js && node scripts/test-syntax.js && node scripts/test-controller-loader.js && node scripts/test-refactor-imports.js",
     "audit:duplication": "node scripts/duplicate-audit.js",
     "sync:reviews": "node scripts/sync-app-reviews.js",
     "security:audit": "node scripts/security-audit.mjs",
-    "quota": "node scripts/vercel-quota.js"
+    "quota": "node scripts/vercel-quota.js",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test:unit": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "validate": "npm run lint && npm run test:unit && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
-    "dotenv": "^17.4.2",
     "nodemailer": "^6.9.14",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.10.0",
+    "express": "^5.2.1",
+    "globals": "^17.12.0",
     "jsdom": "^30.0.1",
-    "sharp": "^0.35.4"
+    "prettier": "^3.9.6",
+    "sharp": "^0.35.4",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }

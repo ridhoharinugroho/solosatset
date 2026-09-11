@@ -1,13 +1,12 @@
 import { refreshIcons, deferTask } from "../../utils/runtime.js";
 import { SOLO_RAYA_REGIONS, getRegionById } from "../../data/regions.js";
 import { CATEGORIES } from "../../data/categories.js";
+  // eslint-disable-next-line no-unused-vars
 import { getPublicListings, getCustomTexts } from "../../services/storage.js";
 import { setRegionFilter } from "../filter/filterController.js";
 
 export function showHomeLoadingSkeleton() {
-  const grid =
-    document.getElementById("listings-grid") ||
-    document.getElementById("listings-container");
+  const grid = document.getElementById("listings-grid") || document.getElementById("listings-container");
   const emptyState = document.getElementById("empty-state");
   if (emptyState) emptyState.classList.add("hidden");
   if (grid) {
@@ -36,15 +35,13 @@ export function showHomeLoadingSkeleton() {
   }
 }
 
-
 export function renderRegionPills() {
   const container = document.getElementById("region-pills-container");
   if (!container) return;
   const listings = getPublicListings();
   const state = window.state || {};
   const isLoaded =
-    window.hasInitialListingsLoaded ||
-    (Array.isArray(listings) && listings.length > 0 && !window.isInitialFeedLoading);
+    window.hasInitialListingsLoaded || (Array.isArray(listings) && listings.length > 0 && !window.isInitialFeedLoading);
   const allCount = isLoaded ? (Array.isArray(listings) ? listings.length : 0) : "-";
 
   let html = `
@@ -60,11 +57,7 @@ export function renderRegionPills() {
 
   SOLO_RAYA_REGIONS.forEach((reg) => {
     const isSelected = state.selectedRegion === reg.id;
-    const count = isLoaded
-      ? Array.isArray(listings)
-        ? listings.filter((l) => l.regionId === reg.id).length
-        : 0
-      : "-";
+    const count = isLoaded ? (Array.isArray(listings) ? listings.filter((l) => l.regionId === reg.id).length : 0) : "-";
     html += `
       <button
         type="button"
@@ -95,9 +88,7 @@ export function renderRegionPills() {
   const indicator = document.getElementById("region-current-indicator");
   if (indicator) {
     if ("all" === state.selectedRegion) {
-      indicator.textContent =
-        state.customTexts?.region_indicator_all ||
-        "Menampilkan: 7 Wilayah Solo Raya";
+      indicator.textContent = state.customTexts?.region_indicator_all || "Menampilkan: 7 Wilayah Solo Raya";
     } else {
       const reg = getRegionById(state.selectedRegion);
       indicator.textContent = `Menampilkan: ${reg ? reg.name : state.selectedRegion}`;
@@ -159,26 +150,20 @@ export function initHeroBannerCarousel() {
   const nextBtn = document.getElementById("btn-carousel-next");
   if (!carousel || !dotsContainer) return;
 
-  carousel
-    .querySelectorAll(".btn-trigger-create-listing, #btn-hero-create-listing")
-    .forEach((btn) => {
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        if (typeof window.openCreateListingModal === "function") {
-          window.openCreateListingModal();
-        }
-      };
-    });
+  carousel.querySelectorAll(".btn-trigger-create-listing, #btn-hero-create-listing").forEach((btn) => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      if (typeof window.openCreateListingModal === "function") {
+        window.openCreateListingModal();
+      }
+    };
+  });
 
-  const originalSlides = Array.from(
-    carousel.querySelectorAll(".hero-carousel-slide:not(.clone)")
-  );
+  const originalSlides = Array.from(carousel.querySelectorAll(".hero-carousel-slide:not(.clone)"));
   if (originalSlides.length < 2) return;
   const totalOriginal = originalSlides.length;
 
-  carousel
-    .querySelectorAll(".hero-carousel-slide.clone")
-    .forEach((el) => el.remove());
+  carousel.querySelectorAll(".hero-carousel-slide.clone").forEach((el) => el.remove());
 
   const firstClone = originalSlides[0].cloneNode(true);
   firstClone.classList.add("clone");
@@ -192,16 +177,14 @@ export function initHeroBannerCarousel() {
   carousel.appendChild(firstClone);
 
   [firstClone, lastClone].forEach((clone) => {
-    clone
-      .querySelectorAll(".btn-trigger-create-listing, #btn-hero-create-listing")
-      .forEach((btn) => {
-        btn.onclick = (e) => {
-          e.stopPropagation();
-          if (typeof window.openCreateListingModal === "function") {
-            window.openCreateListingModal();
-          }
-        };
-      });
+    clone.querySelectorAll(".btn-trigger-create-listing, #btn-hero-create-listing").forEach((btn) => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        if (typeof window.openCreateListingModal === "function") {
+          window.openCreateListingModal();
+        }
+      };
+    });
   });
 
   const allSlides = Array.from(carousel.querySelectorAll(".hero-carousel-slide"));
@@ -212,17 +195,14 @@ export function initHeroBannerCarousel() {
 
   function getSlideOffset(slideIndex) {
     const slide = allSlides[slideIndex];
-    return slide
-      ? slide.offsetLeft - (carousel.clientWidth - slide.offsetWidth) / 2
-      : 0;
+    return slide ? slide.offsetLeft - (carousel.clientWidth - slide.offsetWidth) / 2 : 0;
   }
 
   function scrollToSlide(slideIndex, smooth = true) {
     if (slideIndex < 0 || slideIndex >= allSlides.length) return;
     currentIndex = slideIndex;
     const slide = allSlides[slideIndex];
-    const offsetLeft =
-      slide.offsetLeft - carousel.clientWidth / 2 + slide.clientWidth / 2;
+    const offsetLeft = slide.offsetLeft - carousel.clientWidth / 2 + slide.clientWidth / 2;
     if (typeof carousel.scrollTo === "function") {
       if (smooth) {
         carousel.scrollTo({ left: offsetLeft, behavior: "smooth" });
@@ -239,12 +219,7 @@ export function initHeroBannerCarousel() {
   }
 
   function updateDots() {
-    let realIdx =
-      0 === currentIndex
-        ? totalOriginal - 1
-        : currentIndex === allSlides.length - 1
-          ? 0
-          : currentIndex - 1;
+    let realIdx = 0 === currentIndex ? totalOriginal - 1 : currentIndex === allSlides.length - 1 ? 0 : currentIndex - 1;
 
     dots.forEach((dot, idx) => {
       dot.className =
@@ -254,7 +229,7 @@ export function initHeroBannerCarousel() {
     });
   }
 
-  const rAF = typeof requestAnimationFrame === 'function' ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
+  const rAF = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
   rAF(() => {
     scrollToSlide(1, false);
     refreshIcons();
@@ -335,7 +310,7 @@ export function initHeroBannerCarousel() {
         }
       }, 60);
     },
-    { passive: true }
+    { passive: true },
   );
 
   nextBtn?.addEventListener("click", () => {
@@ -356,10 +331,7 @@ export function initHeroBannerCarousel() {
   dots.forEach((dot) => {
     dot.addEventListener("click", () => {
       resetAutoTimer();
-      scrollToSlide(
-        parseInt(dot.getAttribute("data-slide-index") || "0", 10) + 1,
-        true
-      );
+      scrollToSlide(parseInt(dot.getAttribute("data-slide-index") || "0", 10) + 1, true);
     });
   });
 
@@ -379,12 +351,7 @@ export function applyCustomTexts(texts) {
   state.customTexts = texts;
   document.querySelectorAll("[data-text-key]").forEach((el) => {
     const key = el.getAttribute("data-text-key");
-    if (
-      texts[key] !== undefined &&
-      texts[key] !== null &&
-      typeof texts[key] === "string" &&
-      texts[key].trim() !== ""
-    ) {
+    if (texts[key] !== undefined && texts[key] !== null && typeof texts[key] === "string" && texts[key].trim() !== "") {
       if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") {
         if (el.hasAttribute("placeholder")) el.setAttribute("placeholder", texts[key]);
         else el.value = texts[key];
@@ -396,8 +363,7 @@ export function applyCustomTexts(texts) {
 
   const indicator = document.getElementById("region-current-indicator");
   if (indicator && state.selectedRegion === "all") {
-    indicator.textContent =
-      texts.region_indicator_all || "Menampilkan: 7 Wilayah Solo Raya";
+    indicator.textContent = texts.region_indicator_all || "Menampilkan: 7 Wilayah Solo Raya";
   }
 }
 
@@ -413,7 +379,7 @@ export function applySiteSettings(settings) {
     "font-roboto",
     "font-montserrat",
     "font-outfit",
-    "font-playfair"
+    "font-playfair",
   );
   if (settings.fontFamily === "serif") document.body.classList.add("font-serif");
   else if (settings.fontFamily === "mono") document.body.classList.add("font-mono");

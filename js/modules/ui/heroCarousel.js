@@ -1,11 +1,12 @@
-import { refreshIcons } from '../../utils/runtime.js';
+  // eslint-disable-next-line no-unused-vars
+import { refreshIcons } from "../../utils/runtime.js";
 
 export function initHeroBannerCarousel() {
-  const container = document.getElementById('hero-banner-carousel');
-  const slides = container ? container.querySelectorAll('.hero-banner-slide') : [];
-  const dots = document.querySelectorAll('.hero-carousel-dot');
-  const btnPrev = document.getElementById('btn-hero-carousel-prev');
-  const btnNext = document.getElementById('btn-hero-carousel-next');
+  const container = document.getElementById("hero-banner-carousel");
+  const slides = container ? container.querySelectorAll(".hero-banner-slide") : [];
+  const dots = document.querySelectorAll(".hero-carousel-dot");
+  const btnPrev = document.getElementById("btn-hero-carousel-prev");
+  const btnNext = document.getElementById("btn-hero-carousel-next");
 
   if (!container || slides.length <= 1) return;
 
@@ -26,7 +27,7 @@ export function initHeroBannerCarousel() {
     const targetOffset = getSlideOffset(slideIndex);
     container.scrollTo({
       left: targetOffset,
-      behavior: smooth ? 'smooth' : 'auto'
+      behavior: smooth ? "smooth" : "auto",
     });
 
     updateDots(slideIndex);
@@ -40,11 +41,13 @@ export function initHeroBannerCarousel() {
     dots.forEach((dot, idx) => {
       const isSelected = idx === activeIdx;
       if (isSelected) {
-        dot.className = "hero-carousel-dot w-6 h-2.5 rounded-full bg-rose-900 shadow-sm transition-all duration-300 cursor-pointer";
-        dot.setAttribute('aria-selected', 'true');
+        dot.className =
+          "hero-carousel-dot w-6 h-2.5 rounded-full bg-rose-900 shadow-sm transition-all duration-300 cursor-pointer";
+        dot.setAttribute("aria-selected", "true");
       } else {
-        dot.className = "hero-carousel-dot w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-all duration-300 cursor-pointer";
-        dot.setAttribute('aria-selected', 'false');
+        dot.className =
+          "hero-carousel-dot w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-all duration-300 cursor-pointer";
+        dot.setAttribute("aria-selected", "false");
       }
     });
   }
@@ -52,6 +55,7 @@ export function initHeroBannerCarousel() {
   function updateDotsOnScroll() {
     if (isScrollLock) return;
     const scrollLeft = container.scrollLeft;
+  // eslint-disable-next-line no-unused-vars
     const containerWidth = container.clientWidth || 1;
 
     let closestIdx = 0;
@@ -72,10 +76,14 @@ export function initHeroBannerCarousel() {
   }
 
   let scrollTimeout = null;
-  container.addEventListener('scroll', () => {
-    if (scrollTimeout) clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(updateDotsOnScroll, 60);
-  }, { passive: true });
+  container.addEventListener(
+    "scroll",
+    () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(updateDotsOnScroll, 60);
+    },
+    { passive: true },
+  );
 
   function nextSlide() {
     const nextIdx = (currentSlideIndex + 1) % slides.length;
@@ -106,7 +114,7 @@ export function initHeroBannerCarousel() {
   dots.forEach((dot) => {
     dot.onclick = (e) => {
       e.preventDefault();
-      const targetIdx = parseInt(dot.getAttribute('data-slide-index'), 10);
+      const targetIdx = parseInt(dot.getAttribute("data-slide-index"), 10);
       if (!isNaN(targetIdx)) {
         scrollToSlide(targetIdx, true);
         resetAutoTimer();
@@ -126,26 +134,34 @@ export function initHeroBannerCarousel() {
     startAutoTimer();
   }
 
-  container.addEventListener('mouseenter', () => {
+  container.addEventListener("mouseenter", () => {
     if (autoTimer) clearInterval(autoTimer);
   });
 
-  container.addEventListener('mouseleave', () => {
+  container.addEventListener("mouseleave", () => {
     startAutoTimer();
   });
 
-  container.addEventListener('touchstart', () => {
-    if (autoTimer) clearInterval(autoTimer);
-  }, { passive: true });
+  container.addEventListener(
+    "touchstart",
+    () => {
+      if (autoTimer) clearInterval(autoTimer);
+    },
+    { passive: true },
+  );
 
-  container.addEventListener('touchend', () => {
-    resetAutoTimer();
-  }, { passive: true });
+  container.addEventListener(
+    "touchend",
+    () => {
+      resetAutoTimer();
+    },
+    { passive: true },
+  );
 
   scrollToSlide(0, false);
   startAutoTimer();
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.initHeroBannerCarousel = initHeroBannerCarousel;
 }

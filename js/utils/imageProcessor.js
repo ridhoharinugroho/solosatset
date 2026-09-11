@@ -1,4 +1,5 @@
-import { showToast } from './modalRouter.js';
+  // eslint-disable-next-line no-unused-vars
+import { showToast } from "./modalRouter.js";
 
 export function processSquareImage(file) {
   return new Promise((resolve, reject) => {
@@ -23,17 +24,7 @@ export function processSquareImage(file) {
         const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(
-          img,
-          startX,
-          startY,
-          minDim,
-          minDim,
-          0,
-          0,
-          targetSize,
-          targetSize
-        );
+        ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
         const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
         console.log(`[processSquareImage] Foto diproses ke 1:1 Persegi (${targetSize}x${targetSize}px, Quality 0.8)`);
         resolve(dataUrl);

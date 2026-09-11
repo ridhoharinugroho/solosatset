@@ -1,8 +1,9 @@
 /**
  * Supabase Storage DB Module - Image Processing & Storage Bucket Uploads
  */
-import { supabase } from '../lib/supabase.js';
+import { supabase } from "../lib/supabase.js";
 
+  // eslint-disable-next-line no-unused-vars
 function requireClient(fnName) {
   if (!supabase) {
     console.warn(`[SupabaseStorageDB] ${fnName}() dilewati - client belum terkonfigurasi.`);
@@ -12,9 +13,9 @@ function requireClient(fnName) {
 }
 
 export function dataUrlToBlob(dataUrl) {
-  const parts = dataUrl.split(',');
+  const parts = dataUrl.split(",");
   const mimeMatch = parts[0].match(/:(.*?);/);
-  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
   const binaryStr = atob(parts[1]);
   const len = binaryStr.length;
   const u8arr = new Uint8Array(len);
@@ -52,32 +53,34 @@ export function compressAndCropSquareImage(imageSource, maxSize = 1000, quality 
         const startY = (naturalH - minDim) / 2;
         const targetSize = Math.min(maxSize, minDim);
 
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = targetSize;
         canvas.height = targetSize;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (!ctx) {
           return reject(new Error("Gagal menginisialisasi canvas context 2D."));
         }
 
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = "high";
 
         // Center-crop ke rasio 1:1 persegi sempurna
         ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
-        const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        console.log(`[compressAndCropSquareImage] Normalisasi foto: ${naturalW}x${naturalH} -> 1:1 Persegi ${targetSize}x${targetSize}px (Quality ~${quality})`);
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        console.log(
+          `[compressAndCropSquareImage] Normalisasi foto: ${naturalW}x${naturalH} -> 1:1 Persegi ${targetSize}x${targetSize}px (Quality ~${quality})`,
+        );
         resolve(dataUrl);
       } catch (err) {
         reject(err);
       }
     };
 
-    if (typeof imageSource === 'string') {
-      if (imageSource.startsWith('data:') || imageSource.startsWith('blob:') || imageSource.startsWith('http')) {
+    if (typeof imageSource === "string") {
+      if (imageSource.startsWith("data:") || imageSource.startsWith("blob:") || imageSource.startsWith("http")) {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        img.crossOrigin = "anonymous";
         img.onerror = () => reject(new Error("Gagal memuat gambar untuk proses kompresi."));
         img.onload = () => processImg(img);
         img.src = imageSource;
@@ -114,27 +117,30 @@ export async function sbUploadImage(imageFileOrDataUrl) {
     let finalDataUrl = imageFileOrDataUrl;
 
     // 1. Normalisasi, potong 1:1 persegi dan kompresi maksimal 1000x1000px via HTML Canvas
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    if (typeof window !== "undefined" && typeof document !== "undefined") {
       try {
         finalDataUrl = await compressAndCropSquareImage(imageFileOrDataUrl, 1000, 0.8);
       } catch (cropErr) {
-        console.warn('[sbUploadImage] Info kompresi canvas 1:1:', cropErr.message);
+        console.warn("[sbUploadImage] Info kompresi canvas 1:1:", cropErr.message);
       }
     }
 
     // 2. Jika formatnya sudah berupa URL web eksternal (http/https), kembalikan langsung
-    if (typeof finalDataUrl === 'string' && (finalDataUrl.startsWith('http://') || finalDataUrl.startsWith('https://'))) {
+    if (
+      typeof finalDataUrl === "string" &&
+      (finalDataUrl.startsWith("http://") || finalDataUrl.startsWith("https://"))
+    ) {
       return finalDataUrl;
     }
 
     // 3. Konversi Data URL hasil kompresi menjadi objek Blob / File (file)
     let file = null;
-    if (typeof finalDataUrl === 'string' && finalDataUrl.startsWith('data:')) {
+    if (typeof finalDataUrl === "string" && finalDataUrl.startsWith("data:")) {
       file = dataUrlToBlob(finalDataUrl);
     } else if (finalDataUrl instanceof Blob || finalDataUrl instanceof File) {
       file = finalDataUrl;
     } else {
-      return typeof finalDataUrl === 'string' ? finalDataUrl : '';
+      return typeof finalDataUrl === "string" ? finalDataUrl : "";
     }
 
     // 4. Penamaan fileName yang bersih langsung di root bucket tanpa awalan subfolder
@@ -148,59 +154,57 @@ export async function sbUploadImage(imageFileOrDataUrl) {
     // 5. Pemanggilan upload ke Supabase Storage
     if (supabase) {
       try {
-        const { data, error } = await supabase.storage
-          .from('product-images')
-          .upload(fileName, file, {
-            upsert: true,
-            cacheControl: '3600'
-          });
+        const { data, error } = await supabase.storage.from("product-images").upload(fileName, file, {
+          upsert: true,
+          cacheControl: "3600",
+        });
 
         if (!error && data) {
-          const { data: publicUrlData } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(fileName);
+          const { data: publicUrlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
 
           if (publicUrlData && publicUrlData.publicUrl) {
-            console.log('✅ [Supabase Storage Upload Berhasil]:', publicUrlData.publicUrl);
+            console.log("✅ [Supabase Storage Upload Berhasil]:", publicUrlData.publicUrl);
             return publicUrlData.publicUrl;
           }
         } else if (error) {
-          console.info('ℹ️ [Supabase Storage RLS Notice]: Beralih ke fallback penyimpanan...');
+          console.info("ℹ️ [Supabase Storage RLS Notice]: Beralih ke fallback penyimpanan...");
         }
+  // eslint-disable-next-line no-unused-vars
       } catch (uploadErr) {
-        console.info('ℹ️ [Supabase Storage Upload Notice]: Beralih ke fallback...');
+        console.info("ℹ️ [Supabase Storage Upload Notice]: Beralih ke fallback...");
       }
     }
 
     // 6. Mekanisme Fallback: coba simpan via serverless API endpoint
     try {
-      if (typeof finalDataUrl === 'string' && finalDataUrl.startsWith('data:')) {
-        const res = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+      if (typeof finalDataUrl === "string" && finalDataUrl.startsWith("data:")) {
+        const res = await fetch("/api/upload-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             imageData: finalDataUrl,
-            filePath: fileName
-          })
+            filePath: fileName,
+          }),
         });
         if (res.ok) {
           const resData = await res.json();
           if (resData && resData.success && resData.publicUrl) {
-            console.log('✅ [Supabase Storage via API Berhasil]:', resData.publicUrl);
+            console.log("✅ [Supabase Storage via API Berhasil]:", resData.publicUrl);
             return resData.publicUrl;
           }
         }
       }
+  // eslint-disable-next-line no-unused-vars
     } catch (apiErr) {
       // Lanjut ke fallback data URL base64
     }
 
     // 7. Fallback Data URL Base64 yang aman & mulus (produk tersimpan tanpa error merah)
-    console.log('✅ [Foto Berhasil Disimpan]: Menggunakan representasi Data URL base64 terkompresi.');
-    return typeof finalDataUrl === 'string' ? finalDataUrl : '';
+    console.log("✅ [Foto Berhasil Disimpan]: Menggunakan representasi Data URL base64 terkompresi.");
+    return typeof finalDataUrl === "string" ? finalDataUrl : "";
   } catch (err) {
-    console.warn('[sbUploadImage Fallback Notice]:', err);
-    return typeof imageFileOrDataUrl === 'string' ? imageFileOrDataUrl : '';
+    console.warn("[sbUploadImage Fallback Notice]:", err);
+    return typeof imageFileOrDataUrl === "string" ? imageFileOrDataUrl : "";
   }
 }
 
@@ -217,15 +221,15 @@ export async function sbUploadMultipleImages(imagesArray) {
   console.log(`[sbUploadMultipleImages] Memproses & mengunggah ${imagesArray.length} foto...`);
 
   const uploadPromises = imagesArray.map(async (img) => {
-    if (typeof img === 'string' && (img.startsWith('http://') || img.startsWith('https://'))) {
+    if (typeof img === "string" && (img.startsWith("http://") || img.startsWith("https://"))) {
       return img;
     }
     const uploadedUrl = await sbUploadImage(img);
-    return uploadedUrl || (typeof img === 'string' ? img : '');
+    return uploadedUrl || (typeof img === "string" ? img : "");
   });
 
   const results = await Promise.all(uploadPromises);
-  const successfulUploads = results.filter(url => url && url.length > 0);
+  const successfulUploads = results.filter((url) => url && url.length > 0);
   console.log(`[sbUploadMultipleImages] Selesai: ${successfulUploads.length} foto berhasil diproses.`);
   return successfulUploads;
 }
@@ -243,20 +247,23 @@ export async function sbUploadAvatar(imageFileOrDataUrl) {
   try {
     let finalDataUrl = imageFileOrDataUrl;
 
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    if (typeof window !== "undefined" && typeof document !== "undefined") {
       try {
         finalDataUrl = await compressAndCropSquareImage(imageFileOrDataUrl, 500, 0.85);
       } catch (cropErr) {
-        console.warn('[sbUploadAvatar] Info kompresi canvas 1:1:', cropErr.message);
+        console.warn("[sbUploadAvatar] Info kompresi canvas 1:1:", cropErr.message);
       }
     }
 
-    if (typeof finalDataUrl === 'string' && (finalDataUrl.startsWith('http://') || finalDataUrl.startsWith('https://'))) {
+    if (
+      typeof finalDataUrl === "string" &&
+      (finalDataUrl.startsWith("http://") || finalDataUrl.startsWith("https://"))
+    ) {
       return finalDataUrl;
     }
 
     let file = null;
-    if (typeof finalDataUrl === 'string' && finalDataUrl.startsWith('data:')) {
+    if (typeof finalDataUrl === "string" && finalDataUrl.startsWith("data:")) {
       file = dataUrlToBlob(finalDataUrl);
     } else if (finalDataUrl instanceof Blob || finalDataUrl instanceof File) {
       file = finalDataUrl;
@@ -274,60 +281,56 @@ export async function sbUploadAvatar(imageFileOrDataUrl) {
     // 1. Coba upload langsung via Supabase Client
     if (supabase) {
       try {
-        const { data, error } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, file, {
-            upsert: true,
-            contentType: 'image/jpeg',
-            cacheControl: '3600'
-          });
+        const { data, error } = await supabase.storage.from("avatars").upload(fileName, file, {
+          upsert: true,
+          contentType: "image/jpeg",
+          cacheControl: "3600",
+        });
 
         if (!error && data) {
-          const { data: publicUrlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
+          const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(fileName);
 
           if (publicUrlData && publicUrlData.publicUrl) {
-            console.log('✅ [Supabase Storage Avatars Berhasil]:', publicUrlData.publicUrl);
+            console.log("✅ [Supabase Storage Avatars Berhasil]:", publicUrlData.publicUrl);
             return publicUrlData.publicUrl;
           }
         } else if (error) {
-          console.info('ℹ️ [Supabase Avatars Direct Upload Notice]:', error.message || error);
+          console.info("ℹ️ [Supabase Avatars Direct Upload Notice]:", error.message || error);
         }
       } catch (uploadErr) {
-        console.info('ℹ️ [Supabase Avatars Direct Upload Exception]:', uploadErr.message || uploadErr);
+        console.info("ℹ️ [Supabase Avatars Direct Upload Exception]:", uploadErr.message || uploadErr);
       }
     }
 
     // 2. Fallback via Serverless API Endpoint (/api/upload-image)
     try {
-      const uploadPayload = typeof finalDataUrl === 'string' && finalDataUrl.startsWith('data:') ? finalDataUrl : null;
+      const uploadPayload = typeof finalDataUrl === "string" && finalDataUrl.startsWith("data:") ? finalDataUrl : null;
       if (uploadPayload) {
-        const res = await fetch('/api/upload-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const res = await fetch("/api/upload-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             imageData: uploadPayload,
             filePath: fileName,
-            bucket: 'avatars'
-          })
+            bucket: "avatars",
+          }),
         });
         if (res.ok) {
           const resData = await res.json();
           if (resData && resData.success && resData.publicUrl) {
-            console.log('✅ [Supabase Storage Avatars via API Berhasil]:', resData.publicUrl);
+            console.log("✅ [Supabase Storage Avatars via API Berhasil]:", resData.publicUrl);
             return resData.publicUrl;
           }
         }
       }
     } catch (apiErr) {
-      console.warn('[sbUploadAvatar API Fallback Notice]:', apiErr.message || apiErr);
+      console.warn("[sbUploadAvatar API Fallback Notice]:", apiErr.message || apiErr);
     }
 
-    console.warn('[sbUploadAvatar] Gagal mengunggah avatar ke Supabase Storage.');
+    console.warn("[sbUploadAvatar] Gagal mengunggah avatar ke Supabase Storage.");
     return null;
   } catch (err) {
-    console.warn('[sbUploadAvatar Notice]:', err.message || err);
+    console.warn("[sbUploadAvatar Notice]:", err.message || err);
     return null;
   }
 }
@@ -339,22 +342,22 @@ export async function sbUploadAvatar(imageFileOrDataUrl) {
  * @returns {string|null} filePath murni tanpa domain atau query string
  */
 export function extractAvatarFilePath(url) {
-  if (!url || typeof url !== 'string') return null;
+  if (!url || typeof url !== "string") return null;
   const raw = url.trim();
-  if (!raw || raw.includes('dicebear.com') || raw.includes('unsplash.com') || raw.startsWith('data:')) {
+  if (!raw || raw.includes("dicebear.com") || raw.includes("unsplash.com") || raw.startsWith("data:")) {
     return null;
   }
 
   let extracted = raw;
-  if (raw.includes('/avatars/')) {
-    extracted = raw.split('/avatars/').pop();
-  } else if (raw.includes('avatars/')) {
-    extracted = raw.split('avatars/').pop();
+  if (raw.includes("/avatars/")) {
+    extracted = raw.split("/avatars/").pop();
+  } else if (raw.includes("avatars/")) {
+    extracted = raw.split("avatars/").pop();
   }
 
   if (!extracted) return null;
-  const filePath = decodeURIComponent(extracted.split('?')[0].split('#')[0].trim());
-  return filePath && filePath !== '' ? filePath : null;
+  const filePath = decodeURIComponent(extracted.split("?")[0].split("#")[0].trim());
+  return filePath && filePath !== "" ? filePath : null;
 }
 
 /**
@@ -366,11 +369,13 @@ export async function sbDeleteAvatar(avatarUrlOrPath) {
   const filePath = extractAvatarFilePath(avatarUrlOrPath);
   if (!filePath) return true;
 
-  console.log(`[Supabase Storage Remove Target] Path file murni yang akan dihapus dari bucket 'avatars': "${filePath}" (URL asal: "${avatarUrlOrPath}")`);
+  console.log(
+    `[Supabase Storage Remove Target] Path file murni yang akan dihapus dari bucket 'avatars': "${filePath}" (URL asal: "${avatarUrlOrPath}")`,
+  );
 
   if (supabase && supabase.storage) {
     try {
-      const { data, error } = await supabase.storage.from('avatars').remove([filePath]);
+      const { data, error } = await supabase.storage.from("avatars").remove([filePath]);
       if (error) {
         console.warn(`⚠️ [Supabase Storage Remove Notice] Gagal menghapus file "${filePath}":`, error.message || error);
       } else {
@@ -378,7 +383,7 @@ export async function sbDeleteAvatar(avatarUrlOrPath) {
       }
       return true;
     } catch (err) {
-      console.warn('[sbDeleteAvatar Handled Exception]:', err.message || err);
+      console.warn("[sbDeleteAvatar Handled Exception]:", err.message || err);
       return true;
     }
   }
@@ -394,47 +399,54 @@ export async function sbDeleteAvatar(avatarUrlOrPath) {
 export async function sbUpdateUserAvatar(userOrId, avatarUrl = null) {
   if (!userOrId || !supabase) return false;
   try {
-    const targetId = typeof userOrId === 'string' ? userOrId : (userOrId.id || null);
-    const targetEmail = typeof userOrId === 'object' ? (userOrId.email || null) : null;
-    const cleanAvatar = avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '' ? avatarUrl.trim() : null;
+    const targetId = typeof userOrId === "string" ? userOrId : userOrId.id || null;
+    const targetEmail = typeof userOrId === "object" ? userOrId.email || null : null;
+    const cleanAvatar = avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() !== "" ? avatarUrl.trim() : null;
+    let updatedRows = false;
 
-    const validTargetId = targetId && typeof targetId === 'string' ? targetId.trim() : (targetId ? String(targetId).trim() : null);
+    const validTargetId =
+      targetId && typeof targetId === "string" ? targetId.trim() : targetId ? String(targetId).trim() : null;
 
-    if (validTargetId && validTargetId !== '') {
+    if (validTargetId && validTargetId !== "") {
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({
           avatar: cleanAvatar,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', validTargetId);
+        .eq("id", validTargetId);
 
       if (!error) {
         updatedRows = true;
       }
     }
 
-    const validEmail = targetEmail && typeof targetEmail === 'string' && targetEmail.trim() !== '' && targetEmail.includes('@') ? targetEmail.trim().toLowerCase() : null;
+    const validEmail =
+      targetEmail && typeof targetEmail === "string" && targetEmail.trim() !== "" && targetEmail.includes("@")
+        ? targetEmail.trim().toLowerCase()
+        : null;
 
     if (!updatedRows && validEmail) {
       const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({
           avatar: cleanAvatar,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('email', validEmail);
+        .eq("email", validEmail);
 
       if (!error) {
         updatedRows = true;
       }
     }
 
-    console.log(`✅ [sbUpdateUserAvatar Success] Avatar user "${targetId || targetEmail}" berhasil diperbarui di tabel users:`, cleanAvatar ? 'URL Publik Supabase' : 'Dikosongkan (Null)');
+    console.log(
+      `✅ [sbUpdateUserAvatar Success] Avatar user "${targetId || targetEmail}" berhasil diperbarui di tabel users:`,
+      cleanAvatar ? "URL Publik Supabase" : "Dikosongkan (Null)",
+    );
     return true;
   } catch (e) {
-    console.warn('[sbUpdateUserAvatar Exception]:', e.message || e);
+    console.warn("[sbUpdateUserAvatar Exception]:", e.message || e);
     return false;
   }
 }
-

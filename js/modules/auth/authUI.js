@@ -53,12 +53,7 @@ export function clearAllAuthErrors() {
   document.getElementById("login-field-error-msg")?.classList.add("hidden");
   document.getElementById("reg-field-error-msg")?.classList.add("hidden");
   document.querySelectorAll("#modal-user-auth input").forEach((inp) => {
-    inp.classList.remove(
-      "border-rose-500",
-      "ring-2",
-      "ring-rose-400",
-      "bg-rose-50/40"
-    );
+    inp.classList.remove("border-rose-500", "ring-2", "ring-rose-400", "bg-rose-50/40");
   });
 }
 
@@ -68,9 +63,7 @@ export function populateRegisterDistricts() {
   if (!regionSelect || !districtSelect) return;
   const regionId = regionSelect.value || "solo";
   const districts = getDistrictsByRegionId(regionId);
-  districtSelect.innerHTML = districts
-    .map((d) => `<option value="${d}">${d}</option>`)
-    .join("");
+  districtSelect.innerHTML = districts.map((d) => `<option value="${d}">${d}</option>`).join("");
 }
 
 export function switchAuthTab(tab) {
@@ -89,54 +82,30 @@ export function switchAuthTab(tab) {
     panelLogin?.classList.add("hidden");
     panelRegister?.classList.remove("hidden");
     panelForgot?.classList.add("hidden");
-    tabRegister?.classList.add(
-      "bg-white",
-      "text-rose-900",
-      "font-black",
-      "shadow-xs"
-    );
+    tabRegister?.classList.add("bg-white", "text-rose-900", "font-black", "shadow-xs");
     tabRegister?.classList.remove("text-slate-500", "font-bold");
-    tabLogin?.classList.remove(
-      "bg-white",
-      "text-rose-900",
-      "font-black",
-      "shadow-xs"
-    );
+    tabLogin?.classList.remove("bg-white", "text-rose-900", "font-black", "shadow-xs");
     tabLogin?.classList.add("text-slate-500", "font-bold");
     if (modalTitle) modalTitle.textContent = "Daftar Akun Penjual";
-    if (modalSubtitle)
-      modalSubtitle.textContent = "Mulai pasang iklan gratis se-Solo Raya";
+    if (modalSubtitle) modalSubtitle.textContent = "Mulai pasang iklan gratis se-Solo Raya";
   } else if (tab === "forgot") {
     tabsContainer?.classList.add("hidden");
     panelLogin?.classList.add("hidden");
     panelRegister?.classList.add("hidden");
     panelForgot?.classList.remove("hidden");
     if (modalTitle) modalTitle.textContent = "Lupa Password Akun";
-    if (modalSubtitle)
-      modalSubtitle.textContent = "Atur ulang password akun Anda";
+    if (modalSubtitle) modalSubtitle.textContent = "Atur ulang password akun Anda";
   } else {
     tabsContainer?.classList.remove("hidden");
     panelLogin?.classList.remove("hidden");
     panelRegister?.classList.add("hidden");
     panelForgot?.classList.add("hidden");
-    tabLogin?.classList.add(
-      "bg-white",
-      "text-rose-900",
-      "font-black",
-      "shadow-xs"
-    );
+    tabLogin?.classList.add("bg-white", "text-rose-900", "font-black", "shadow-xs");
     tabLogin?.classList.remove("text-slate-500", "font-bold");
-    tabRegister?.classList.remove(
-      "bg-white",
-      "text-rose-900",
-      "font-black",
-      "shadow-xs"
-    );
+    tabRegister?.classList.remove("bg-white", "text-rose-900", "font-black", "shadow-xs");
     tabRegister?.classList.add("text-slate-500", "font-bold");
     if (modalTitle) modalTitle.textContent = "Masuk ke Akun";
-    if (modalSubtitle)
-      modalSubtitle.innerHTML =
-        "Cepet Payune, Cepet oleh barange !!!<br>Po ra Well ?";
+    if (modalSubtitle) modalSubtitle.innerHTML = "Cepet Payune, Cepet oleh barange !!!<br>Po ra Well ?";
   }
 }
 

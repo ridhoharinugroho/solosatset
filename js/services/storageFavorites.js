@@ -4,8 +4,8 @@
  * Dipecah dari storageListings.js untuk pemerataan beban kerja.
  */
 
-import { supabase } from '../lib/supabase.js';
-import { getAllListings } from './storageListings.js';
+import { supabase } from "../lib/supabase.js";
+import { getAllListings } from "./storageListings.js";
 
 // ─── FAVORIT LISTING ──────────────────────────────────────────────────────────
 
@@ -17,18 +17,18 @@ export async function getFavoriteIds() {
   try {
     // Kembalikan cache jika sudah ada
     if (Array.isArray(window.__favorites)) return window.__favorites;
-    const { data, error } = await supabase.from('favorites').select('listing_id');
+    const { data, error } = await supabase.from("favorites").select("listing_id");
     if (error) {
-      console.warn('[Supabase] fetch favorites error:', error.message);
+      console.warn("[Supabase] fetch favorites error:", error.message);
       window.__favorites = [];
     } else if (Array.isArray(data)) {
-      window.__favorites = data.map(row => row.listing_id);
+      window.__favorites = data.map((row) => row.listing_id);
     } else {
       window.__favorites = [];
     }
     return window.__favorites;
   } catch (e) {
-    console.error('[Supabase] exception fetching favorites:', e);
+    console.error("[Supabase] exception fetching favorites:", e);
     window.__favorites = [];
     return [];
   }
@@ -42,11 +42,11 @@ export async function toggleFavorite(listingId) {
   const exists = favs.includes(listingId);
   let updated;
   if (exists) {
-    updated = favs.filter(id => id !== listingId);
-    await supabase.from('favorites').delete().eq('listing_id', listingId);
+    updated = favs.filter((id) => id !== listingId);
+    await supabase.from("favorites").delete().eq("listing_id", listingId);
   } else {
     updated = [...favs, listingId];
-    await supabase.from('favorites').insert({ listing_id: listingId });
+    await supabase.from("favorites").insert({ listing_id: listingId });
   }
   window.__favorites = updated;
   return !exists;
@@ -60,7 +60,7 @@ export function isFavorite(listingId) {
     const favs = Array.isArray(window.__favorites) ? window.__favorites : [];
     return favs.includes(listingId);
   } catch (e) {
-    console.error('[isFavorite] error:', e);
+    console.error("[isFavorite] error:", e);
     return false;
   }
 }
@@ -82,9 +82,9 @@ export function getListingsBySellerId(sellerId) {
 export function getSellerStats(sellerId) {
   const items = getListingsBySellerId(sellerId);
   const totalListings = items.length;
-  const availableCount = items.filter((l) => !l.isSold && l.status !== 'sold' && l.status !== 'booked').length;
-  const bookedCount = items.filter((l) => l.status === 'booked').length;
-  const soldCount = items.filter((l) => l.isSold || l.status === 'sold').length;
+  const availableCount = items.filter((l) => !l.isSold && l.status !== "sold" && l.status !== "booked").length;
+  const bookedCount = items.filter((l) => l.status === "booked").length;
+  const soldCount = items.filter((l) => l.isSold || l.status === "sold").length;
   const totalViews = items.reduce((sum, item) => sum + (item.views || 0), 0);
 
   return {
@@ -92,6 +92,6 @@ export function getSellerStats(sellerId) {
     availableCount,
     bookedCount,
     soldCount,
-    totalViews
+    totalViews,
   };
 }

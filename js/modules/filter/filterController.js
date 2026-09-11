@@ -1,7 +1,7 @@
 /**
  * filterController.js
  * Facade utama filter — mendelegasikan ke sub-modul yang lebih spesifik.
- * 
+ *
  * Sub-modul:
  *   - filterMeta.js      : Konstanta metadata (FILTER_*_META)
  *   - filterSelectors.js : Fungsi seleksi UI (selectFilter*)
@@ -9,15 +9,15 @@
  */
 
 // ─── RE-EXPORT KONSTANTA ──────────────────────────────────────────────────────
-export { FILTER_REGION_META, FILTER_CATEGORY_META, FILTER_CONDITION_META } from './filterMeta.js';
+export { FILTER_REGION_META, FILTER_CATEGORY_META, FILTER_CONDITION_META } from "./filterMeta.js";
 
 // ─── RE-EXPORT SELECTORS ──────────────────────────────────────────────────────
 export {
   selectFilterRegion,
   selectFilterDistrict,
   selectFilterCategory,
-  selectFilterCondition
-} from './filterSelectors.js';
+  selectFilterCondition,
+} from "./filterSelectors.js";
 
 // ─── RE-EXPORT ACTIONS ────────────────────────────────────────────────────────
 export {
@@ -28,14 +28,27 @@ export {
   setRegionFilter,
   resetAllFilters,
   updateSortRadioUI,
-  updateActiveFilterChips
-} from './filterActions.js';
+  updateActiveFilterChips,
+} from "./filterActions.js";
 
 // ─── DAFTARKAN KE WINDOW (BACKWARD COMPATIBILITY) ────────────────────────────
-import { selectFilterRegion, selectFilterDistrict, selectFilterCategory, selectFilterCondition } from './filterSelectors.js';
-import { populateFilterModalOptions, openFilterModal, applyFilterModal, setRegionFilter, resetAllFilters, updateSortRadioUI, updateActiveFilterChips } from './filterActions.js';
+import {
+  selectFilterRegion,
+  selectFilterDistrict,
+  selectFilterCategory,
+  selectFilterCondition,
+} from "./filterSelectors.js";
+import {
+  populateFilterModalOptions,
+  openFilterModal,
+  applyFilterModal,
+  setRegionFilter,
+  resetAllFilters,
+  updateSortRadioUI,
+  updateActiveFilterChips,
+} from "./filterActions.js";
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.selectFilterRegion = selectFilterRegion;
   window.selectFilterDistrict = selectFilterDistrict;
   window.populateFilterModalOptions = populateFilterModalOptions;

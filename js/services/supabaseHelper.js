@@ -1,6 +1,6 @@
 // js/services/supabaseHelper.js
 // Generic async helper for Supabase CRUD operations used across the app.
-import { supabase } from '../lib/supabase.js';
+import { supabase } from "../lib/supabase.js";
 
 function ensureClient(fnName) {
   if (!supabase) {
@@ -11,8 +11,8 @@ function ensureClient(fnName) {
 }
 
 export async function sbFetchAll(table) {
-  if (!ensureClient('sbFetchAll')) return null;
-  const { data, error } = await supabase.from(table).select('*');
+  if (!ensureClient("sbFetchAll")) return null;
+  const { data, error } = await supabase.from(table).select("*");
   if (error) {
     console.error(`[SupabaseHelper] fetchAll ${table}:`, error.message);
     return null;
@@ -20,9 +20,9 @@ export async function sbFetchAll(table) {
   return data;
 }
 
-export async function sbFetchById(table, id, column = 'id') {
-  if (!ensureClient('sbFetchById')) return null;
-  const { data, error } = await supabase.from(table).select('*').eq(column, id).single();
+export async function sbFetchById(table, id, column = "id") {
+  if (!ensureClient("sbFetchById")) return null;
+  const { data, error } = await supabase.from(table).select("*").eq(column, id).single();
   if (error) {
     console.error(`[SupabaseHelper] fetchById ${table}.${column}=${id}:`, error.message);
     return null;
@@ -31,7 +31,7 @@ export async function sbFetchById(table, id, column = 'id') {
 }
 
 export async function sbInsert(table, payload) {
-  if (!ensureClient('sbInsert')) return null;
+  if (!ensureClient("sbInsert")) return null;
   const { data, error } = await supabase.from(table).insert([payload]);
   if (error) {
     console.error(`[SupabaseHelper] insert into ${table}:`, error.message);
@@ -40,11 +40,14 @@ export async function sbInsert(table, payload) {
   return data;
 }
 
-export async function sbUpdate(table, payload, matchColumn = 'id') {
-  if (!ensureClient('sbUpdate')) return null;
+export async function sbUpdate(table, payload, matchColumn = "id") {
+  if (!ensureClient("sbUpdate")) return null;
   const matchValue = payload ? payload[matchColumn] : null;
-  if (!matchValue || String(matchValue).trim() === '') {
-    console.warn(`[SupabaseHelper] sbUpdate dibatalkan: Kolom '${matchColumn}' kosong atau tidak valid pada payload.`, payload);
+  if (!matchValue || String(matchValue).trim() === "") {
+    console.warn(
+      `[SupabaseHelper] sbUpdate dibatalkan: Kolom '${matchColumn}' kosong atau tidak valid pada payload.`,
+      payload,
+    );
     return null;
   }
   const { data, error } = await supabase.from(table).update(payload).eq(matchColumn, matchValue);
@@ -57,14 +60,18 @@ export async function sbUpdate(table, payload, matchColumn = 'id') {
 
 // Fungsi khusus untuk membaca profil pengguna murni dari tabel 'users' di Supabase
 export async function sbFetchUserProfile(userIdOrEmail) {
-  if (!ensureClient('sbFetchUserProfile')) return null;
-  const target = userIdOrEmail && typeof userIdOrEmail === 'string' ? userIdOrEmail.trim() : '';
+  if (!ensureClient("sbFetchUserProfile")) return null;
+  const target = userIdOrEmail && typeof userIdOrEmail === "string" ? userIdOrEmail.trim() : "";
   if (!target) return null;
 
-  const isEmail = target.includes('@');
-  const column = isEmail ? 'email' : 'id';
+  const isEmail = target.includes("@");
+  const column = isEmail ? "email" : "id";
 
-  const { data, error } = await supabase.from('users').select('*').eq(column, isEmail ? target.toLowerCase() : target).maybeSingle();
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq(column, isEmail ? target.toLowerCase() : target)
+    .maybeSingle();
   if (error) {
     console.error(`[SupabaseHelper] fetchUserProfile users.${column}=${target}:`, error.message);
     return null;
@@ -74,15 +81,15 @@ export async function sbFetchUserProfile(userIdOrEmail) {
 
 // Fungsi khusus untuk update profil user (termasuk region & district kecamatan) pada tabel 'users'
 export async function sbUpdateUserProfile(userId, profileData) {
-  if (!ensureClient('sbUpdateUserProfile')) return null;
-  const validId = userId && typeof userId === 'string' ? userId.trim() : (userId ? String(userId) : '');
+  if (!ensureClient("sbUpdateUserProfile")) return null;
+  const validId = userId && typeof userId === "string" ? userId.trim() : userId ? String(userId) : "";
   if (!validId) {
-    console.warn('[SupabaseHelper] sbUpdateUserProfile dibatalkan: userId kosong atau tidak valid.');
+    console.warn("[SupabaseHelper] sbUpdateUserProfile dibatalkan: userId kosong atau tidak valid.");
     return null;
   }
 
   const payload = {
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
   };
 
   if (profileData.name !== undefined) payload.name = profileData.name;
@@ -95,13 +102,10 @@ export async function sbUpdateUserProfile(userId, profileData) {
   if (profileData.bio !== undefined) payload.bio = profileData.bio;
   if (profileData.avatar !== undefined) payload.avatar = profileData.avatar;
 
-  const { data, error } = await supabase
-    .from('users')
-    .update(payload)
-    .eq('id', validId);
+  const { data, error } = await supabase.from("users").update(payload).eq("id", validId);
 
   if (error) {
-    console.error('[SupabaseHelper] update user profile:', error.message);
+    console.error("[SupabaseHelper] update user profile:", error.message);
     return null;
   }
   return data;
@@ -109,33 +113,33 @@ export async function sbUpdateUserProfile(userId, profileData) {
 
 // Fungsi khusus untuk update kolom 'avatar' pada tabel users
 export async function sbUpdateUserAvatar(userId, avatarUrl) {
-  if (!ensureClient('sbUpdateUserAvatar')) return null;
-  const validId = userId && typeof userId === 'string' ? userId.trim() : (userId ? String(userId) : '');
+  if (!ensureClient("sbUpdateUserAvatar")) return null;
+  const validId = userId && typeof userId === "string" ? userId.trim() : userId ? String(userId) : "";
   if (!validId) {
-    console.warn('[SupabaseHelper] sbUpdateUserAvatar dibatalkan: userId kosong atau tidak valid.');
+    console.warn("[SupabaseHelper] sbUpdateUserAvatar dibatalkan: userId kosong atau tidak valid.");
     return null;
   }
-  
+
   // Paksa set null jika avatarUrl kosong/null/undefined/string kosong
-  const finalAvatar = (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '') ? avatarUrl.trim() : null;
+  const finalAvatar = avatarUrl && typeof avatarUrl === "string" && avatarUrl.trim() !== "" ? avatarUrl.trim() : null;
 
   const { data, error } = await supabase
-    .from('users')
-    .update({ 
-      avatar: finalAvatar, 
-      updated_at: new Date().toISOString() 
+    .from("users")
+    .update({
+      avatar: finalAvatar,
+      updated_at: new Date().toISOString(),
     })
-    .eq('id', validId);
+    .eq("id", validId);
 
   if (error) {
-    console.error('[SupabaseHelper] update user avatar:', error.message);
+    console.error("[SupabaseHelper] update user avatar:", error.message);
     return null;
   }
   return data;
 }
 
-export async function sbDelete(table, id, column = 'id') {
-  if (!ensureClient('sbDelete')) return null;
+export async function sbDelete(table, id, column = "id") {
+  if (!ensureClient("sbDelete")) return null;
   const { data, error } = await supabase.from(table).delete().eq(column, id);
   if (error) {
     console.error(`[SupabaseHelper] delete from ${table} where ${column}=${id}:`, error.message);
@@ -145,11 +149,11 @@ export async function sbDelete(table, id, column = 'id') {
 }
 
 // Convenience wrappers for common tables
-export const fetchSiteSettings = () => sbFetchAll('site_settings');
-export const fetchCustomTexts = () => sbFetchAll('custom_texts');
-export const fetchListings = () => sbFetchAll('listings');
+export const fetchSiteSettings = () => sbFetchAll("site_settings");
+export const fetchCustomTexts = () => sbFetchAll("custom_texts");
+export const fetchListings = () => sbFetchAll("listings");
 export const fetchFavorites = async (userId) => {
-  const all = await sbFetchAll('favorites');
-  return all?.filter(f => f.user_id === userId) ?? [];
+  const all = await sbFetchAll("favorites");
+  return all?.filter((f) => f.user_id === userId) ?? [];
 };
-export const fetchAppReviews = () => sbFetchAll('app_reviews');
+export const fetchAppReviews = () => sbFetchAll("app_reviews");

@@ -10,7 +10,7 @@ export function formatAdminDate(dateStr) {
     return new Date(dateStr).toLocaleDateString("id-ID", {
       day: "numeric",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     });
   } catch (e) {
     return dateStr;

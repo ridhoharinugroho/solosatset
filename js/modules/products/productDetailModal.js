@@ -1,4 +1,13 @@
-import { getListingById, incrementListingViews, isFavorite, toggleFavorite, getSiteSettings, saveSiteSettings, getSellerRatingStats, isSellerVerified } from "../../services/storage.js";
+import {
+  getListingById,
+  incrementListingViews,
+  isFavorite,
+  toggleFavorite,
+  getSiteSettings,
+  saveSiteSettings,
+  getSellerRatingStats,
+  isSellerVerified,
+} from "../../services/storage.js";
 import { getRegionById } from "../../data/regions.js";
 import { CATEGORIES, CONDITIONS, NEGO_TYPES } from "../../data/categories.js";
 import { formatRupiah, timeAgo, generateWhatsAppUrl } from "../../services/whatsapp.js";
@@ -13,7 +22,7 @@ import { refreshIcons } from "../../utils/runtime.js";
 export function openProductDetail(listingId, state) {
   const listing = getListingById(listingId);
   if (!listing) return;
-  
+
   state.currentDetailListing = listing;
   trackUserInterest(listing);
   incrementListingViews(listingId);
@@ -72,13 +81,25 @@ export function openProductDetail(listingId, state) {
 
   const paymentBadge = document.getElementById("detail-payment-method-badge");
   if (paymentBadge) {
-    const isCod = "cod" === (listing.paymentMethod || ((String(listing.id).split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) + (listing.title || "").length) % 2 == 0 ? "cod" : "in_store"));
+    const isCod =
+      "cod" ===
+      (listing.paymentMethod ||
+        ((String(listing.id)
+          .split("")
+          .reduce((acc, char) => acc + char.charCodeAt(0), 0) +
+          (listing.title || "").length) %
+          2 ==
+        0
+          ? "cod"
+          : "in_store"));
     if (isCod) {
       paymentBadge.innerHTML = '<i data-lucide="handshake" class="w-3.5 h-3.5 text-emerald-700"></i><span>COD</span>';
-      paymentBadge.className = "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-100/90 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1.5";
+      paymentBadge.className =
+        "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-100/90 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1.5";
     } else {
       paymentBadge.innerHTML = '<i data-lucide="store" class="w-3.5 h-3.5 text-sky-700"></i><span>In Store</span>';
-      paymentBadge.className = "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-sky-100/90 text-sky-800 border border-sky-300 shadow-2xs flex items-center gap-1.5";
+      paymentBadge.className =
+        "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-sky-100/90 text-sky-800 border border-sky-300 shadow-2xs flex items-center gap-1.5";
     }
   }
 
@@ -91,7 +112,11 @@ export function openProductDetail(listingId, state) {
   const regBadge = document.getElementById("detail-region-badge");
   if (regBadge) {
     const shortRegName = region
-        ? region.shortName || region.name.replace(/Kota|Kab\./gi, "").replace(/\(.*?\)/g, "").trim()
+        ? region.shortName ||
+          region.name
+            .replace(/Kota|Kab\./gi, "")
+            .replace(/\(.*?\)/g, "")
+            .trim()
         : listing.regionId || "Solo",
       locSnippet = listing.district ? `${shortRegName} • ${listing.district}` : shortRegName;
     regBadge.innerHTML = `<i data-lucide="map-pin" class="w-3 h-3 text-rose-700"></i><span>${locSnippet}</span>`;
@@ -102,13 +127,16 @@ export function openProductDetail(listingId, state) {
   if (statusBadge) {
     if ("sold" === itemStatus || listing.isSold) {
       statusBadge.innerHTML = '<i data-lucide="x-circle" class="w-3 h-3 text-rose-600"></i><span>Terjual</span>';
-      statusBadge.className = "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs flex items-center gap-1";
+      statusBadge.className =
+        "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs flex items-center gap-1";
     } else if ("booked" === itemStatus) {
       statusBadge.innerHTML = '<i data-lucide="clock" class="w-3 h-3 text-amber-600"></i><span>Booked</span>';
-      statusBadge.className = "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1";
+      statusBadge.className =
+        "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs flex items-center gap-1";
     } else {
       statusBadge.innerHTML = '<i data-lucide="sparkles" class="w-3 h-3 text-emerald-600"></i><span>Tersedia</span>';
-      statusBadge.className = "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1";
+      statusBadge.className =
+        "px-2.5 py-1 rounded-xl text-[11px] sm:text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1";
     }
   }
 
@@ -122,7 +150,8 @@ export function openProductDetail(listingId, state) {
   const negoBadge = document.getElementById("detail-nego-badge"),
     negoObj = NEGO_TYPES.find((n) => n.id === listing.negoType);
   if (negoBadge) {
-    const negoLabel = "pas" === listing.negoType ? "Nett" : negoObj ? negoObj.short || negoObj.label.split("(")[0].trim() : "Bisa Nego";
+    const negoLabel =
+      "pas" === listing.negoType ? "Nett" : negoObj ? negoObj.short || negoObj.label.split("(")[0].trim() : "Bisa Nego";
     negoBadge.innerHTML = `<i data-lucide="badge-percent" class="w-3 h-3 text-amber-700"></i><span>${negoLabel}</span>`;
   }
 
@@ -148,7 +177,10 @@ export function openProductDetail(listingId, state) {
       const mapsBtnHtml = listing.storeMapsUrl
           ? `\n        <div class="mt-2">\n          <a href="${listing.storeMapsUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-700 hover:bg-sky-800 text-white rounded-xl text-xs font-bold shadow-2xs transition-all">\n            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-300"></i>\n            <span>Buka Lokasi Toko (Google Maps)</span>\n            <i data-lucide="external-link" class="w-3 h-3 text-sky-200"></i>\n          </a>\n        </div>\n      `
           : "",
-        storeLoc = listing.codPoint && listing.codPoint.trim() ? listing.codPoint : `Ambil langsung di toko / lokasi penjual (Area ${listing.district ? listing.district + ", " : ""}${regionName})`;
+        storeLoc =
+          listing.codPoint && listing.codPoint.trim()
+            ? listing.codPoint
+            : `Ambil langsung di toko / lokasi penjual (Area ${listing.district ? listing.district + ", " : ""}${regionName})`;
       codEl.innerHTML = `<div>${storeLoc}</div>${mapsBtnHtml}`;
       if (codBox) {
         const titleEl = codBox.querySelector(".uppercase");
@@ -189,21 +221,30 @@ export function openProductDetail(listingId, state) {
     sellerRatingText.textContent = `${ratingStats.averageRating.toFixed(1)} (${ratingStats.totalReviews} Ulasan)`;
   }
   const isSellerVer = isSellerVerified(sellerId || listing.seller),
-    isDemo = isDemoUser(sellerId || listing.seller) || Boolean(listing.isDemo) || Boolean(listing.id && listing.id.startsWith("barkas-0"));
+    isDemo =
+      isDemoUser(sellerId || listing.seller) ||
+      Boolean(listing.isDemo) ||
+      Boolean(listing.id && listing.id.startsWith("barkas-0"));
 
   if (sellerBadgeText) {
     if (isDemo) {
       sellerBadgeText.textContent = "AKUN DEMO / PERAGA";
       const badgeParent = sellerBadgeText.parentElement;
-      if (badgeParent) badgeParent.className = "inline-flex items-center gap-1 bg-amber-400 text-slate-950 border border-amber-500 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs";
+      if (badgeParent)
+        badgeParent.className =
+          "inline-flex items-center gap-1 bg-amber-400 text-slate-950 border border-amber-500 text-[10px] sm:text-xs font-black px-2.5 py-0.5 rounded-full shadow-xs";
     } else if (isSellerVer) {
       sellerBadgeText.textContent = `Toko Lokal ${region ? region.shortName : "Solo Raya"} Terverifikasi`;
       const badgeParent = sellerBadgeText.parentElement;
-      if (badgeParent) badgeParent.className = "inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full";
+      if (badgeParent)
+        badgeParent.className =
+          "inline-flex items-center gap-1 bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full";
     } else {
       sellerBadgeText.textContent = `Toko Member ${region ? region.shortName : "Solo Raya"}`;
       const badgeParent = sellerBadgeText.parentElement;
-      if (badgeParent) badgeParent.className = "inline-flex items-center gap-1 bg-slate-700 text-slate-300 border border-slate-600 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full";
+      if (badgeParent)
+        badgeParent.className =
+          "inline-flex items-center gap-1 bg-slate-700 text-slate-300 border border-slate-600 text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full";
     }
   }
 
@@ -212,38 +253,68 @@ export function openProductDetail(listingId, state) {
     if (!existingDemoBadge) {
       const demoBadge = document.createElement("div");
       demoBadge.id = "detail-photo-demo-badge";
-      demoBadge.className = "absolute top-3 left-3 z-10 px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-slate-950 border border-amber-500 shadow-md flex items-center gap-1.5";
+      demoBadge.className =
+        "absolute top-3 left-3 z-10 px-2.5 py-1 rounded-xl text-xs font-black bg-amber-400 text-slate-950 border border-amber-500 shadow-md flex items-center gap-1.5";
       demoBadge.innerHTML = '<i data-lucide="tag" class="w-3.5 h-3.5"></i><span>AKUN DEMO / PERAGA</span>';
       document.getElementById("detail-photo-container")?.appendChild(demoBadge);
     }
   } else existingDemoBadge?.remove();
 
   if (sellerJoinedText) {
-    const rawDate = sellerUser?.created_at || sellerUser?.createdAt || listing.seller?.created_at || listing.seller?.createdAt || listing.created_at || listing.createdAt;
+    const rawDate =
+      sellerUser?.created_at ||
+      sellerUser?.createdAt ||
+      listing.seller?.created_at ||
+      listing.seller?.createdAt ||
+      listing.created_at ||
+      listing.createdAt;
     sellerJoinedText.textContent = `Bergabung: ${formatJoinedDate(rawDate)}`;
   }
 
   if (sellerAvatar) {
-    sellerAvatar.src = listing.seller?.avatar || sellerUser?.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(listing.seller?.storeName || listing.seller?.name || "solo")}`;
+    sellerAvatar.src =
+      listing.seller?.avatar ||
+      sellerUser?.avatar ||
+      `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(listing.seller?.storeName || listing.seller?.name || "solo")}`;
   }
   if (sellerName) {
-    sellerName.textContent = sellerUser?.storeName || listing.seller?.storeName || listing.seller?.name || "Penjual Terverifikasi";
+    sellerName.textContent =
+      sellerUser?.storeName || listing.seller?.storeName || listing.seller?.name || "Penjual Terverifikasi";
   }
 
   if (sellerRegion) {
-    const capReg = (region ? region.shortName || region.name.replace(/Kota|Kab\./gi, "").replace(/\(.*?\)/g, "").trim() : listing.regionId || "Solo")
+    const capReg = (
+      region
+        ? region.shortName ||
+          region.name
+            .replace(/Kota|Kab\./gi, "")
+            .replace(/\(.*?\)/g, "")
+            .trim()
+        : listing.regionId || "Solo"
+    )
       .split(" ")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(" ");
-    const distClean = (listing.district || sellerUser?.district || "").trim().replace(/\.+$/, "").replace(/^Kec\.?\s*/i, "");
-    const capDist = distClean ? distClean.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
+    const distClean = (listing.district || sellerUser?.district || "")
+      .trim()
+      .replace(/\.+$/, "")
+      .replace(/^Kec\.?\s*/i, "");
+    const capDist = distClean
+      ? distClean
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+          .join(" ")
+      : "";
     sellerRegion.textContent = capDist ? `${capReg} • ${capDist}` : capReg;
   }
 
   const viewSellerBtn = document.getElementById("btn-view-seller-profile");
   if (viewSellerBtn) {
     viewSellerBtn.onclick = (e) => {
-      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       openSellerProfileModal(sellerId || listing.seller);
     };
   }
@@ -287,7 +358,10 @@ export function openProductDetail(listingId, state) {
         if (!isUserLoggedIn()) {
           e.preventDefault();
           e.stopPropagation();
-          openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk menghubungi penjual via WhatsApp.");
+          openUserAuthModal(
+            "login",
+            "Silakan masuk atau daftar akun terlebih dahulu untuk menghubungi penjual via WhatsApp.",
+          );
         }
       };
     }
@@ -303,9 +377,12 @@ export function openProductDetail(listingId, state) {
     const copyBtn = document.getElementById("btn-copy-wa-message");
     if (copyBtn) {
       copyBtn.onclick = () => {
-        navigator.clipboard.writeText(msg).then(() => {
-          showToast("Format pesan WhatsApp berhasil disalin ke clipboard!", "success");
-        }).catch(() => showToast("Teks disalin", "info"));
+        navigator.clipboard
+          .writeText(msg)
+          .then(() => {
+            showToast("Format pesan WhatsApp berhasil disalin ke clipboard!", "success");
+          })
+          .catch(() => showToast("Teks disalin", "info"));
       };
     }
   }
@@ -336,25 +413,34 @@ function openShareModal(listing) {
   if (itemImg) itemImg.src = listing.images && listing.images[0] ? listing.images[0] : "";
   if (itemTitle) itemTitle.textContent = listing.title;
   if (itemPrice) itemPrice.textContent = formatRupiah(listing.price);
-  if (itemLoc) itemLoc.innerHTML = `<i data-lucide="map-pin" class="w-3 h-3 text-rose-700"></i><span>${locSnippet}</span>`;
+  if (itemLoc)
+    itemLoc.innerHTML = `<i data-lucide="map-pin" class="w-3 h-3 text-rose-700"></i><span>${locSnippet}</span>`;
   if (linkInput) linkInput.value = shareUrl;
 
   const btnWa = document.getElementById("btn-share-whatsapp");
   if (btnWa) btnWa.href = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
   const btnFb = document.getElementById("btn-share-facebook");
-  if (btnFb) btnFb.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
+  if (btnFb)
+    btnFb.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}&quote=${encodeURIComponent(shareText)}`;
   const btnIg = document.getElementById("btn-share-instagram");
   if (btnIg) {
     btnIg.onclick = (e) => {
       e.preventDefault();
-      navigator.clipboard.writeText(shareText).then(() => {
-        showToast("Teks & tautan iklan berhasil disalin! Silakan tempel di Story / Feed / DM Instagram Anda.", "success");
-      }).catch(() => showToast("Teks iklan disalin ke clipboard", "info"));
+      navigator.clipboard
+        .writeText(shareText)
+        .then(() => {
+          showToast(
+            "Teks & tautan iklan berhasil disalin! Silakan tempel di Story / Feed / DM Instagram Anda.",
+            "success",
+          );
+        })
+        .catch(() => showToast("Teks iklan disalin ke clipboard", "info"));
       setTimeout(() => window.open("https://www.instagram.com/", "_blank"), 350);
     };
   }
   const btnTg = document.getElementById("btn-share-telegram");
-  if (btnTg) btnTg.href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
+  if (btnTg)
+    btnTg.href = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`;
   const btnWaGroup = document.getElementById("btn-share-wagroup");
   if (btnWaGroup) {
     const groupShareText = `*INFO JUAL BELI SOLO RAYA* 📢\n\nDijual: *${listing.title}*\n💰 Harga: ${formatRupiah(listing.price)} (${"pas" === listing.negoType ? "Harga Pas" : "Bisa Nego"})\n📍 Lokasi: ${locSnippet}\n\n👉 Klik link untuk lihat foto lengkap & kontak penjual:\n${shareUrl}`;
@@ -369,19 +455,20 @@ function openShareModal(listing) {
 function setupAdminToolbar(state) {
   const toolbar = document.getElementById("admin-detail-image-toolbar");
   if (!toolbar) return;
-  const currentSettings = (state.siteSettings && state.siteSettings.detailImageSettings) || getSiteSettings().detailImageSettings || {
-    aspectRatio: "aspect-square",
-    maxWidth: 448,
-    maxHeight: 448,
-    objectFit: "cover",
-  },
-  ratioLabel = document.getElementById("detail-aspect-ratio-label"),
-  widthSlider = document.getElementById("detail-width-slider"),
-  widthLabel = document.getElementById("detail-width-label"),
-  heightSlider = document.getElementById("detail-height-slider"),
-  heightLabel = document.getElementById("detail-height-label"),
-  objectFitSelect = document.getElementById("detail-object-fit-select"),
-  saveBtn = document.getElementById("btn-save-detail-photo-size");
+  const currentSettings = (state.siteSettings && state.siteSettings.detailImageSettings) ||
+      getSiteSettings().detailImageSettings || {
+        aspectRatio: "aspect-square",
+        maxWidth: 448,
+        maxHeight: 448,
+        objectFit: "cover",
+      },
+    ratioLabel = document.getElementById("detail-aspect-ratio-label"),
+    widthSlider = document.getElementById("detail-width-slider"),
+    widthLabel = document.getElementById("detail-width-label"),
+    heightSlider = document.getElementById("detail-height-slider"),
+    heightLabel = document.getElementById("detail-height-label"),
+    objectFitSelect = document.getElementById("detail-object-fit-select"),
+    saveBtn = document.getElementById("btn-save-detail-photo-size");
 
   if (widthSlider) {
     widthSlider.value = currentSettings.maxWidth || 448;
@@ -402,18 +489,21 @@ function setupAdminToolbar(state) {
   if (ratioLabel) ratioLabel.textContent = ratioDescriptions[currentSettings.aspectRatio] || "1:1 (Persegi Kotak)";
 
   toolbar.querySelectorAll(".btn-aspect-ratio").forEach((btn) => {
-    btn.className = btn.getAttribute("data-ratio") === currentSettings.aspectRatio
-      ? "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-rose-900 text-white border border-rose-700 font-bold text-[11px] shadow-sm cursor-pointer"
-      : "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all font-bold text-[11px] cursor-pointer";
-    
+    btn.className =
+      btn.getAttribute("data-ratio") === currentSettings.aspectRatio
+        ? "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-rose-900 text-white border border-rose-700 font-bold text-[11px] shadow-sm cursor-pointer"
+        : "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all font-bold text-[11px] cursor-pointer";
+
     btn.onclick = (e) => {
       e.preventDefault();
       const chosenRatio = btn.getAttribute("data-ratio");
       currentSettings.aspectRatio = chosenRatio;
       toolbar.querySelectorAll(".btn-aspect-ratio").forEach((b) => {
-        b.className = "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all font-bold text-[11px] cursor-pointer";
+        b.className =
+          "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 transition-all font-bold text-[11px] cursor-pointer";
       });
-      btn.className = "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-rose-900 text-white border border-rose-700 font-bold text-[11px] shadow-sm cursor-pointer";
+      btn.className =
+        "btn-aspect-ratio py-1.5 px-2 rounded-xl bg-rose-900 text-white border border-rose-700 font-bold text-[11px] shadow-sm cursor-pointer";
       if (ratioLabel) ratioLabel.textContent = ratioDescriptions[chosenRatio] || chosenRatio;
       applyDetailImageSettings(currentSettings);
     };
@@ -429,7 +519,11 @@ function setupAdminToolbar(state) {
       else if ("aspect-[4/3]" === currentSettings.aspectRatio) ratioVal = 4 / 3;
       else if ("aspect-video" === currentSettings.aspectRatio) ratioVal = 16 / 9;
       const proportionalHeight = Math.round(val / ratioVal);
-      if (heightSlider && proportionalHeight <= parseInt(heightSlider.max, 10) && proportionalHeight >= parseInt(heightSlider.min, 10)) {
+      if (
+        heightSlider &&
+        proportionalHeight <= parseInt(heightSlider.max, 10) &&
+        proportionalHeight >= parseInt(heightSlider.min, 10)
+      ) {
         heightSlider.value = proportionalHeight;
         currentSettings.maxHeight = proportionalHeight;
         if (heightLabel) heightLabel.textContent = `${proportionalHeight}px`;

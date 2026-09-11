@@ -3,17 +3,19 @@
  * Pure Web Push Notification implementation without Firebase
  */
 
-import { getCurrentUser } from './auth.js';
+import { getCurrentUser } from "./auth.js";
 
-export const VAPID_PUBLIC_KEY = 'BOMPQQn3bQc9vJt68WlanKbCfTpN-N2HLoTkB34G0348Cqoh1P1SD5wt4aK40fBG090yDkkAoCVBICK0IigZ07Y';
-const STORAGE_KEY_PUSH_ENABLED = 'solosatset_push_enabled';
+export const VAPID_PUBLIC_KEY =
+  "BOMPQQn3bQc9vJt68WlanKbCfTpN-N2HLoTkB34G0348Cqoh1P1SD5wt4aK40fBG090yDkkAoCVBICK0IigZ07Y";
+  // eslint-disable-next-line no-unused-vars
+const STORAGE_KEY_PUSH_ENABLED = "solosatset_push_enabled";
 
 /**
  * Helper: Convert VAPID base64 string to Uint8Array
  */
 function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) {
@@ -26,14 +28,16 @@ function urlBase64ToUint8Array(base64String) {
  * Check if Web Push Notification is supported in current browser
  */
 export function isPushNotificationSupported() {
-  return typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  return (
+    typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window
+  );
 }
 
 /**
  * Check current notification permission status ('granted', 'denied', 'default')
  */
 export function getNotificationPermissionStatus() {
-  if (!isPushNotificationSupported()) return 'unsupported';
+  if (!isPushNotificationSupported()) return "unsupported";
   return Notification.permission;
 }
 
@@ -42,12 +46,12 @@ export function getNotificationPermissionStatus() {
  */
 export async function requestNotificationPermission() {
   if (!isPushNotificationSupported()) {
-    throw new Error('Web Push Notification tidak didukung pada browser/perangkat ini.');
+    throw new Error("Web Push Notification tidak didukung pada browser/perangkat ini.");
   }
 
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    throw new Error('Izin notifikasi tidak diberikan oleh pengguna.');
+  if (permission !== "granted") {
+    throw new Error("Izin notifikasi tidak diberikan oleh pengguna.");
   }
 
   return permission;
@@ -61,7 +65,7 @@ export async function subscribeUserToPush() {
 
   try {
     const perm = await requestNotificationPermission();
-    if (perm !== 'granted') return null;
+    if (perm !== "granted") return null;
 
     const registration = await navigator.serviceWorker.ready;
     let subscription = await registration.pushManager.getSubscription();
@@ -70,34 +74,34 @@ export async function subscribeUserToPush() {
       const convertedVapidKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey
+        applicationServerKey: convertedVapidKey,
       });
     }
 
     if (subscription) {
       const user = getCurrentUser();
       const payload = {
-        action: 'subscribe',
+        action: "subscribe",
         subscription: subscription.toJSON(),
         userId: user ? user.id : null,
-        userEmail: user ? user.email : null
+        userEmail: user ? user.email : null,
       };
 
       // Kirim langganan ke backend Supabase
-      const response = await fetch('/api/push-subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      const response = await fetch("/api/push-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         window.__solosatset_push_enabled = true;
-        console.log('[Web Push] Perangkat berhasil terdaftar untuk notifikasi push SoloSatSet.');
+        console.log("[Web Push] Perangkat berhasil terdaftar untuk notifikasi push SoloSatSet.");
       }
       return subscription;
     }
   } catch (error) {
-    console.error('[Web Push Subscribe Error]', error);
+    console.error("[Web Push Subscribe Error]", error);
     throw error;
   }
   return null;
@@ -114,22 +118,22 @@ export async function unsubscribeUserFromPush() {
     const subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-      await fetch('/api/push-subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/push-subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: 'unsubscribe',
-          subscription: subscription.toJSON()
-        })
+          action: "unsubscribe",
+          subscription: subscription.toJSON(),
+        }),
       });
 
       await subscription.unsubscribe();
       window.__solosatset_push_enabled = false;
-      console.log('[Web Push] Perangkat berhasil berhenti berlangganan notifikasi push.');
+      console.log("[Web Push] Perangkat berhasil berhenti berlangganan notifikasi push.");
       return true;
     }
   } catch (error) {
-    console.error('[Web Push Unsubscribe Error]', error);
+    console.error("[Web Push Unsubscribe Error]", error);
   }
   return false;
 }
@@ -139,21 +143,21 @@ export async function unsubscribeUserFromPush() {
  */
 export async function sendPushBroadcast({ title, body, url, tag, targetUserId, targetEmail }) {
   try {
-    const response = await fetch('/api/push-notify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const response = await fetch("/api/push-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: title || '📢 Pusat Jual Beli Solo Raya',
-        body: body || 'Pembaruan sistem & info barang terbaru!',
-        url: url || 'https://solosatset.vercel.app/',
-        tag: tag || 'solosatset-update',
+        title: title || "📢 Pusat Jual Beli Solo Raya",
+        body: body || "Pembaruan sistem & info barang terbaru!",
+        url: url || "https://solosatset.vercel.app/",
+        tag: tag || "solosatset-update",
         targetUserId,
-        targetEmail
-      })
+        targetEmail,
+      }),
     });
     return await response.json();
   } catch (e) {
-    console.error('[Web Push Broadcast Error]', e);
+    console.error("[Web Push Broadcast Error]", e);
     return { success: false, error: e.message };
   }
 }
@@ -164,26 +168,26 @@ export async function sendPushBroadcast({ title, body, url, tag, targetUserId, t
 export async function initPushNotification() {
   if (!isPushNotificationSupported()) return;
 
-  if (Notification.permission === 'granted') {
+  if (Notification.permission === "granted") {
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       if (subscription) {
         const user = getCurrentUser();
         // Sync silently with Supabase
-        fetch('/api/push-subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        fetch("/api/push-subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action: 'subscribe',
+            action: "subscribe",
             subscription: subscription.toJSON(),
             userId: user ? user.id : null,
-            userEmail: user ? user.email : null
-          })
+            userEmail: user ? user.email : null,
+          }),
         }).catch(() => {});
       }
-    } catch (e) {}
-  } else if (Notification.permission === 'default') {
+    } catch (_e) {}
+  } else if (Notification.permission === "default") {
     // Tampilkan banner ajakan izin notifikasi secara cerdas pada interaksi pertama
     setTimeout(showPushNotificationBanner, 3500);
   }
@@ -194,14 +198,15 @@ export async function initPushNotification() {
  */
 export function showPushNotificationBanner() {
   if (!isPushNotificationSupported()) return;
-  if (Notification.permission !== 'default') return;
-  if (sessionStorage.getItem('solosatset_push_prompt_dismissed')) return;
-  if (document.getElementById('push-notification-floating-banner')) return;
+  if (Notification.permission !== "default") return;
+  if (sessionStorage.getItem("solosatset_push_prompt_dismissed")) return;
+  if (document.getElementById("push-notification-floating-banner")) return;
 
-  const banner = document.createElement('div');
-  banner.id = 'push-notification-floating-banner';
-  banner.className = 'fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[99999] w-[92%] sm:w-auto sm:max-w-md bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-rose-500/30 flex items-center justify-between gap-3 animate-bounce-in';
-  
+  const banner = document.createElement("div");
+  banner.id = "push-notification-floating-banner";
+  banner.className =
+    "fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-[99999] w-[92%] sm:w-auto sm:max-w-md bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-rose-500/30 flex items-center justify-between gap-3 animate-bounce-in";
+
   banner.innerHTML = `
     <div class="flex items-center gap-2.5 min-w-0">
       <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600 to-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md">
@@ -233,41 +238,40 @@ export function showPushNotificationBanner() {
 
   document.body.appendChild(banner);
 
-  document.getElementById('btn-banner-allow-push')?.addEventListener('click', async () => {
+  document.getElementById("btn-banner-allow-push")?.addEventListener("click", async () => {
     try {
       const sub = await subscribeUserToPush();
       if (sub) {
         // Tampilkan notifikasi native perdana sebagai konfirmasi
         try {
           const reg = await navigator.serviceWorker.ready;
-          reg.showNotification('🎉 Notifikasi SoloSatSet Aktif!', {
-            body: 'Selamat! Anda akan menerima info barang seken dan pesan pembeli langsung di perangkat ini.',
-            icon: './assets/img/app-logo.png?v=2.1',
-            badge: './assets/img/app-logo.png?v=2.1',
+          reg.showNotification("🎉 Notifikasi SoloSatSet Aktif!", {
+            body: "Selamat! Anda akan menerima info barang seken dan pesan pembeli langsung di perangkat ini.",
+            icon: "./assets/img/app-logo.png?v=2.1",
+            badge: "./assets/img/app-logo.png?v=2.1",
             vibrate: [200, 100, 200],
-            tag: 'solosatset-welcome'
+            tag: "solosatset-welcome",
           });
-        } catch (e) {}
+        } catch (_e) {}
       }
     } catch (e) {
-      console.warn('[Push Banner Notice]', e);
+      console.warn("[Push Banner Notice]", e);
     } finally {
       banner.remove();
     }
   });
 
-  document.getElementById('btn-banner-dismiss-push')?.addEventListener('click', () => {
-    sessionStorage.setItem('solosatset_push_prompt_dismissed', 'true');
+  document.getElementById("btn-banner-dismiss-push")?.addEventListener("click", () => {
+    sessionStorage.setItem("solosatset_push_prompt_dismissed", "true");
     banner.remove();
   });
 }
 
 // Auto-run on idle load
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   if (window.requestIdleCallback) {
     window.requestIdleCallback(() => initPushNotification());
   } else {
     setTimeout(initPushNotification, 2000);
   }
 }
-

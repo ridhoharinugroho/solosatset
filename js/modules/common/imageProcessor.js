@@ -6,7 +6,7 @@
  */
 export function processSquareImage(file) {
   return new Promise((resolve, reject) => {
-    if (!file || !file.type || !file.type.startsWith('image/')) {
+    if (!file || !file.type || !file.type.startsWith("image/")) {
       reject(new Error("File yang diunggah harus berupa gambar (JPG, PNG, WEBP)."));
       return;
     }
@@ -24,17 +24,17 @@ export function processSquareImage(file) {
         const startY = (naturalH - minDim) / 2;
 
         const targetSize = Math.min(1000, minDim);
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = targetSize;
         canvas.height = targetSize;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = "high";
 
         ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
 
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
         console.log(`[processSquareImage] Foto diproses ke 1:1 Persegi (${targetSize}x${targetSize}px, Quality 0.8)`);
         resolve(dataUrl);
       };
@@ -44,6 +44,6 @@ export function processSquareImage(file) {
   });
 }
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window.processSquareImage = processSquareImage;
 }

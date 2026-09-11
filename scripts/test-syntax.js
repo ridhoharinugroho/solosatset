@@ -1,11 +1,11 @@
-import { spawnSync } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 const ROOT = process.cwd();
-const SKIP = new Set(['node_modules', '.git', '.vercel']);
-const ROOTS = ['js', 'scripts', 'api'];
-const EXTENSIONS = new Set(['.js', '.mjs', '.cjs']);
+const SKIP = new Set(["node_modules", ".git", ".vercel"]);
+const ROOTS = ["js", "scripts", "api"];
+const EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 
 function walk(dir) {
   const files = [];
@@ -29,16 +29,16 @@ const files = ROOTS.flatMap((dir) => walk(path.join(ROOT, dir)));
 const failures = [];
 
 for (const file of files) {
-  const relativePath = path.relative(ROOT, file).replaceAll(path.sep, '/');
-  const result = spawnSync(process.execPath, ['--check', file], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe']
+  const relativePath = path.relative(ROOT, file).replaceAll(path.sep, "/");
+  const result = spawnSync(process.execPath, ["--check", file], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
   });
 
   if (result.status !== 0) {
     failures.push({
       file: relativePath,
-      output: `${result.stderr || result.stdout || 'Unknown syntax error'}`.trim()
+      output: `${result.stderr || result.stdout || "Unknown syntax error"}`.trim(),
     });
   }
 }

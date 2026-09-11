@@ -1,17 +1,17 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 function walk(dir) {
   let results = [];
   const list = fs.readdirSync(dir);
-  list.forEach(file => {
+  list.forEach((file) => {
     const fullPath = path.join(dir, file);
     const stat = fs.statSync(fullPath);
     if (stat && stat.isDirectory()) {
-      if (!fullPath.includes('node_modules') && !fullPath.includes('.git') && !fullPath.includes('scratch')) {
+      if (!fullPath.includes("node_modules") && !fullPath.includes(".git") && !fullPath.includes("scratch")) {
         results = results.concat(walk(fullPath));
       }
-    } else if (fullPath.endsWith('.js') || fullPath.endsWith('.mjs')) {
+    } else if (fullPath.endsWith(".js") || fullPath.endsWith(".mjs")) {
       results.push(fullPath);
     }
   });
@@ -25,9 +25,9 @@ function getExportsFromFile(filePath, visited = new Set()) {
   visited.add(normalized);
 
   const exports = new Set();
-  let content = '';
+  let content = "";
   try {
-    content = fs.readFileSync(normalized, 'utf8');
+    content = fs.readFileSync(normalized, "utf8");
   } catch (e) {
     return exports;
   }
@@ -45,18 +45,24 @@ function getExportsFromFile(filePath, visited = new Set()) {
     if (fromPath) {
       const targetFile = resolveImportPath(normalized, fromPath);
       const targetExports = getExportsFromFile(targetFile, visited);
-      const items = clause.split(',').map(s => s.trim()).filter(Boolean);
-      items.forEach(item => {
+      const items = clause
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      items.forEach((item) => {
         const parts = item.split(/\s+as\s+/);
         const originalName = parts[0].trim();
         const exportedName = (parts[1] || parts[0]).trim();
-        if (targetExports.has(originalName) || originalName === '*') {
+        if (targetExports.has(originalName) || originalName === "*") {
           exports.add(exportedName);
         }
       });
     } else {
-      const items = clause.split(',').map(s => s.trim()).filter(Boolean);
-      items.forEach(item => {
+      const items = clause
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      items.forEach((item) => {
         const parts = item.split(/\s+as\s+/);
         const exportedName = (parts[1] || parts[0]).trim();
         exports.add(exportedName);
@@ -69,7 +75,7 @@ function getExportsFromFile(filePath, visited = new Set()) {
     const fromPath = m[1];
     const targetFile = resolveImportPath(normalized, fromPath);
     const targetExports = getExportsFromFile(targetFile, visited);
-    targetExports.forEach(e => exports.add(e));
+    targetExports.forEach((e) => exports.add(e));
   }
 
   return exports;
@@ -77,24 +83,24 @@ function getExportsFromFile(filePath, visited = new Set()) {
 
 function resolveImportPath(fromFile, importPath) {
   let resolved = path.normalize(path.join(path.dirname(fromFile), importPath));
-  if (!fs.existsSync(resolved) && fs.existsSync(resolved + '.js')) {
-    resolved += '.js';
+  if (!fs.existsSync(resolved) && fs.existsSync(resolved + ".js")) {
+    resolved += ".js";
   }
   return resolved;
 }
 
-const jsFiles = walk('./js');
+const jsFiles = walk("./js");
 const issues = [];
 
-jsFiles.forEach(file => {
-  const content = fs.readFileSync(file, 'utf8');
+jsFiles.forEach((file) => {
+  const content = fs.readFileSync(file, "utf8");
   const importRegex = /import\s+({[^}]+}|\*\s+as\s+\w+|\w+)\s+from\s+['"]([^'"]+)['"]/g;
   let match;
   while ((match = importRegex.exec(content)) !== null) {
     const importedSymbols = match[1];
     const importPath = match[2];
 
-    if (!importPath.startsWith('.')) continue;
+    if (!importPath.startsWith(".")) continue;
 
     const targetFile = resolveImportPath(file, importPath);
 
@@ -105,24 +111,30 @@ jsFiles.forEach(file => {
 
     const availableExports = getExportsFromFile(targetFile);
 
-    if (importedSymbols.startsWith('{')) {
-      const symbols = importedSymbols.replace(/[{}]/g, '').split(',').map(s => s.trim()).filter(Boolean);
+    if (importedSymbols.startsWith("{")) {
+      const symbols = importedSymbols
+        .replace(/[{}]/g, "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
 
-      symbols.forEach(symClause => {
+      symbols.forEach((symClause) => {
         const parts = symClause.split(/\s+as\s+/);
         const symbol = parts[0].trim();
         if (!availableExports.has(symbol)) {
-          issues.push(`[Missing Export] ${file} imports '${symbol}' from '${importPath}', but '${symbol}' is NOT exported in '${targetFile}'.`);
+          issues.push(
+            `[Missing Export] ${file} imports '${symbol}' from '${importPath}', but '${symbol}' is NOT exported in '${targetFile}'.`,
+          );
         }
       });
     }
   }
 });
 
-console.log('=== Solosatset Modularization & Import/Export Regression Tests ===');
+console.log("=== Solosatset Modularization & Import/Export Regression Tests ===");
 if (issues.length > 0) {
   console.error(`❌ Regression test failed! Found ${issues.length} broken module imports/exports:`);
-  issues.forEach(i => console.error('  - ' + i));
+  issues.forEach((i) => console.error("  - " + i));
   process.exit(1);
 } else {
   console.log(`✓ All ${jsFiles.length} JS files passed import/export resolution regression tests!`);

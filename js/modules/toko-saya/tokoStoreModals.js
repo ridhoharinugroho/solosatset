@@ -11,7 +11,7 @@ export const NESTED_PICKER_MODALS = new Set([
   "modal-item-status-picker",
   "modal-profile-region-picker",
   "modal-profile-district-picker",
-  "modal-notifications"
+  "modal-notifications",
 ]);
 
 export function setIsPopStateActive(val) {
@@ -45,7 +45,7 @@ export function openModal(modalId, pushHistory = true) {
   if (pushHistory && !isPopStateActive && !isPicker) {
     try {
       window.history.pushState({ modalId: modalId, appModal: true }, "");
-    } catch (e) {}
+    } catch (_e) {}
   }
 
   if (window.lucide) {
@@ -70,22 +70,14 @@ export function closeModal(modalId, fromHistory = false) {
   }
 
   const isNestedPicker = NESTED_PICKER_MODALS.has(modalId);
-  if (
-    !fromHistory &&
-    !isPopStateActive &&
-    !isNestedPicker &&
-    window.history.state &&
-    window.history.state.appModal
-  ) {
+  if (!fromHistory && !isPopStateActive && !isNestedPicker && window.history.state && window.history.state.appModal) {
     try {
       window.history.back();
-    } catch (e) {}
+    } catch (_e) {}
   }
 
-  const activeModalsCount = Array.from(
-    document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')
-  ).filter(
-    (m) => "none" !== window.getComputedStyle(m).display && m.id !== modalId
+  const activeModalsCount = Array.from(document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')).filter(
+    (m) => "none" !== window.getComputedStyle(m).display && m.id !== modalId,
   ).length;
 
   if (activeModalsCount === 0) {

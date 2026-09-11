@@ -1,10 +1,10 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 const ROOT = process.cwd();
-const ENTRYPOINTS = ['index.html', 'admin.html'];
+const ENTRYPOINTS = ["index.html", "admin.html"];
 const ATTRIBUTE_PATTERN = /\b(?:src|href)\s*=\s*["']([^"']+)["']/gi;
-const SKIP_PREFIXES = ['http://', 'https://', '//', 'data:', 'javascript:', 'mailto:', 'tel:', '#'];
+const SKIP_PREFIXES = ["http://", "https://", "//", "data:", "javascript:", "mailto:", "tel:", "#"];
 
 function isLocalReference(value) {
   const normalized = value.trim();
@@ -12,13 +12,13 @@ function isLocalReference(value) {
 }
 
 function stripUrlDecorators(value) {
-  return value.split('#')[0].split('?')[0];
+  return value.split("#")[0].split("?")[0];
 }
 
 function resolveLocalPath(reference) {
   const cleaned = stripUrlDecorators(reference.trim());
-  if (!cleaned || cleaned.endsWith('/')) return null;
-  const withoutLeadingSlash = cleaned.replace(/^\//, '');
+  if (!cleaned || cleaned.endsWith("/")) return null;
+  const withoutLeadingSlash = cleaned.replace(/^\//, "");
   return path.resolve(ROOT, withoutLeadingSlash);
 }
 
@@ -32,7 +32,7 @@ for (const entrypoint of ENTRYPOINTS) {
     continue;
   }
 
-  const source = fs.readFileSync(filePath, 'utf8');
+  const source = fs.readFileSync(filePath, "utf8");
   for (const match of source.matchAll(ATTRIBUTE_PATTERN)) {
     const reference = match[1].trim();
     if (!isLocalReference(reference)) continue;
@@ -48,7 +48,7 @@ for (const entrypoint of ENTRYPOINTS) {
   }
 }
 
-console.log('=== solosatset local asset integrity audit ===');
+console.log("=== solosatset local asset integrity audit ===");
 console.log(`Entrypoints checked: ${ENTRYPOINTS.length}`);
 console.log(`Local references checked: ${checked.size}`);
 console.log(`Missing local references: ${missing.length}`);

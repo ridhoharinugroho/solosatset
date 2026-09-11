@@ -1,4 +1,4 @@
-import { refreshIcons } from '../../utils/runtime.js';
+import { refreshIcons } from "../../utils/runtime.js";
 
 export function renderFormImagePreviews(state) {
   const previewContainer = document.getElementById("image-preview-container"),
@@ -18,18 +18,11 @@ export function renderFormImagePreviews(state) {
     return (
       previewContainer.classList.add("hidden"),
       (previewContainer.innerHTML = ""),
-      void (
-        uploadLabel &&
-        (uploadLabel.textContent =
-          "Pilih / Tambah Foto dari HP / Komputer (Maks 3)")
-      )
+      void (uploadLabel && (uploadLabel.textContent = "Pilih / Tambah Foto dari HP / Komputer (Maks 3)"))
     );
   (previewContainer.classList.remove("hidden"),
     uploadLabel &&
-      (uploadLabel.textContent =
-        count < 3
-          ? `+ Tambah Foto Lagi (${count}/3 Terpilih)`
-          : "Maksimal 3 Foto Terpenuhi"));
+      (uploadLabel.textContent = count < 3 ? `+ Tambah Foto Lagi (${count}/3 Terpilih)` : "Maksimal 3 Foto Terpenuhi"));
   let html = "";
   (state.uploadedImages.forEach((imgUrl, idx) => {
     html += `\n      <div class="relative rounded-2xl overflow-hidden aspect-square bg-slate-100 border-2 border-rose-200 shadow-sm group">\n        <img src="${imgUrl}" alt="Foto ${idx + 1}" class="w-full h-full object-cover">\n        <span class="absolute top-1.5 left-1.5 bg-slate-950/80 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md backdrop-blur-xs">\n          ${0 === idx ? "Utama" : `Foto ${idx + 1}`}\n        </span>\n        <button\n          type="button"\n          data-remove-idx="${idx}"\n          class="absolute top-1.5 right-1.5 bg-rose-600 hover:bg-rose-700 text-white p-1 rounded-full text-xs shadow-md transition-transform hover:scale-110"\n          title="Hapus foto ini"\n        >\n          <i data-lucide="x" class="w-3.5 h-3.5"></i>\n        </button>\n      </div>\n    `;
@@ -39,9 +32,7 @@ export function renderFormImagePreviews(state) {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const idx = parseInt(btn.getAttribute("data-remove-idx"), 10);
-        (state.uploadedImages.splice(idx, 1),
-          renderFormImagePreviews(state),
-          refreshIcons());
+        (state.uploadedImages.splice(idx, 1), renderFormImagePreviews(state), refreshIcons());
       });
     }),
     refreshIcons());

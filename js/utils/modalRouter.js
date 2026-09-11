@@ -59,7 +59,7 @@ export function openModal(modalId, pushHistory = true) {
   if (pushHistory && !isPopStateActive && !isPicker) {
     try {
       window.history.pushState({ modalId: modalId, appModal: true }, "");
-    } catch (e) {}
+    } catch (_e) {}
   }
   if (window.lucide) {
     try {
@@ -81,22 +81,14 @@ export function closeModal(modalId, fromHistory = false) {
   if (stackIndex !== -1) modalHistoryStack.splice(stackIndex, 1);
 
   const isNestedPicker = NESTED_PICKER_MODALS.has(modalId);
-  if (
-    !fromHistory &&
-    !isPopStateActive &&
-    !isNestedPicker &&
-    window.history.state &&
-    window.history.state.appModal
-  ) {
+  if (!fromHistory && !isPopStateActive && !isNestedPicker && window.history.state && window.history.state.appModal) {
     try {
       window.history.back();
-    } catch (e) {}
+    } catch (_e) {}
   }
 
-  const remainingVisibleModals = Array.from(
-    document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')
-  ).filter(
-    (m) => "none" !== window.getComputedStyle(m).display && m.id !== modalId
+  const remainingVisibleModals = Array.from(document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')).filter(
+    (m) => "none" !== window.getComputedStyle(m).display && m.id !== modalId,
   );
 
   if (remainingVisibleModals.length === 0) {
@@ -113,35 +105,28 @@ export function initBackHandler() {
     if (!window.history.state || !window.history.state.appBase) {
       window.history.replaceState({ appBase: true }, "");
     }
-  } catch (e) {}
+  } catch (_e) {}
 
+  // eslint-disable-next-line no-unused-vars
   window.addEventListener("popstate", (e) => {
     isPopStateActive = true;
-    const visibleModals = Array.from(
-      document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')
-    ).filter((m) => "none" !== window.getComputedStyle(m).display);
+    const visibleModals = Array.from(document.querySelectorAll('.fixed:not(.hidden)[id^="modal-"]')).filter(
+      (m) => "none" !== window.getComputedStyle(m).display,
+    );
 
     if (visibleModals.length > 0) {
       let targetModalId = null;
       for (let i = modalHistoryStack.length - 1; i >= 0; i--) {
         const id = modalHistoryStack[i];
         const el = document.getElementById(id);
-        if (
-          el &&
-          "none" !== window.getComputedStyle(el).display &&
-          !el.classList.contains("hidden")
-        ) {
+        if (el && "none" !== window.getComputedStyle(el).display && !el.classList.contains("hidden")) {
           targetModalId = id;
           break;
         }
       }
       if (!targetModalId) {
-        const visiblePicker = visibleModals.find((m) =>
-          NESTED_PICKER_MODALS.has(m.id)
-        );
-        targetModalId = visiblePicker
-          ? visiblePicker.id
-          : visibleModals[visibleModals.length - 1].id;
+        const visiblePicker = visibleModals.find((m) => NESTED_PICKER_MODALS.has(m.id));
+        targetModalId = visiblePicker ? visiblePicker.id : visibleModals[visibleModals.length - 1].id;
       }
       if (targetModalId) {
         closeModal(targetModalId, true);
@@ -177,8 +162,7 @@ export function showToast(message, type = "info", duration = 4500) {
 
   const toast = document.createElement("div");
   let iconName = "info";
-  let bgGradient =
-    "from-slate-900 via-slate-800 to-slate-950 border-slate-600 shadow-2xl";
+  let bgGradient = "from-slate-900 via-slate-800 to-slate-950 border-slate-600 shadow-2xl";
   let badgeText = "Informasi";
   let badgeColor = "bg-slate-700 text-slate-200";
   let iconColor = "text-amber-300";
@@ -186,24 +170,21 @@ export function showToast(message, type = "info", duration = 4500) {
 
   if (type === "error") {
     iconName = "alert-octagon";
-    bgGradient =
-      "from-rose-950 via-rose-900 to-rose-950 border-rose-400 shadow-2xl shadow-rose-950/80";
+    bgGradient = "from-rose-950 via-rose-900 to-rose-950 border-rose-400 shadow-2xl shadow-rose-950/80";
     badgeText = "Pemberitahuan Gagal / Kendala";
     badgeColor = "bg-rose-800 text-rose-100 border border-rose-600";
     iconColor = "text-rose-200";
     ringClass = "ring-4 ring-rose-500/30 animate-pulse";
   } else if (type === "success") {
     iconName = "check-circle-2";
-    bgGradient =
-      "from-emerald-950 via-emerald-900 to-emerald-950 border-emerald-400 shadow-2xl shadow-emerald-950/80";
+    bgGradient = "from-emerald-950 via-emerald-900 to-emerald-950 border-emerald-400 shadow-2xl shadow-emerald-950/80";
     badgeText = "Berhasil";
     badgeColor = "bg-emerald-800 text-emerald-100 border border-emerald-600";
     iconColor = "text-emerald-300";
     ringClass = "ring-4 ring-emerald-500/20";
   } else if (type === "warning") {
     iconName = "alert-triangle";
-    bgGradient =
-      "from-amber-950 via-amber-900 to-amber-950 border-amber-400 shadow-2xl shadow-amber-950/80";
+    bgGradient = "from-amber-950 via-amber-900 to-amber-950 border-amber-400 shadow-2xl shadow-amber-950/80";
     badgeText = "Peringatan";
     badgeColor = "bg-amber-800 text-amber-100 border border-amber-600";
     iconColor = "text-amber-300";

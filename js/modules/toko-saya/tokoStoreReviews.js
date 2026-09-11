@@ -2,7 +2,7 @@ import {
   getSellerReviews,
   getSellerRatingStats,
   toggleHideSellerReview,
-  deleteSellerReview
+  deleteSellerReview,
 } from "../../services/storage.js";
 import { getUserByReviewAuthor } from "../../services/auth.js";
 import { formatRegionTitle, formatDistrictTitle, refreshIcons } from "../../utils/runtime.js";
@@ -65,52 +65,39 @@ export function renderStoreReviews(currentUser) {
     const isHidden = !!r.isHidden;
     const buyerUser =
       (currentUser &&
-      ((r.buyerId &&
-        (r.buyerId === currentUser.id || r.buyerId === currentUser.email)) ||
+      ((r.buyerId && (r.buyerId === currentUser.id || r.buyerId === currentUser.email)) ||
         (r.buyerName &&
-          (r.buyerName
-            .toLowerCase()
-            .includes(currentUser.name?.toLowerCase() || "---") ||
-            r.buyerName
-              .toLowerCase()
-              .includes(currentUser.storeName?.toLowerCase() || "---"))))
+          (r.buyerName.toLowerCase().includes(currentUser.name?.toLowerCase() || "---") ||
+            r.buyerName.toLowerCase().includes(currentUser.storeName?.toLowerCase() || "---"))))
         ? currentUser
         : null) || getUserByReviewAuthor(r.buyerId, r.buyerName);
 
     let displayBuyerName = r.buyerName || "Pembeli";
     if (buyerUser) {
-      const baseName =
-        buyerUser.storeName ||
-        buyerUser.name ||
-        displayBuyerName.replace(/\(.*?\)/g, "").trim();
-      const dist = buyerUser.district
-        ? formatDistrictTitle(buyerUser.district)
-        : "";
+      const baseName = buyerUser.storeName || buyerUser.name || displayBuyerName.replace(/\(.*?\)/g, "").trim();
+      const dist = buyerUser.district ? formatDistrictTitle(buyerUser.district) : "";
       const reg = buyerUser.region ? formatRegionTitle(buyerUser.region) : "";
       displayBuyerName = `${baseName} (${dist || reg || "Solo Raya"})`;
     } else {
-      displayBuyerName = displayBuyerName.replace(
-        /\(([A-Za-z\s]+)\)/g,
-        (m, p1) => {
-          const p1Clean = p1.trim();
-          const map = {
-            solo: "Solo",
-            surakarta: "Solo",
-            karanganyar: "Karanganyar",
-            sukoharjo: "Sukoharjo",
-            wonogiri: "Wonogiri",
-            sragen: "Sragen",
-            boyolali: "Boyolali",
-            klaten: "Klaten",
-            soloraya: "Solo Raya",
-            "solo raya": "Solo Raya",
-          };
-          const matchKey = p1Clean.toLowerCase();
-          return map[matchKey]
-            ? `(${map[matchKey]})`
-            : `(${p1Clean.charAt(0).toUpperCase() + p1Clean.slice(1).toLowerCase()})`;
-        },
-      );
+      displayBuyerName = displayBuyerName.replace(/\(([A-Za-z\s]+)\)/g, (m, p1) => {
+        const p1Clean = p1.trim();
+        const map = {
+          solo: "Solo",
+          surakarta: "Solo",
+          karanganyar: "Karanganyar",
+          sukoharjo: "Sukoharjo",
+          wonogiri: "Wonogiri",
+          sragen: "Sragen",
+          boyolali: "Boyolali",
+          klaten: "Klaten",
+          soloraya: "Solo Raya",
+          "solo raya": "Solo Raya",
+        };
+        const matchKey = p1Clean.toLowerCase();
+        return map[matchKey]
+          ? `(${map[matchKey]})`
+          : `(${p1Clean.charAt(0).toUpperCase() + p1Clean.slice(1).toLowerCase()})`;
+      });
     }
 
     html += `
@@ -187,26 +174,22 @@ export function renderStoreReviews(currentUser) {
   container.innerHTML = html;
 
   if (isAdmin) {
-    container
-      .querySelectorAll('[data-action="store-toggle-hide-review"]')
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          toggleHideSellerReview(id);
+    container.querySelectorAll('[data-action="store-toggle-hide-review"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        toggleHideSellerReview(id);
+        renderStoreReviews(currentUser);
+      });
+    });
+    container.querySelectorAll('[data-action="store-delete-review"]').forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        if (confirm("Hapus ulasan toko ini secara permanen?")) {
+          deleteSellerReview(id);
           renderStoreReviews(currentUser);
-        });
+        }
       });
-    container
-      .querySelectorAll('[data-action="store-delete-review"]')
-      .forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.getAttribute("data-id");
-          if (confirm("Hapus ulasan toko ini secara permanen?")) {
-            deleteSellerReview(id);
-            renderStoreReviews(currentUser);
-          }
-        });
-      });
+    });
   }
 
   refreshIcons();

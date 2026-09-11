@@ -8,12 +8,12 @@
 
 let hasOtpDbColumns = false;
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   window._hasOtpDbColumns = false;
 }
 
 export function isOtpDbColumnSupported() {
-  return hasOtpDbColumns || (typeof window !== 'undefined' && Boolean(window._hasOtpDbColumns));
+  return hasOtpDbColumns || (typeof window !== "undefined" && Boolean(window._hasOtpDbColumns));
 }
 
 export async function checkAndInitDatabaseSchema() {

@@ -3,6 +3,7 @@
 The SMTP credentials used by `api/send-email.js` must be resolved server-side only.
 
 Required production environment variables:
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 

@@ -1,11 +1,7 @@
 import { getRegionById } from "../../data/regions.js";
 import { formatDisplayPhone } from "../../services/whatsapp.js";
 import { formatJoinedDate, isDemoUser } from "../../services/auth.js";
-import {
-  checkSellerVerification,
-  getSellerStats,
-  getSellerRatingStats,
-} from "../../services/storage.js";
+import { checkSellerVerification, getSellerStats, getSellerRatingStats } from "../../services/storage.js";
 
 export function renderAuthHeader(currentUser) {
   const container = document.getElementById("auth-nav-container");
@@ -31,9 +27,7 @@ export function renderStoreShowcase(currentUser) {
 
   if (avatarEl) {
     avatarEl.src =
-      user.avatar ||
-      "https://api.dicebear.com/7.x/bottts/svg?seed=" +
-        encodeURIComponent(user.email || "user");
+      user.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || "user");
   }
   const nameEl = document.getElementById("my-store-name");
   if (nameEl) nameEl.textContent = user.storeName || user.name;
@@ -65,9 +59,7 @@ export function renderStoreShowcase(currentUser) {
   }
   const phoneEl = document.getElementById("my-store-phone");
   if (phoneEl) {
-    phoneEl.textContent = user.phone
-      ? `WA: ${formatDisplayPhone(user.phone)}`
-      : "WA: Belum diatur";
+    phoneEl.textContent = user.phone ? `WA: ${formatDisplayPhone(user.phone)}` : "WA: Belum diatur";
   }
   const createdEl = document.getElementById("my-store-created");
   if (createdEl) {
@@ -115,13 +107,8 @@ export function renderStoreShowcase(currentUser) {
       : `Syarat Badge Terverifikasi: ${verResult.passedCount}/5 Kriteria Terpenuhi`;
   }
   if (verIcon) {
-    verIcon.setAttribute(
-      "data-lucide",
-      verResult.isVerified ? "shield-check" : "shield-alert"
-    );
-    verIcon.className = verResult.isVerified
-      ? "w-4 h-4 text-emerald-400"
-      : "w-4 h-4 text-amber-400";
+    verIcon.setAttribute("data-lucide", verResult.isVerified ? "shield-check" : "shield-alert");
+    verIcon.className = verResult.isVerified ? "w-4 h-4 text-emerald-400" : "w-4 h-4 text-amber-400";
   }
 
   const c = verResult.criteria;
@@ -158,10 +145,7 @@ export function renderStoreShowcase(currentUser) {
   if (statBooked) statBooked.textContent = stats.bookedCount;
   if (statSold) statSold.textContent = stats.soldCount;
   if (statRating) {
-    statRating.textContent =
-      ratingStats.totalReviews === 0
-        ? "⭐ 0.0"
-        : `⭐ ${ratingStats.averageRating.toFixed(1)}`;
+    statRating.textContent = ratingStats.totalReviews === 0 ? "⭐ 0.0" : `⭐ ${ratingStats.averageRating.toFixed(1)}`;
   }
   if (statRevLabel) {
     statRevLabel.textContent = `${ratingStats.totalReviews} Ulasan`;

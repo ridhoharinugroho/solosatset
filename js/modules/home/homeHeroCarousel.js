@@ -10,6 +10,7 @@ export function initHeroCarousel() {
 
   let autoTimer = null;
 
+  // eslint-disable-next-line no-unused-vars
   function updateDots(index) {
     if (!dots || !dots.length) return;
     dots.forEach((dot, idx) => {

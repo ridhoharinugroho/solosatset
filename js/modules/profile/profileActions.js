@@ -1,9 +1,9 @@
-import { getCurrentUser, removeUserAvatar, updateProfile, logout } from '../../services/auth.js';
-import { sbUploadAvatar } from '../../services/supabaseDB.js';
-import { showToast } from '../../utils/modalRouter.js';
-import { closeModal } from '../../utils/modalRouter.js';
-import { refreshIcons, formatDistrictTitle, formatRegionTitle } from '../../utils/runtime.js';
-import { supabase } from '../../lib/supabase.js';
+import { getCurrentUser, removeUserAvatar, updateProfile, logout } from "../../services/auth.js";
+import { sbUploadAvatar } from "../../services/supabaseDB.js";
+import { showToast } from "../../utils/modalRouter.js";
+import { closeModal } from "../../utils/modalRouter.js";
+import { refreshIcons, formatDistrictTitle, formatRegionTitle } from "../../utils/runtime.js";
+import { supabase } from "../../lib/supabase.js";
 
 let isSavingProfile = false;
 let userProfileAvatarData = null;
@@ -134,7 +134,9 @@ export async function handleSaveProfileSettings(e) {
     isSavingProfile = false;
     if (btnSave) {
       btnSave.disabled = false;
-      btnSave.innerHTML = originalSaveHtml || '<i data-lucide="check" class="w-3.5 h-3.5 text-amber-300"></i><span>Simpan Perubahan</span>';
+      btnSave.innerHTML =
+        originalSaveHtml ||
+        '<i data-lucide="check" class="w-3.5 h-3.5 text-amber-300"></i><span>Simpan Perubahan</span>';
       refreshIcons();
     }
   }
@@ -174,7 +176,8 @@ export async function handleDeleteProfileAvatar(e) {
   const user = window.state?.currentUser || getCurrentUser();
   if (!user) return;
 
-  const defaultAvatar = "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || user.id || "user");
+  const defaultAvatar =
+    "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || user.id || "user");
   shouldRemoveAvatar = true;
   pendingAvatarFile = null;
   userProfileAvatarData = null;
@@ -193,7 +196,10 @@ export async function handleDeleteProfileAvatar(e) {
   const btnDeleteAvatar = document.getElementById("btn-profile-delete-avatar");
   if (btnDeleteAvatar) btnDeleteAvatar.classList.add("hidden");
 
-  showToast("Foto avatar dilepas dari pratinjau. File & database tetap aman hingga tombol 'Simpan Perubahan' diklik.", "info");
+  showToast(
+    "Foto avatar dilepas dari pratinjau. File & database tetap aman hingga tombol 'Simpan Perubahan' diklik.",
+    "info",
+  );
 }
 
 if (typeof window !== "undefined") {

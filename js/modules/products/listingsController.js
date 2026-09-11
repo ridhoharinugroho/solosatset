@@ -1,18 +1,13 @@
 import { refreshIcons } from "../../utils/runtime.js";
-import { getRegionById } from "../../data/regions.js";
-import { CATEGORIES, CONDITIONS } from "../../data/categories.js";
+import { getRegionById } from "../../data/regions.js"; import { CATEGORIES, CONDITIONS } from "../../data/categories.js";
 import {
-  getPublicListings,
-  getSiteSettings,
+  getPublicListings, getSiteSettings,
   isFavorite,
   toggleFavorite,
   isSellerVerified,
 } from "../../services/storage.js";
 import { generateWhatsAppUrl, formatRupiah, timeAgo } from "../../services/whatsapp.js";
-import { isDemoUser, isUserLoggedIn } from "../../services/auth.js";
-import { openModal, showToast } from "../../utils/modalRouter.js";
-import { setRegionFilter, resetAllFilters } from "../filter/filterController.js";
-import { renderCategoryPills, showHomeLoadingSkeleton } from "../home/homeUI.js";
+import { isDemoUser, isUserLoggedIn } from "../../services/auth.js"; import { openModal, showToast } from "../../utils/modalRouter.js"; import { setRegionFilter, resetAllFilters } from "../filter/filterController.js"; import { renderCategoryPills, showHomeLoadingSkeleton } from "../home/homeUI.js";
 import { openUserAuthModal } from "../auth/authUI.js";
 import { updateSortRadioUI, applyDetailImageSettings } from "./listingsSortUI.js";
 import { renderFilterChips } from "./listingsFilterChips.js";
@@ -20,9 +15,7 @@ import { renderFilterChips } from "./listingsFilterChips.js";
 export { updateSortRadioUI, applyDetailImageSettings };
 
 export function renderListings() {
-  const grid =
-    document.getElementById("listings-grid") ||
-    document.getElementById("listings-container");
+  const grid = document.getElementById("listings-grid") || document.getElementById("listings-container");
   const emptyState = document.getElementById("empty-state");
   const countBadge = document.getElementById("listings-count");
   if (!grid) return;
@@ -32,8 +25,7 @@ export function renderListings() {
     return showHomeLoadingSkeleton();
   }
 
-  const isListView =
-    state.siteSettings && "list" === state.siteSettings.layoutStyle;
+  const isListView = state.siteSettings && "list" === state.siteSettings.layoutStyle;
   const chatWaText = state.customTexts?.btn_chat_wa_card || "Chat WA";
   const detailText = state.customTexts?.btn_detail_card || "Detail";
 
@@ -42,10 +34,7 @@ export function renderListings() {
     : "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4.5 px-3.5 sm:px-4 lg:px-6 transition-all feed-fade-in";
 
   let listings = getPublicListings();
-  if (
-    (!Array.isArray(listings) || listings.length === 0) &&
-    Array.isArray(window.SAMPLE_LISTINGS)
-  ) {
+  if ((!Array.isArray(listings) || listings.length === 0) && Array.isArray(window.SAMPLE_LISTINGS)) {
     listings = [...window.SAMPLE_LISTINGS];
   }
 
@@ -53,11 +42,7 @@ export function renderListings() {
     listings = listings.filter((l) => l.regionId === state.selectedRegion);
   }
   if (state.selectedDistrict && "all" !== state.selectedDistrict) {
-    listings = listings.filter(
-      (l) =>
-        l.district &&
-        l.district.toLowerCase() === state.selectedDistrict.toLowerCase()
-    );
+    listings = listings.filter((l) => l.district && l.district.toLowerCase() === state.selectedDistrict.toLowerCase());
   }
   if (state.selectedCategory && "all" !== state.selectedCategory) {
     listings = listings.filter((l) => l.category === state.selectedCategory);
@@ -93,7 +78,7 @@ export function renderListings() {
         ? b.price - a.price
         : "views" === state.sortBy
           ? (b.views || 0) - (a.views || 0)
-          : new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+          : new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
   );
 
   if (countBadge) countBadge.textContent = listings.length;
@@ -114,14 +99,10 @@ export function renderListings() {
       const region = getRegionById(item.regionId);
       const regionName = region ? region.shortName : item.regionId || "Solo";
       const isFav = isFavorite(item.id);
-      const waUrl = generateWhatsAppUrl(
-        item,
-        state.currentUser?.storeName || state.currentUser?.name
-      );
+      const waUrl = generateWhatsAppUrl(item, state.currentUser?.storeName || state.currentUser?.name);
       const priceFormatted = formatRupiah(item.price);
       const timeAgoStr = timeAgo(item.createdAt);
-      const sellerName =
-        item.seller?.storeName || item.seller?.name || "Penjual Solo";
+      const sellerName = item.seller?.storeName || item.seller?.name || "Penjual Solo";
       const imagesArr = Array.isArray(item.images)
         ? item.images
         : typeof item.images === "string" && item.images.startsWith("http")
@@ -136,8 +117,7 @@ export function renderListings() {
         isDemoUser(item.seller?.id || item.seller) ||
         Boolean(item.isDemo) ||
         Boolean(item.id && String(item.id).startsWith("barkas-0"));
-      const isItemBu = Boolean(item.is_bu || item.isBu);
-      const paymentType = item.paymentMethod || "cod";
+      const isItemBu = Boolean(item.is_bu || item.isBu); const paymentType = item.paymentMethod || "cod";
 
       cardsHtml += isListView
         ? `
@@ -152,23 +132,35 @@ export function renderListings() {
                 loading="lazy"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               >
-              ${imagesCount > 1 ? `
+              ${
+                imagesCount > 1
+                  ? `
                 <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-950/75 text-white backdrop-blur-xs flex items-center gap-1 shadow">
                   <i data-lucide="image" class="w-3 h-3 text-amber-300"></i>
                   <span>${imagesCount} Foto</span>
                 </span>
-              ` : ""}
-              ${isDemo ? `
+              `
+                  : ""
+              }
+              ${
+                isDemo
+                  ? `
                 <span class="absolute top-2 ${imagesCount > 1 ? "left-20" : "left-2"} px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 border border-amber-500 shadow-md flex items-center gap-1 z-10">
                   <i data-lucide="tag" class="w-2.5 h-2.5"></i>
                   <span>DEMO</span>
                 </span>
-              ` : ""}
-              ${item.isSold ? `
+              `
+                  : ""
+              }
+              ${
+                item.isSold
+                  ? `
                 <div class="absolute inset-0 bg-slate-900/75 backdrop-blur-[2px] flex items-center justify-center">
                   <span class="bg-rose-600 text-white font-extrabold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md shadow">TERJUAL</span>
                 </div>
-              ` : ""}
+              `
+                  : ""
+              }
               <div class="absolute bottom-2 left-2">
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-xs bg-white/95 text-slate-800 border-slate-200 backdrop-blur-xs flex items-center gap-1">
                   <i data-lucide="map-pin" class="w-3 h-3 text-rose-800"></i>
@@ -190,11 +182,15 @@ export function renderListings() {
                   <span class="text-base sm:text-lg md:text-xl font-black text-rose-900 tracking-tight">${priceFormatted}</span>
                 </div>
                 <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
-                  ${isItemBu ? `
+                  ${
+                    isItemBu
+                      ? `
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-black bg-rose-600 text-white shadow-xs animate-pulse">
                       <span>🔥 BU</span>
                     </span>
-                  ` : ""}
+                  `
+                      : ""
+                  }
                   <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] sm:text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
                     ${"pas" === item.negoType ? "Nett" : "Bisa Nego"}
                   </span>
@@ -251,23 +247,35 @@ export function renderListings() {
                 loading="lazy"
                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               >
-              ${imagesCount > 1 ? `
+              ${
+                imagesCount > 1
+                  ? `
                 <span class="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-slate-950/75 text-white backdrop-blur-xs flex items-center gap-1 shadow">
                   <i data-lucide="image" class="w-3 h-3 text-amber-300"></i>
                   <span>${imagesCount} Foto</span>
                 </span>
-              ` : ""}
-              ${isDemo ? `
+              `
+                  : ""
+              }
+              ${
+                isDemo
+                  ? `
                 <span class="absolute top-2 ${imagesCount > 1 ? "left-18 sm:left-20" : "left-2"} px-1.5 sm:px-2 py-0.5 rounded-md text-[8.5px] sm:text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 border border-amber-500 shadow-md flex items-center gap-0.5 z-10">
                   <i data-lucide="tag" class="w-2.5 h-2.5"></i>
                   <span>DEMO</span>
                 </span>
-              ` : ""}
-              ${item.isSold ? `
+              `
+                  : ""
+              }
+              ${
+                item.isSold
+                  ? `
                 <div class="absolute inset-0 bg-slate-900/75 backdrop-blur-[2px] flex items-center justify-center">
                   <span class="bg-rose-600 text-white font-extrabold text-[11px] uppercase tracking-wider px-2.5 py-1 rounded-md shadow">TERJUAL</span>
                 </div>
-              ` : ""}
+              `
+                  : ""
+              }
               <div class="absolute bottom-2 left-2 flex items-center gap-1">
                 <span class="px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-xs bg-white/95 text-slate-800 border-slate-200 backdrop-blur-xs flex items-center gap-1">
                   <i data-lucide="map-pin" class="w-3 h-3 text-rose-800"></i>
@@ -289,11 +297,15 @@ export function renderListings() {
                   <span class="text-[10px] min-[360px]:text-[11px] sm:text-xs md:text-sm font-black text-rose-900 leading-none tracking-tight">${priceFormatted}</span>
                 </div>
                 <div class="flex items-center gap-1 flex-wrap pt-0.5">
-                  ${isItemBu ? `
+                  ${
+                    isItemBu
+                      ? `
                     <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-black bg-rose-600 text-white shadow-2xs animate-pulse">
                       <span>🔥 BU</span>
                     </span>
-                  ` : ""}
+                  `
+                      : ""
+                  }
                   <span class="inline-flex items-center px-1.5 py-0.5 rounded-md text-[8.5px] min-[360px]:text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shadow-2xs">
                     ${"pas" === item.negoType ? "Nett" : "Nego"}
                   </span>
@@ -316,14 +328,17 @@ export function renderListings() {
                   <span class="text-[9px] min-[360px]:text-[9.5px] sm:text-[10.5px] font-medium text-slate-400 flex-shrink-0 whitespace-nowrap">${timeAgoStr}</span>
                 </div>
                 <div class="flex items-center gap-1 pt-0">
-                  ${item.isSold || "sold" === item.status ? `
+                  ${
+                    item.isSold || "sold" === item.status
+                      ? `
                     <button
                       disabled
                       class="flex-1 flex items-center justify-center gap-1 bg-slate-200 text-slate-500 font-bold py-1 px-1.5 rounded-xl text-[9.5px] min-[360px]:text-[10.5px] sm:text-xs cursor-not-allowed opacity-80"
                     >
                       <span>Terjual</span>
                     </button>
-                  ` : `
+                  `
+                      : `
                     <a
                       href="${waUrl}"
                       target="_blank"
@@ -335,7 +350,8 @@ export function renderListings() {
                       <i data-lucide="message-circle" class="w-3 h-3"></i>
                       <span>${chatWaText}</span>
                     </a>
-                  `}
+                  `
+                  }
                   <button
                     data-action="view-detail"
                     data-id="${item.id}"
@@ -366,10 +382,7 @@ export function renderListings() {
         const id = favBtn.getAttribute("data-id");
         const isNowFav = toggleFavorite(id);
         renderListings();
-        return showToast(
-          isNowFav ? "Ditambahkan ke favorit" : "Dihapus dari favorit",
-          "info"
-        );
+        return showToast(isNowFav ? "Ditambahkan ke favorit" : "Dihapus dari favorit", "info");
       }
       if (e.target.closest('[data-action="whatsapp"]')) {
         if (!isUserLoggedIn()) {
@@ -377,7 +390,7 @@ export function renderListings() {
           e.stopPropagation();
           return openUserAuthModal(
             "login",
-            "Silakan masuk atau daftar akun terlebih dahulu untuk menghubungi penjual via WhatsApp."
+            "Silakan masuk atau daftar akun terlebih dahulu untuk menghubungi penjual via WhatsApp.",
           );
         }
         return;
@@ -388,9 +401,7 @@ export function renderListings() {
         e.stopPropagation();
         const listingId =
           viewDetailBtn.getAttribute("data-id") ||
-          viewDetailBtn
-            .closest(".product-card")
-            ?.getAttribute("data-listing-id");
+          viewDetailBtn.closest(".product-card")?.getAttribute("data-listing-id");
         if (listingId && typeof window.handleProductClick === "function") {
           window.handleProductClick(listingId);
         }

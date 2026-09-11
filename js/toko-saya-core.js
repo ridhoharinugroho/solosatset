@@ -1,1 +1,1 @@
-import './toko-saya-controller.js';
+import "./toko-saya-controller.js";

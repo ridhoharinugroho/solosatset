@@ -32,9 +32,7 @@ export function cleanupNotificationsRealtime() {
 export function updateNotificationBadgeDOM(notifs) {
   const badge = document.getElementById("notif-badge-count");
   if (!badge) return;
-  const unreadCount = Array.isArray(notifs)
-    ? notifs.filter((n) => !n.is_read).length
-    : 0;
+  const unreadCount = Array.isArray(notifs) ? notifs.filter((n) => !n.is_read).length : 0;
   if (unreadCount > 0) {
     badge.textContent = unreadCount > 99 ? "99+" : unreadCount;
     badge.classList.remove("hidden");
@@ -68,9 +66,7 @@ export function renderNotificationsDOM(notifs) {
   const fragment = document.createDocumentFragment();
   notifs.forEach((notif) => {
     const isUnread = !notif.is_read;
-    const isBu =
-      notif.type === "bu_interest" ||
-      (notif.title && notif.title.includes("BUTUH UANG"));
+    const isBu = notif.type === "bu_interest" || (notif.title && notif.title.includes("BUTUH UANG"));
 
     let timeText = "Baru saja";
     if (notif.created_at) {
@@ -102,9 +98,7 @@ export function renderNotificationsDOM(notifs) {
     }
 
     const imgSrc = notif.image || "/assets/img/app-logo.png?v=2.1";
-    const catText = notif.category_id
-      ? String(notif.category_id).toUpperCase()
-      : "BU";
+    const catText = notif.category_id ? String(notif.category_id).toUpperCase() : "BU";
     const card = document.createElement("div");
     card.className =
       "notif-item relative flex items-start gap-3 p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer group " +
@@ -146,9 +140,7 @@ export function renderNotificationsDOM(notifs) {
       if (notifId && typeof sbMarkNotificationAsRead === "function") {
         sbMarkNotificationAsRead(notifId);
       }
-      const targetObj = cachedNotifications.find(
-        (n) => String(n.id) === String(notifId)
-      );
+      const targetObj = cachedNotifications.find((n) => String(n.id) === String(notifId));
       if (targetObj) targetObj.is_read = true;
       updateNotificationBadgeDOM(cachedNotifications);
       item.classList.remove("bg-rose-50/90", "border-rose-200");
@@ -177,11 +169,7 @@ export async function syncUserNotifications(silent = false) {
     cachedNotifications = notifs || [];
     updateNotificationBadgeDOM(cachedNotifications);
     const modal = document.getElementById("modal-notifications");
-    if (
-      modal &&
-      !modal.classList.contains("hidden") &&
-      "none" !== window.getComputedStyle(modal).display
-    ) {
+    if (modal && !modal.classList.contains("hidden") && "none" !== window.getComputedStyle(modal).display) {
       renderNotificationsDOM(cachedNotifications);
     }
   } catch (e) {
@@ -195,10 +183,7 @@ export function initNotificationsCenter() {
   cleanupNotificationsRealtime();
 
   const btnMarkAll = document.getElementById("btn-mark-all-notifs-read");
-  if (
-    btnMarkAll &&
-    !btnMarkAll.dataset.notifMarkAllReady
-  ) {
+  if (btnMarkAll && !btnMarkAll.dataset.notifMarkAllReady) {
     btnMarkAll.dataset.notifMarkAllReady = "true";
     btnMarkAll.addEventListener("click", async () => {
       const uid = getActiveSessionUserId();
@@ -210,41 +195,25 @@ export function initNotificationsCenter() {
       });
       updateNotificationBadgeDOM(cachedNotifications);
       renderNotificationsDOM(cachedNotifications);
-      showToast(
-        "Semua notifikasi berhasil ditandai sudah dibaca.",
-        "success"
-      );
+      showToast("Semua notifikasi berhasil ditandai sudah dibaca.", "success");
     });
   }
 
   if (typeof sbSubscribeNotifications === "function") {
     try {
-      activeNotifRealtimeChannel = sbSubscribeNotifications(
-        currentUserId,
-        (newNotif) => {
-          if (
-            newNotif &&
-            !cachedNotifications.some((n) => n.id === newNotif.id)
-          ) {
-            cachedNotifications.unshift(newNotif);
-            updateNotificationBadgeDOM(cachedNotifications);
+      activeNotifRealtimeChannel = sbSubscribeNotifications(currentUserId, (newNotif) => {
+        if (newNotif && !cachedNotifications.some((n) => n.id === newNotif.id)) {
+          cachedNotifications.unshift(newNotif);
+          updateNotificationBadgeDOM(cachedNotifications);
 
-            showToast(
-              `🔔 ${newNotif.title || "Notifikasi Baru Masuk!"}`,
-              "info"
-            );
+          showToast(`🔔 ${newNotif.title || "Notifikasi Baru Masuk!"}`, "info");
 
-            const modal = document.getElementById("modal-notifications");
-            if (
-              modal &&
-              !modal.classList.contains("hidden") &&
-              "none" !== window.getComputedStyle(modal).display
-            ) {
-              renderNotificationsDOM(cachedNotifications);
-            }
+          const modal = document.getElementById("modal-notifications");
+          if (modal && !modal.classList.contains("hidden") && "none" !== window.getComputedStyle(modal).display) {
+            renderNotificationsDOM(cachedNotifications);
           }
         }
-      );
+      });
     } catch (e) {
       console.warn("[initNotificationsCenter Realtime Note]", e);
     }
@@ -263,7 +232,7 @@ export function initNotificationsCenter() {
         setTimeout(() => syncUserNotifications(true), 1000);
       });
       window.addEventListener("authStateChanged", (e) => {
-        const u = (e && e.detail) ? e.detail : getCurrentUser();
+        const u = e && e.detail ? e.detail : getCurrentUser();
         if (u) {
           setTimeout(() => {
             syncUserNotifications(true);

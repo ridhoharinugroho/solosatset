@@ -1,9 +1,9 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import fs from "node:fs";
+import path from "node:path";
 
 const ROOT = process.cwd();
-const SKIP = new Set(['node_modules', '.git', '.vercel']);
-const JS_ROOTS = ['js', 'scripts', 'api'];
+const SKIP = new Set(["node_modules", ".git", ".vercel"]);
+const JS_ROOTS = ["js", "scripts", "api"];
 
 function walk(dir) {
   const out = [];
@@ -23,8 +23,8 @@ const storageKeys = new Map();
 const swVersions = new Map();
 
 for (const file of files) {
-  const rel = path.relative(ROOT, file).replaceAll(path.sep, '/');
-  const source = fs.readFileSync(file, 'utf8');
+  const rel = path.relative(ROOT, file).replaceAll(path.sep, "/");
+  const source = fs.readFileSync(file, "utf8");
 
   for (const match of source.matchAll(/(?:export\s+)?(?:async\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/g)) {
     const name = match[1];
@@ -33,7 +33,9 @@ for (const file of files) {
     definitions.set(name, list);
   }
 
-  for (const match of source.matchAll(/(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*['\"]([^'\"]+)['\"]/g)) {
+  for (const match of source.matchAll(
+    /(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(\s*['\"]([^'\"]+)['\"]/g,
+  )) {
     const key = match[1];
     const list = storageKeys.get(key) || [];
     list.push(rel);
@@ -53,19 +55,19 @@ for (const file of files) {
 const duplicateFunctions = [...definitions.entries()].filter(([, locations]) => new Set(locations).size > 1);
 const duplicateStorageKeys = [...storageKeys.entries()].filter(([, locations]) => new Set(locations).size > 1);
 
-console.log('=== solosatset duplicate audit ===');
+console.log("=== solosatset duplicate audit ===");
 console.log(`JS files scanned: ${files.length}`);
 console.log(`Duplicate function names (review candidates): ${duplicateFunctions.length}`);
 for (const [name, locations] of duplicateFunctions.sort(([a], [b]) => a.localeCompare(b))) {
-  console.log(`  function ${name}: ${[...new Set(locations)].join(', ')}`);
+  console.log(`  function ${name}: ${[...new Set(locations)].join(", ")}`);
 }
 console.log(`Storage keys referenced by multiple files (review candidates): ${duplicateStorageKeys.length}`);
 for (const [key, locations] of duplicateStorageKeys.sort(([a], [b]) => a.localeCompare(b))) {
-  console.log(`  key ${key}: ${[...new Set(locations)].join(', ')}`);
+  console.log(`  key ${key}: ${[...new Set(locations)].join(", ")}`);
 }
 console.log(`Version-like literals found: ${swVersions.size}`);
 for (const [value, locations] of [...swVersions.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-  console.log(`  ${value}: ${[...new Set(locations)].join(', ')}`);
+  console.log(`  ${value}: ${[...new Set(locations)].join(", ")}`);
 }
 
 // Shared function names and browser storage keys are reported for refactoring review,

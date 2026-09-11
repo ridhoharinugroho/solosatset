@@ -1,8 +1,13 @@
-import { renderListings, updateSortRadioUI } from '../products/listingsController.js';
-import { openModal, closeModal } from '../../utils/modalRouter.js';
-import { openCreateListingModal } from '../listings/listingFormModal.js';
-import { openUserProfileModal } from '../profile/userProfile.js';
-import { selectFormCategory, selectFormCondition, selectFormNego, selectFormPaymentMethod } from '../listings/listingFormPickers.js';
+import { renderListings, updateSortRadioUI } from "../products/listingsController.js";
+import { openModal, closeModal } from "../../utils/modalRouter.js";
+import { openCreateListingModal } from "../listings/listingFormModal.js";
+import { openUserProfileModal } from "../profile/userProfile.js";
+import {
+  selectFormCategory,
+  selectFormCondition,
+  selectFormNego,
+  selectFormPaymentMethod,
+} from "../listings/listingFormPickers.js";
 
 export function initGlobalEventListeners(state) {
   const desktopSearch = document.getElementById("desktop-search-input");
@@ -115,17 +120,25 @@ export function initGlobalEventListeners(state) {
     handleSearch("", true);
   });
 
-  window.addEventListener("scroll", () => {
-    if (document.activeElement === mobileSearch || document.activeElement === desktopSearch) {
-      dismissKeyboard();
-    }
-  }, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (document.activeElement === mobileSearch || document.activeElement === desktopSearch) {
+        dismissKeyboard();
+      }
+    },
+    { passive: true },
+  );
 
-  document.getElementById("listings-grid")?.addEventListener("touchstart", () => {
-    if (document.activeElement === mobileSearch || document.activeElement === desktopSearch) {
-      dismissKeyboard();
-    }
-  }, { passive: true });
+  document.getElementById("listings-grid")?.addEventListener(
+    "touchstart",
+    () => {
+      if (document.activeElement === mobileSearch || document.activeElement === desktopSearch) {
+        dismissKeyboard();
+      }
+    },
+    { passive: true },
+  );
 
   document.getElementById("btn-open-sort-modal")?.addEventListener("click", () => {
     updateSortRadioUI();

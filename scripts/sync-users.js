@@ -1,19 +1,19 @@
 // sync-users.js – temporary script to upsert default users to Supabase
-import 'dotenv/config';
-import { createClient } from '@supabase/supabase-js';
-import { DEFAULT_REGISTERED_USERS } from '../js/services/auth.js';
+import "dotenv/config";
+import { createClient } from "@supabase/supabase-js";
+import { DEFAULT_REGISTERED_USERS } from "../js/services/auth.js";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('SUPABASE_URL or SUPABASE_ANON_KEY missing in .env');
+  console.error("SUPABASE_URL or SUPABASE_ANON_KEY missing in .env");
   process.exit(1);
 }
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 async function sync() {
-  const payload = DEFAULT_REGISTERED_USERS.map(u => ({
+  const payload = DEFAULT_REGISTERED_USERS.map((u) => ({
     id: u.id,
     name: u.name,
     store_name: u.storeName,
@@ -22,12 +22,12 @@ async function sync() {
     region: u.region,
     district: u.district,
   }));
-  const { error } = await supabase.from('users').upsert(payload, { onConflict: 'id' });
+  const { error } = await supabase.from("users").upsert(payload, { onConflict: "id" });
   if (error) {
-    console.error('Supabase upsert error:', error.message);
+    console.error("Supabase upsert error:", error.message);
     process.exit(1);
   } else {
-    console.log('Default users synced successfully');
+    console.log("Default users synced successfully");
     process.exit(0);
   }
 }

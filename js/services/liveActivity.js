@@ -21,7 +21,7 @@ function getRealOnlineUsers() {
     if (window.__currentUser) {
       realCount += 1;
     }
-  } catch (e) {}
+  } catch (_e) {}
   return realCount;
 }
 
@@ -61,10 +61,11 @@ export function getLiveOnlineCount() {
  * Inisialisasi Widget Notifikasi 1 Baris di Atas Kolom Pencarian
  */
 export function initLiveActivityWidget() {
-  const dock = document.getElementById('live-user-activity-dock');
-  const countEl = document.getElementById('live-searching-count');
-  const msgEl = document.getElementById('live-user-message');
-  const topCountEl = document.getElementById('top-online-count-text');
+  const dock = document.getElementById("live-user-activity-dock");
+  const countEl = document.getElementById("live-searching-count");
+  const msgEl = document.getElementById("live-user-message");
+  // eslint-disable-next-line no-unused-vars
+  const topCountEl = document.getElementById("top-online-count-text");
 
   if (!dock && !msgEl && !countEl) return;
 
@@ -80,9 +81,9 @@ export function initLiveActivityWidget() {
 
 function updateSearchingTicker() {
   const count = getLiveOnlineCount();
-  const countEl = document.getElementById('live-searching-count');
-  const msgEl = document.getElementById('live-user-message');
-  const topCountEl = document.getElementById('top-online-count-text');
+  const countEl = document.getElementById("live-searching-count");
+  const msgEl = document.getElementById("live-user-message");
+  const topCountEl = document.getElementById("top-online-count-text");
 
   if (topCountEl) {
     topCountEl.textContent = `${count} Online`;
@@ -90,10 +91,10 @@ function updateSearchingTicker() {
 
   if (countEl) {
     // Animasi transisi angka halus
-    countEl.style.opacity = '0.3';
+    countEl.style.opacity = "0.3";
     setTimeout(() => {
       countEl.textContent = count;
-      countEl.style.opacity = '1';
+      countEl.style.opacity = "1";
     }, 180);
   } else if (msgEl) {
     msgEl.innerHTML = `
@@ -110,7 +111,7 @@ function updateSearchingTicker() {
 /**
  * Hook pemicu ketika pengguna login/mendaftar (sinkronisasi langsung)
  */
+  // eslint-disable-next-line no-unused-vars
 export function notifyUserJustLoggedIn(userName) {
   updateSearchingTicker();
 }
-

@@ -44,38 +44,26 @@ export function updateSortRadioUI() {
       pill.querySelector(".lucide") ||
       pill.querySelector('i[data-lucide="arrow-up-down"]');
     if (isSelected) {
-      pill.classList.add(
-        "bg-rose-900",
-        "text-white",
-        "border-rose-900",
-        "ring-2",
-        "ring-rose-900/20"
-      );
+      pill.classList.add("bg-rose-900", "text-white", "border-rose-900", "ring-2", "ring-rose-900/20");
       pill.classList.remove(
         "bg-white",
         "text-slate-700",
         "border-slate-200/90",
         "hover:bg-slate-50",
-        "hover:border-slate-300"
+        "hover:border-slate-300",
       );
       if (icon) {
         icon.classList.remove("text-slate-400", "group-hover:text-slate-600");
         icon.classList.add("text-amber-300");
       }
     } else {
-      pill.classList.remove(
-        "bg-rose-900",
-        "text-white",
-        "border-rose-900",
-        "ring-2",
-        "ring-rose-900/20"
-      );
+      pill.classList.remove("bg-rose-900", "text-white", "border-rose-900", "ring-2", "ring-rose-900/20");
       pill.classList.add(
         "bg-white",
         "text-slate-700",
         "border-slate-200/90",
         "hover:bg-slate-50",
-        "hover:border-slate-300"
+        "hover:border-slate-300",
       );
       if (icon) {
         icon.classList.remove("text-amber-300");
@@ -98,12 +86,7 @@ export function applyDetailImageSettings(customSettings = null) {
   const container = document.getElementById("detail-photo-container");
   const img = document.getElementById("detail-image");
   if (container && img) {
-    container.classList.remove(
-      "aspect-[4/5]",
-      "aspect-[4/3]",
-      "aspect-square",
-      "aspect-video"
-    );
+    container.classList.remove("aspect-[4/5]", "aspect-[4/3]", "aspect-square", "aspect-video");
     if (settings.aspectRatio) container.classList.add(settings.aspectRatio);
     img.style.objectFit = settings.objectFit || "cover";
   }

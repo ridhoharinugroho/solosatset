@@ -15,10 +15,11 @@ export const SAMPLE_LISTINGS = [
     regionId: "klaten",
     district: "Delanggu",
     codPoint: "COD SPBU Delanggu / Stasiun Delanggu Klaten",
-    description: "Honda Beat ESP 2018 warna merah putih plat AD Klaten. Surat komplit STNK, BPKB, Faktur ready di rumah. Pajak tertib panjang sampai November 2026. Mesin halus kering no rembes, ban depan belakang tebal tubeless. Langsung pakai no PR!",
+    description:
+      "Honda Beat ESP 2018 warna merah putih plat AD Klaten. Surat komplit STNK, BPKB, Faktur ready di rumah. Pajak tertib panjang sampai November 2026. Mesin halus kering no rembes, ban depan belakang tebal tubeless. Langsung pakai no PR!",
     images: [
       "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80"
+      "https://images.unsplash.com/photo-1568772585407-9361f9bf3a87?auto=format&fit=crop&w=800&q=80",
     ],
     seller: {
       id: "user-102",
@@ -28,12 +29,12 @@ export const SAMPLE_LISTINGS = [
       email: "joko.kra@gmail.com",
       avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80",
       region: "karanganyar",
-      district: "Jaten"
+      district: "Jaten",
     },
     status: "active",
     isSold: false,
     views: 450,
-    createdAt: "2026-08-20T11:45:00Z"
+    createdAt: "2026-08-20T11:45:00Z",
   },
   {
     id: "barkas-002",
@@ -46,10 +47,11 @@ export const SAMPLE_LISTINGS = [
     regionId: "sukoharjo",
     district: "Kartasura",
     codPoint: "COD Kampus UMS / Goro Assalam Kartasura",
-    description: "iPhone 11 128 GB Region PA/A (iBox Resmi Indonesia), sinyal semua operator aman seumur hidup. Face ID ON, TrueTone ON, 3uTools hijau semua 98%. Kelengkapan dusbook original, kabel c-to-lightning, bonus 3 case premium. COD dicek sepuasnya di kafe sekitar UMS.",
+    description:
+      "iPhone 11 128 GB Region PA/A (iBox Resmi Indonesia), sinyal semua operator aman seumur hidup. Face ID ON, TrueTone ON, 3uTools hijau semua 98%. Kelengkapan dusbook original, kabel c-to-lightning, bonus 3 case premium. COD dicek sepuasnya di kafe sekitar UMS.",
     images: [
       "https://images.unsplash.com/photo-1591337676887-a217a6970a8a?auto=format&fit=crop&w=800&q=80",
-      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80"
+      "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?auto=format&fit=crop&w=800&q=80",
     ],
     seller: {
       id: "user-103",
@@ -59,12 +61,12 @@ export const SAMPLE_LISTINGS = [
       email: "rian.gadget@gmail.com",
       avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?auto=format&fit=crop&w=150&q=80",
       region: "sukoharjo",
-      district: "Kartasura"
+      district: "Kartasura",
     },
     status: "active",
     isSold: false,
     views: 310,
-    createdAt: "2026-08-20T08:00:00Z"
+    createdAt: "2026-08-20T08:00:00Z",
   },
   {
     id: "barkas-003",
@@ -77,10 +79,9 @@ export const SAMPLE_LISTINGS = [
     regionId: "karanganyar",
     district: "Jaten",
     codPoint: "COD Rumah Palur / Sekitar UNS Solo - Jaten",
-    description: "Barang rumahan mesin cuci Sharp Aquamagic 2 tabung kapasitas 8 kg. Tabung cuci & pengering normal kencang semua. Selang pembuangan & kabel utuh. Dijual karena ganti yang 1 tabung otomatis. Monggo diangkut bawa pick-up / mobil sendiri ya lur.",
-    images: [
-      "https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80"
-    ],
+    description:
+      "Barang rumahan mesin cuci Sharp Aquamagic 2 tabung kapasitas 8 kg. Tabung cuci & pengering normal kencang semua. Selang pembuangan & kabel utuh. Dijual karena ganti yang 1 tabung otomatis. Monggo diangkut bawa pick-up / mobil sendiri ya lur.",
+    images: ["https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80"],
     seller: {
       id: "user-102",
       name: "Joko Supriyanto",
@@ -89,12 +90,12 @@ export const SAMPLE_LISTINGS = [
       email: "joko.kra@gmail.com",
       avatar: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=150&q=80",
       region: "karanganyar",
-      district: "Jaten"
+      district: "Jaten",
     },
     status: "active",
     isSold: false,
     views: 89,
-    createdAt: "2026-08-19T14:15:00Z"
+    createdAt: "2026-08-19T14:15:00Z",
   },
   {
     id: "barkas-004",
@@ -107,10 +108,9 @@ export const SAMPLE_LISTINGS = [
     regionId: "sragen",
     district: "Gemolong",
     codPoint: "COD Pasar Gemolong Sragen",
-    description: "Meja belajar anak sekolah bahan kayu jati asli + rak buku susun. Rangka kokoh, laci normal, tidak goyang. Cocok untuk belajar anak SD/SMP/SMA maupun mahasiswa. Lokasi Gemolong Sragen.",
-    images: [
-      "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80"
-    ],
+    description:
+      "Meja belajar anak sekolah bahan kayu jati asli + rak buku susun. Rangka kokoh, laci normal, tidak goyang. Cocok untuk belajar anak SD/SMP/SMA maupun mahasiswa. Lokasi Gemolong Sragen.",
+    images: ["https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?auto=format&fit=crop&w=800&q=80"],
     seller: {
       id: "user-104",
       name: "Siti Aisyah",
@@ -119,11 +119,11 @@ export const SAMPLE_LISTINGS = [
       email: "aisyah.crafts@example.com",
       avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80",
       region: "solo",
-      district: "Mojosongo"
+      district: "Mojosongo",
     },
     status: "active",
     isSold: false,
     views: 115,
-    createdAt: "2026-08-17T09:10:00Z"
-  }
+    createdAt: "2026-08-17T09:10:00Z",
+  },
 ];
