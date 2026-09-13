@@ -1,13 +1,15 @@
 import { refreshIcons } from "../../utils/runtime.js";
-import { getRegionById } from "../../data/regions.js"; import { CATEGORIES, CONDITIONS } from "../../data/categories.js";
+import { getRegionById } from "../../data/regions.js";
 import {
-  getPublicListings, getSiteSettings,
+  getPublicListings,
   isFavorite,
   toggleFavorite,
   isSellerVerified,
 } from "../../services/storage.js";
 import { generateWhatsAppUrl, formatRupiah, timeAgo } from "../../services/whatsapp.js";
-import { isDemoUser, isUserLoggedIn } from "../../services/auth.js"; import { openModal, showToast } from "../../utils/modalRouter.js"; import { setRegionFilter, resetAllFilters } from "../filter/filterController.js"; import { renderCategoryPills, showHomeLoadingSkeleton } from "../home/homeUI.js";
+import { isDemoUser, isUserLoggedIn } from "../../services/auth.js";
+import { showToast } from "../../utils/modalRouter.js";
+import { showHomeLoadingSkeleton } from "../home/homeUI.js";
 import { openUserAuthModal } from "../auth/authUI.js";
 import { updateSortRadioUI, applyDetailImageSettings } from "./listingsSortUI.js";
 import { renderFilterChips } from "./listingsFilterChips.js";
@@ -39,10 +41,21 @@ export function renderListings() {
   }
 
   if (state.selectedRegion && "all" !== state.selectedRegion) {
-    listings = listings.filter((l) => l.regionId === state.selectedRegion);
+    const qReg = String(state.selectedRegion).toLowerCase().replace(/\./g, "");
+    listings = listings.filter((l) => {
+      const pCode = String(l.provinceCode || l.province_code || "").toLowerCase().replace(/\./g, "");
+      const rCode = String(l.regencyCode || l.regency_code || "").toLowerCase().replace(/\./g, "");
+      const rId = String(l.regionId || l.region || "").toLowerCase().replace(/\./g, "");
+      return pCode === qReg || rCode === qReg || rId === qReg;
+    });
   }
   if (state.selectedDistrict && "all" !== state.selectedDistrict) {
-    listings = listings.filter((l) => l.district && l.district.toLowerCase() === state.selectedDistrict.toLowerCase());
+    const qDist = String(state.selectedDistrict).toLowerCase().replace(/\./g, "");
+    listings = listings.filter((l) => {
+      const dCode = String(l.districtCode || l.district_code || "").toLowerCase().replace(/\./g, "");
+      const dName = String(l.district || "").toLowerCase().replace(/\./g, "");
+      return dCode === qDist || dName === qDist;
+    });
   }
   if (state.selectedCategory && "all" !== state.selectedCategory) {
     listings = listings.filter((l) => l.category === state.selectedCategory);
@@ -63,11 +76,12 @@ export function renderListings() {
       const titleMatch = l.title && l.title.toLowerCase().includes(q);
       const descMatch = l.description && l.description.toLowerCase().includes(q);
       const distMatch = l.district && l.district.toLowerCase().includes(q);
+      const villageMatch = l.village && l.village.toLowerCase().includes(q);
       const sellerMatch =
         l.seller &&
         (l.seller.storeName || l.seller.name) &&
         (l.seller.storeName || l.seller.name).toLowerCase().includes(q);
-      return titleMatch || descMatch || distMatch || sellerMatch;
+      return titleMatch || descMatch || distMatch || villageMatch || sellerMatch;
     });
   }
 
@@ -117,7 +131,7 @@ export function renderListings() {
         isDemoUser(item.seller?.id || item.seller) ||
         Boolean(item.isDemo) ||
         Boolean(item.id && String(item.id).startsWith("barkas-0"));
-      const isItemBu = Boolean(item.is_bu || item.isBu); const paymentType = item.paymentMethod || "cod";
+      const isItemBu = Boolean(item.is_bu || item.isBu);
 
       cardsHtml += isListView
         ? `

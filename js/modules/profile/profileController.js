@@ -57,7 +57,7 @@ export function cancelProfileEditMode(e) {
       "https://api.dicebear.com/7.x/bottts/svg?seed=" + encodeURIComponent(user.email || user.id || "user");
     const avatarPreview = document.getElementById("profile-edit-avatar-preview");
     if (avatarPreview) avatarPreview.src = user.avatar || defaultAvatar;
-    selectProfileRegion(user.region || "solo", user.district);
+    selectProfileRegion(user.region || "", user.district);
   }
   setProfileEditMode(false);
 }
@@ -90,8 +90,8 @@ export async function handleSaveProfileSettings(e) {
     const storeNameVal = storeNameInput ? storeNameInput.value.trim() : "";
     const phoneVal = phoneInput ? phoneInput.value.trim() : "";
     const emailVal = emailInput ? emailInput.value.trim() : "";
-    const regionVal = regionInput ? regionInput.value : "solo";
-    const districtVal = districtInput ? districtInput.value : "Banjarsari";
+    const regionVal = regionInput ? regionInput.value : "";
+    const districtVal = districtInput ? districtInput.value : "";
     const bioVal = bioInput ? bioInput.value.trim() : "";
     const newPass = newPassInput ? newPassInput.value : "";
     const confirmPass = confirmPassInput ? confirmPassInput.value : "";
@@ -358,7 +358,7 @@ export function initProfileModule() {
     document.getElementById("btn-open-profile-region-picker")?.addEventListener("click", (e) => {
       e.preventDefault();
       if (!isProfileEditMode) return;
-      const currentRegId = document.getElementById("profile-input-region")?.value || "solo";
+      const currentRegId = document.getElementById("profile-input-region")?.value || "";
       renderProfileRegionPicker(currentRegId);
       openModal("modal-profile-region-picker");
     });
@@ -366,7 +366,7 @@ export function initProfileModule() {
     document.getElementById("btn-open-profile-district-picker")?.addEventListener("click", (e) => {
       e.preventDefault();
       if (!isProfileEditMode) return;
-      const currentRegId = document.getElementById("profile-input-region")?.value || "solo";
+      const currentRegId = document.getElementById("profile-input-region")?.value || "";
       const currentDistrict = document.getElementById("profile-input-district")?.value || "";
       renderProfileDistrictPicker(currentRegId, currentDistrict);
       openModal("modal-profile-district-picker");
@@ -436,7 +436,7 @@ export function openUserProfileModal() {
     if (newPassInput) newPassInput.value = "";
     if (confirmPassInput) confirmPassInput.value = "";
 
-    selectProfileRegion(user.region || "solo", user.district);
+    selectProfileRegion(user.region || "", user.district);
     setProfileEditMode(false);
     openModal("modal-user-profile");
 
@@ -457,7 +457,7 @@ export function openUserProfileModal() {
           if (phoneInput) phoneInput.value = fresh.phone || "";
           if (emailInput) emailInput.value = fresh.email || "";
           if (bioInput) bioInput.value = fresh.bio || "";
-          selectProfileRegion(fresh.region || "solo", fresh.district);
+          selectProfileRegion(fresh.region || "", fresh.district);
         }
       })
       .catch(() => {});

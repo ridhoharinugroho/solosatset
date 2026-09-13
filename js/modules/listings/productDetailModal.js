@@ -460,10 +460,10 @@ export function openProductDetail(listingId) {
 
 export function openShareModal(listing) {
   if (!listing) return;
-  const regName = getRegionById(listing.regionId)?.name || "Solo Raya";
+  const regName = getRegionById(listing.regionId)?.name || listing.region || "Indonesia";
   const locSnippet = listing.district ? `${regName}, ${listing.district}` : regName;
   const shareUrl = window.location.origin + window.location.pathname + `?item=${listing.id}`;
-  const shareText = `Cek iklan barang di Solo Raya:\n📦 *${listing.title}*\n💰 Harga: ${formatRupiah(listing.price)} (${listing.negoType === "pas" ? "Harga Pas" : "Bisa Nego"})\n📍 Lokasi: ${locSnippet}\n\n👉 Klik link untuk melihat iklan lengkap di Pusat Jual Beli Solo Raya:\n${shareUrl}`;
+  const shareText = `Cek iklan barang:\n📦 *${listing.title}*\n💰 Harga: ${formatRupiah(listing.price)} (${listing.negoType === "pas" ? "Harga Pas" : "Bisa Nego"})\n📍 Lokasi: ${locSnippet}\n\n👉 Klik link untuk melihat iklan lengkap di SOPALOKA:\n${shareUrl}`;
 
   const itemImg = document.getElementById("share-modal-item-img");
   const itemTitle = document.getElementById("share-modal-item-title");

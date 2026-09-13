@@ -206,7 +206,7 @@ export function initProfileModule() {
         e.preventDefault();
         if (!isProfileEditMode) return;
         if (typeof window.renderProfileRegionPicker === "function") {
-          window.renderProfileRegionPicker(document.getElementById("profile-input-region")?.value || "solo");
+          window.renderProfileRegionPicker(document.getElementById("profile-input-region")?.value || "");
         }
         openModal("modal-profile-region-picker");
       });
@@ -216,7 +216,7 @@ export function initProfileModule() {
         if (!isProfileEditMode) return;
         if (typeof window.renderProfileDistrictPicker === "function") {
           window.renderProfileDistrictPicker(
-            document.getElementById("profile-input-region")?.value || "solo",
+            document.getElementById("profile-input-region")?.value || "",
             document.getElementById("profile-input-district")?.value || "",
           );
         }
@@ -283,7 +283,7 @@ export function openUserProfileModal() {
     if (confirmPassInput) confirmPassInput.value = "";
 
     if (typeof window.selectProfileRegion === "function") {
-      window.selectProfileRegion(user.region || "solo", user.district);
+      window.selectProfileRegion(user.region || "", user.district);
     }
     setProfileEditMode(false);
     openModal("modal-user-profile");
@@ -307,7 +307,7 @@ export function openUserProfileModal() {
           if (emailInput) emailInput.value = fresh.email || "";
           if (bioInput) bioInput.value = fresh.bio || "";
           if (typeof window.selectProfileRegion === "function") {
-            window.selectProfileRegion(fresh.region || "solo", fresh.district);
+            window.selectProfileRegion(fresh.region || "", fresh.district);
           }
         }
       })

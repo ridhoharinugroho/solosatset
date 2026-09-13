@@ -190,7 +190,7 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if (client.url.includes("solosatset") && "focus" in client) {
+        if ((client.url.includes("solosatset") || client.url.includes("sopaloka") || client.url.includes("localhost")) && "focus" in client) {
           if (client.navigate) client.navigate(targetUrl);
           return client.focus();
         }

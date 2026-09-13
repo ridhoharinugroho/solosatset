@@ -92,15 +92,15 @@
         </div>
         <div>
           <h3 class="font-black text-slate-900 text-sm leading-tight">Filter Barang</h3>
-          <p class="text-[10px] text-slate-500 leading-none">Sesuaikan pencarian barang di Solo Raya</p>
+          <p class="text-[10px] text-slate-500 leading-none">Sesuaikan pencarian barang terdekat</p>
         </div>
       </div>
     </div>
 
     <div class="p-3.5 sm:p-4.5 overflow-y-auto space-y-3 flex-1">
-      <!-- 1. Wilayah Solo Raya -->
+      <!-- 1. Pilih Wilayah -->
       <div class="space-y-1">
-        <label class="block text-[10.5px] font-bold uppercase tracking-wider text-slate-600">Wilayah Solo Raya</label>
+        <label class="block text-[10.5px] font-bold uppercase tracking-wider text-slate-600">Pilih Wilayah</label>
         <input type="hidden" id="filter-modal-region" value="all" />
         <button
           type="button"
@@ -115,7 +115,7 @@
               <i data-lucide="map-pin" id="filter-region-trigger-icon" class="w-3.5 h-3.5 text-rose-900"></i>
             </div>
             <span id="filter-region-trigger-text" class="truncate font-semibold text-slate-800"
-              >Semua Wilayah Solo Raya</span
+              >Semua Wilayah</span
             >
           </div>
           <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 flex-shrink-0 ml-2"></i>
@@ -249,7 +249,7 @@
         type="button"
         class="picker-item-filter-region w-full px-3.5 py-2.5 rounded-2xl border-2 border-rose-900 bg-rose-50/70 flex items-center justify-between gap-3 text-left transition-all cursor-pointer ring-2 ring-rose-900/20"
         data-id="all"
-        data-name="Semua Wilayah Solo Raya"
+        data-name="Semua Wilayah"
         data-icon="map-pin"
       >
         <div class="flex items-center gap-3 min-w-0">
@@ -258,7 +258,7 @@
           >
             <i data-lucide="map-pin" class="w-4 h-4"></i>
           </div>
-          <div class="text-sm font-black text-slate-900 item-title">Semua Wilayah Solo Raya</div>
+          <div class="text-sm font-black text-slate-900 item-title">Semua Wilayah</div>
         </div>
         <div
           class="check-box w-5 h-5 rounded-full border-2 border-rose-900 flex items-center justify-center flex-shrink-0"

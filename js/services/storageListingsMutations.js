@@ -14,7 +14,7 @@ export function saveListing(listingData) {
   const activeSellerPhone = currentUser.phone || "081234567890";
   const activeSellerEmail = currentUser.email || "";
   const activeSellerAvatar = currentUser.avatar || "";
-  const activeSellerRegion = currentUser.region || listingData.regionId || "solo";
+  const activeSellerRegion = currentUser.region || listingData.regionId || listingData.region || "";
 
   const isBu = Boolean(listingData.is_bu || listingData.isBu);
   const buExpiresAt = isBu ? listingData.bu_expires_at || null : null;
@@ -42,6 +42,13 @@ export function saveListing(listingData) {
     regionId: listingData.regionId || listingData.region || activeSellerRegion,
     region: listingData.region || listingData.regionId || activeSellerRegion,
     district: listingData.district || currentUser.district || "Banjarsari",
+    provinceCode: listingData.provinceCode || listingData.province_code || currentUser.provinceCode || currentUser.province_code || null,
+    province_code: listingData.province_code || listingData.provinceCode || currentUser.province_code || currentUser.provinceCode || null,
+    regencyCode: listingData.regencyCode || listingData.regency_code || currentUser.regencyCode || currentUser.regency_code || null,
+    regency_code: listingData.regency_code || listingData.regencyCode || currentUser.regency_code || currentUser.regencyCode || null,
+    districtCode: listingData.districtCode || listingData.district_code || currentUser.districtCode || currentUser.district_code || null,
+    district_code: listingData.district_code || listingData.districtCode || currentUser.district_code || currentUser.districtCode || null,
+    village: listingData.village || currentUser.village || "",
     codPoint:
       listingData.codPoint ||
       listingData.cod_point ||

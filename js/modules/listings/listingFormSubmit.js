@@ -33,8 +33,10 @@ export async function handleCreateListingSubmit(e, state) {
       document.querySelector('input[name="paymentMethod"]:checked') ||
       document.querySelector('input[name="payment_method"]') ||
       document.querySelector('input[name="paymentMethod"]'),
-    regInput = document.getElementById("form-region-select") || document.querySelector('select[name="region"]'),
-    distInput = document.getElementById("form-district-select") || document.querySelector('select[name="district"]'),
+    provInput = document.getElementById("form-province-select") || document.querySelector('select[name="province_code"]'),
+    regInput = document.getElementById("form-region-select") || document.querySelector('select[name="regency_code"]') || document.querySelector('select[name="region"]'),
+    distInput = document.getElementById("form-district-select") || document.querySelector('select[name="district_code"]') || document.querySelector('select[name="district"]'),
+    villageInput = document.getElementById("form-input-village") || document.querySelector('input[name="village"]'),
     codInput =
       document.getElementById("form-input-cod") ||
       document.getElementById("codPointInput") ||
@@ -59,10 +61,16 @@ export async function handleCreateListingSubmit(e, state) {
     storeMapsUrl = "https://" + storeMapsUrl;
   }
 
-  const regionId = regInput?.value || "solo",
-    district = distInput?.value || "",
+  const provinceCode = provInput?.value || "33",
+    regencyCode = regInput?.value || "33.72",
+    districtCode = distInput?.value || "33.72.01",
+    village = villageInput?.value?.trim() || "",
+    // Legacy compatibility fallbacks: extract text if input is select element
+    distSelectedOpt = distInput && distInput.options && distInput.selectedIndex >= 0 ? distInput.options[distInput.selectedIndex] : null,
+    district = distSelectedOpt ? distSelectedOpt.textContent.replace(/^Kec\.?\s*/i, "").trim() : (distInput?.value || ""),
+    regionId = regencyCode || "solo",
     rawCodPoint = codInput ? codInput.value : "",
-    locRef = (district || regionId || "Solo Raya").trim(),
+    locRef = (district || village || regionId || "Solo Raya").trim(),
     codPoint =
       rawCodPoint && "" !== rawCodPoint.trim() ? rawCodPoint.trim() : locRef ? `COD ${locRef}` : "COD Solo Raya",
     editId = editIdInput?.value?.trim() || "";
@@ -171,6 +179,13 @@ export async function handleCreateListingSubmit(e, state) {
     regionId: regionId,
     region: regionId,
     district: district,
+    province_code: provinceCode,
+    regency_code: regencyCode,
+    district_code: districtCode,
+    village: village,
+    provinceCode: provinceCode,
+    regencyCode: regencyCode,
+    districtCode: districtCode,
     codPoint: codPoint,
     cod_point: codPoint || "",
     description: description,

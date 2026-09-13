@@ -6,7 +6,7 @@ function normalizeText(value) {
     .replace(/\s+/g, " ");
 }
 
-export function formatRegionTitle(value, fallback = "Solo") {
+export function formatRegionTitle(value, fallback = "Semua Wilayah") {
   const normalized = normalizeText(value).toLowerCase();
   if (!normalized) return fallback;
   if (normalized === "surakarta" || normalized === "solo") return "Solo";

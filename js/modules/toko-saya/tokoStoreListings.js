@@ -2,9 +2,10 @@ import {
   getMyListings,
   getRegionById,
   formatRupiah,
-  deleteListing, updateListingStatus,
+  deleteListing,
 } from "../../services/storage.js";
-import { openEditListingModal } from "../listings/listingFormModal.js"; import { openModal, closeModal, showToast } from "../../utils/modalRouter.js";
+import { openEditListingModal } from "../listings/listingFormModal.js";
+import { openModal, showToast } from "../../utils/modalRouter.js";
 import { refreshIcons } from "../../utils/runtime.js";
 
 let isInitialStoreLoading = true;

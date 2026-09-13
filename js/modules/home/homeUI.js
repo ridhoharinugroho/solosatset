@@ -1,5 +1,5 @@
 import { refreshIcons, deferTask } from "../../utils/runtime.js";
-import { SOLO_RAYA_REGIONS, getRegionById } from "../../data/regions.js";
+import { REGIONS, getRegionById } from "../../data/regions.js";
 import { CATEGORIES } from "../../data/categories.js";
   // eslint-disable-next-line no-unused-vars
 import { getPublicListings, getCustomTexts } from "../../services/storage.js";
@@ -55,7 +55,7 @@ export function renderRegionPills() {
     </button>
   `;
 
-  SOLO_RAYA_REGIONS.forEach((reg) => {
+  REGIONS.forEach((reg) => {
     const isSelected = state.selectedRegion === reg.id;
     const count = isLoaded ? (Array.isArray(listings) ? listings.filter((l) => l.regionId === reg.id).length : 0) : "-";
     html += `
@@ -88,7 +88,7 @@ export function renderRegionPills() {
   const indicator = document.getElementById("region-current-indicator");
   if (indicator) {
     if ("all" === state.selectedRegion) {
-      indicator.textContent = state.customTexts?.region_indicator_all || "Menampilkan: 7 Wilayah Solo Raya";
+      indicator.textContent = state.customTexts?.region_indicator_all || "Menampilkan: Semua Wilayah Terdekat";
     } else {
       const reg = getRegionById(state.selectedRegion);
       indicator.textContent = `Menampilkan: ${reg ? reg.name : state.selectedRegion}`;

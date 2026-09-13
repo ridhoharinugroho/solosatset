@@ -1,11 +1,10 @@
-import { SOLO_RAYA_REGIONS, getRegionById, getDistrictsByRegionId } from "../../data/regions.js";
+import { REGIONS, getRegionById, getDistrictsByRegionId } from "../../data/regions.js";
    
-  // eslint-disable-next-line no-unused-vars
-import { formatRegionTitle, formatDistrictTitle, refreshIcons } from "../../utils/runtime.js";
+import { refreshIcons } from "../../utils/runtime.js";
 import { closeModal } from "../common/modalManager.js";
 
 export function normalizeProfileRegionId(reg) {
-  if (!reg) return "solo";
+  if (!reg) return "";
   const lower = String(reg).toLowerCase().trim();
   if (lower.includes("solo") || lower.includes("surakarta")) return "solo";
   if (lower.includes("karanganyar")) return "karanganyar";
@@ -23,7 +22,7 @@ export function renderProfileRegionPicker(activeRegId) {
     if (!container) return;
 
     let html = "";
-    SOLO_RAYA_REGIONS.forEach((r) => {
+    REGIONS.forEach((r) => {
       const isSelected = r.id === activeRegId;
       html += `
         <button
@@ -135,7 +134,7 @@ export function selectProfileRegion(regId, customDistrict = null) {
   try {
     const selectedRegId = normalizeProfileRegionId(regId);
     const regionObj = getRegionById(selectedRegId);
-    const regionName = regionObj ? regionObj.name : "Kota Solo (Surakarta)";
+    const regionName = regionObj ? regionObj.name : "Pilih Wilayah";
 
     const regionInput = document.getElementById("profile-input-region");
     const triggerText = document.getElementById("profile-region-trigger-text");
@@ -155,10 +154,10 @@ export function selectProfileRegion(regId, customDistrict = null) {
 export function selectProfileDistrict(districtName, regId = null) {
   try {
     const currentRegId = normalizeProfileRegionId(
-      regId || document.getElementById("profile-input-region")?.value || "solo",
+      regId || document.getElementById("profile-input-region")?.value || "",
     );
     const regionObj = getRegionById(currentRegId);
-    const regionName = regionObj ? regionObj.shortName || regionObj.name : "Solo";
+    const regionName = regionObj ? regionObj.shortName || regionObj.name : "";
     const districts = getDistrictsByRegionId(currentRegId) || [];
     const selectedDistrict = districtName && districts.includes(districtName) ? districtName : districts[0] || "";
 
@@ -169,8 +168,8 @@ export function selectProfileDistrict(districtName, regId = null) {
 
     if (districtInput) districtInput.value = selectedDistrict;
     if (triggerText) triggerText.textContent = selectedDistrict ? `Kec. ${selectedDistrict}` : "Pilih Kecamatan";
-    if (titleEl) titleEl.textContent = `Pilih Kecamatan (${regionName})`;
-    if (subtitleEl) subtitleEl.textContent = `Daftar kecamatan di ${regionObj ? regionObj.name : regionName}`;
+    if (titleEl) titleEl.textContent = regionName ? `Pilih Kecamatan (${regionName})` : "Pilih Kecamatan";
+    if (subtitleEl) subtitleEl.textContent = regionName ? `Daftar kecamatan di ${regionObj ? regionObj.name : regionName}` : "Daftar kecamatan";
 
     renderProfileDistrictPicker(currentRegId, selectedDistrict);
   } catch (err) {

@@ -400,10 +400,10 @@ export function openProductDetail(listingId, state) {
 
 function openShareModal(listing) {
   if (!listing) return;
-  const regName = getRegionById(listing.regionId)?.name || "Solo Raya",
+  const regName = getRegionById(listing.regionId)?.name || listing.region || "Indonesia",
     locSnippet = listing.district ? `${regName}, ${listing.district}` : regName,
     shareUrl = window.location.origin + window.location.pathname + `?item=${listing.id}`,
-    shareText = `Cek iklan barang di Solo Raya:\n📦 *${listing.title}*\n💰 Harga: ${formatRupiah(listing.price)} (${"pas" === listing.negoType ? "Harga Pas" : "Bisa Nego"})\n📍 Lokasi: ${locSnippet}\n\n👉 Klik link untuk melihat iklan lengkap di Pusat Jual Beli Solo Raya:\n${shareUrl}`,
+    shareText = `Cek iklan barang:\n📦 *${listing.title}*\n💰 Harga: ${formatRupiah(listing.price)} (${"pas" === listing.negoType ? "Harga Pas" : "Bisa Nego"})\n📍 Lokasi: ${locSnippet}\n\n👉 Klik link untuk melihat iklan lengkap di SOPALOKA:\n${shareUrl}`,
     itemImg = document.getElementById("share-modal-item-img"),
     itemTitle = document.getElementById("share-modal-item-title"),
     itemPrice = document.getElementById("share-modal-item-price"),

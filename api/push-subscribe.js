@@ -115,7 +115,7 @@ export default async function handler(req, res) {
       .status(200)
       .json({
         success: true,
-        message: "Perangkat Anda berhasil terdaftar untuk menerima Notifikasi Web Push SoloSatSet.",
+        message: "Perangkat Anda berhasil terdaftar untuk menerima Notifikasi Web Push SOPALOKA.",
         savedToTable: true,
       });
   } catch (error) {

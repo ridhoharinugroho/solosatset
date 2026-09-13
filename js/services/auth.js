@@ -100,10 +100,10 @@ export function formatRegionTitle(rawRegion) {
   const reg = String(rawRegion || "")
     .trim()
     .toLowerCase();
-  if (!reg) return "Solo";
+  if (!reg) return "";
   const map = {
     solo: "Solo",
-    surakarta: "Solo",
+    surakarta: "Surakarta",
     karanganyar: "Karanganyar",
     sukoharjo: "Sukoharjo",
     wonogiri: "Wonogiri",
@@ -113,9 +113,11 @@ export function formatRegionTitle(rawRegion) {
     soloraya: "Solo Raya",
     "solo raya": "Solo Raya",
   };
-  return map[reg] || `${reg.charAt(0).toUpperCase()}${reg.slice(1)}`;
+  return map[reg] || reg.split(/[-_ ]+/).map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : "")).join(" ");
 }
-window.formatRegionTitle = formatRegionTitle;
+if (typeof window !== "undefined") {
+  window.formatRegionTitle = formatRegionTitle;
+}
 export function formatDistrictTitle(rawDistrict) {
   const clean = String(rawDistrict || "")
     .trim()
@@ -127,7 +129,9 @@ export function formatDistrictTitle(rawDistrict) {
     .map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`)
     .join(" ");
 }
-window.formatDistrictTitle = formatDistrictTitle;
+if (typeof window !== "undefined") {
+  window.formatDistrictTitle = formatDistrictTitle;
+}
 export function formatJoinedDate(rawDate) {
   if (!rawDate) return "01 Agustus 2026";
   const value = String(rawDate).trim();
@@ -144,7 +148,9 @@ export function formatJoinedDate(rawDate) {
     ? value
     : parsed.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
 }
-window.formatJoinedDate = formatJoinedDate;
+if (typeof window !== "undefined") {
+  window.formatJoinedDate = formatJoinedDate;
+}
 
 export function getRegisteredUsers() {
   return inMemoryRegisteredUsers;

@@ -137,8 +137,8 @@ export function addAppReview({ rating, category, comment }) {
   const rawFullName = (currentUser.name || currentUser.storeName || currentUser.store_name || "Pengguna").trim();
   const firstName = rawFullName.split(/\s+/)[0] || "Pengguna";
 
-  const rawDistrict = currentUser.district || currentUser.region || "Solo";
-  const districtTitle = formatDistrictTitle(rawDistrict) || formatRegionTitle(rawDistrict) || "Solo";
+  const rawDistrict = currentUser.district || currentUser.region || "";
+  const districtTitle = formatDistrictTitle(rawDistrict) || formatRegionTitle(rawDistrict) || "Indonesia";
 
   const fullUserName = `${firstName} ${districtTitle}`.trim();
   const locationTag = districtTitle;
@@ -272,8 +272,8 @@ export function updateAppReview({ id, rating, category, comment }) {
   const activeUser = (currentUser.id ? getUserById(currentUser.id) : null) || currentUser;
   const rawFullName = (activeUser.name || activeUser.storeName || activeUser.store_name || "Pengguna").trim();
   const firstName = rawFullName.split(/\s+/)[0] || "Pengguna";
-  const rawDistrict = activeUser.district || activeUser.region || "Solo";
-  const districtTitle = formatDistrictTitle(rawDistrict) || formatRegionTitle(rawDistrict) || "Solo";
+  const rawDistrict = activeUser.district || activeUser.region || "";
+  const districtTitle = formatDistrictTitle(rawDistrict) || formatRegionTitle(rawDistrict) || "Indonesia";
   const fullUserName = `${firstName} ${districtTitle}`.trim();
   const locationTag = districtTitle;
 

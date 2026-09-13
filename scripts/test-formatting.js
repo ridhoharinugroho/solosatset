@@ -9,8 +9,8 @@ import {
 assert.equal(formatRegionTitle("surakarta"), "Solo");
 assert.equal(formatRegionTitle(" SOLO RAYA "), "Solo Raya");
 assert.equal(formatRegionTitle("karanganYAR"), "Karanganyar");
-assert.equal(formatRegionTitle(""), "Solo");
-assert.equal(formatRegionTitle(null), "Solo");
+assert.equal(formatRegionTitle(""), "Semua Wilayah");
+assert.equal(formatRegionTitle(null), "Semua Wilayah");
 assert.equal(formatRegionTitle(null, "Solo Raya"), "Solo Raya");
 
 assert.equal(formatDistrictTitle("Kec. jaten"), "Jaten");

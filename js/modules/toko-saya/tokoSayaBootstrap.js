@@ -2,14 +2,14 @@ import { initializeStorage, getCurrentUser, syncAllUsersToCloudOnStartup, fetchF
 import { renderAuthHeaderModule, renderStoreShowcaseModule } from "../store/storeShowcase.js";
 import { renderStoreReviewsModule } from "./tokoStoreReviews.js";
 import { getMyListings, getDistrictsByRegionId, getAllListings } from "../../services/storage.js";
-import { SOLO_RAYA_REGIONS } from "../../data/regions.js";
+import { SOLO_RAYA_REGIONS, getProvinces, getRegenciesByProvince, getDistrictsByRegency } from "../../data/regions.js";
 import { openCreateListingModal } from "../listings/listingFormModal.js";
 import { formatRupiah } from "../../services/whatsapp.js";
 import { processSquareImage } from "../../utils/imageProcessor.js";
-import { showToast, openModal, closeModal } from "../../utils/modalRouter.js";
-import { sbUploadMultipleImages, sbBroadcastBuNotification, updateUserInterest, sbGetMyListings } from "../../services/supabaseDB.js";
-import { saveListing, updateListing, updateListingStatus } from "../../services/storage.js";
-import { initProfileModule, openUserProfileModal } from "../profile/userProfile.js";
+import { showToast, closeModal } from "../../utils/modalRouter.js";
+import { sbGetMyListings } from "../../services/supabaseDB.js";
+import { updateListingStatus } from "../../services/storage.js";
+import { openUserProfileModal } from "../profile/userProfile.js";
 import { refreshIcons } from "../../utils/runtime.js";
 import { renderStoreListings } from "./tokoStoreListings.js";
 import { initServiceWorker } from "../app/appBootstrap.js";
@@ -85,10 +85,10 @@ export async function initTokoSayaPage(currentUserRef, uploadedImagesRef) {
       await syncAllUsersToCloudOnStartup();
       const freshUser = getCurrentUser();
       if (freshUser) currentUserRef.value = freshUser;
-    } catch (uErr) {}
+    } catch (_uErr) {}
     try {
       await syncAndRenderStoreListings(currentUserRef.value, activeStoreFilter, true);
-    } catch (lErr) {}
+    } catch (_lErr) {}
   })();
 
   window.addEventListener("userProfileUpdated", (e) => {
@@ -116,33 +116,69 @@ export async function initTokoSayaPage(currentUserRef, uploadedImagesRef) {
 
 function setupFormRegions(currentUser) {
   try {
-    const regSelect = document.getElementById("form-region-select"),
+    const provSelect = document.getElementById("form-province-select"),
+      regSelect = document.getElementById("form-region-select"),
       distSelect = document.getElementById("form-district-select");
+
     if (!regSelect) return;
-    regSelect.innerHTML = "";
-    SOLO_RAYA_REGIONS.forEach((r) => {
-      const opt = document.createElement("option");
-      opt.value = r.id;
-      opt.textContent = `${r.name} (${r.shortName})`;
-      regSelect.appendChild(opt);
-    });
-    const updateDistricts = (regId) => {
+
+    const updateDistricts = (regCode) => {
       if (!distSelect) return;
-      const districts = getDistrictsByRegionId(regId) || [];
+      let districts = getDistrictsByRegency(regCode);
+      if (!districts || districts.length === 0) {
+        const legacyDist = getDistrictsByRegionId(regCode);
+        districts = legacyDist.map((d) => ({ code: d, name: d }));
+      }
       distSelect.innerHTML = "";
       districts.forEach((d) => {
         const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = `Kec. ${d}`;
+        opt.value = d.code || d.name;
+        opt.textContent = d.name.startsWith("Kec.") ? d.name : `Kec. ${d.name}`;
         distSelect.appendChild(opt);
       });
     };
-    regSelect.onchange = () => updateDistricts(regSelect.value);
-    if (SOLO_RAYA_REGIONS.length > 0) {
-      const defaultReg = currentUser?.region || "karanganyar";
-      regSelect.value = defaultReg;
-      updateDistricts(defaultReg);
+
+    const updateRegencies = (provCode) => {
+      let regencies = getRegenciesByProvince(provCode);
+      if (!regencies || regencies.length === 0) {
+        regencies = SOLO_RAYA_REGIONS;
+      }
+      regSelect.innerHTML = "";
+      regencies.forEach((r) => {
+        const opt = document.createElement("option");
+        opt.value = r.code || r.id;
+        opt.textContent = r.name.includes("(") ? r.name : `${r.name} (${r.shortName || r.name})`;
+        regSelect.appendChild(opt);
+      });
+
+      const defaultReg = currentUser?.regency_code || currentUser?.region || (regencies[0] ? (regencies[0].code || regencies[0].id) : "");
+      if (defaultReg && regencies.some((r) => r.code === defaultReg || r.id === defaultReg)) {
+        regSelect.value = defaultReg;
+      }
+      updateDistricts(regSelect.value);
+    };
+
+    if (provSelect) {
+      const provinces = getProvinces();
+      provSelect.innerHTML = "";
+      provinces.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.code;
+        opt.textContent = p.name;
+        provSelect.appendChild(opt);
+      });
+
+      const defaultProv = currentUser?.province_code || "33";
+      if (provinces.some((p) => p.code === defaultProv)) {
+        provSelect.value = defaultProv;
+      }
+      provSelect.onchange = () => updateRegencies(provSelect.value);
+      updateRegencies(provSelect.value);
+    } else {
+      updateRegencies(currentUser?.province_code || "33");
     }
+
+    regSelect.onchange = () => updateDistricts(regSelect.value);
   } catch (err) {
     console.warn("[setupFormRegions error]", err);
   }

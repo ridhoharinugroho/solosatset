@@ -26,7 +26,7 @@ export async function handleSaveProfileSettings(e) {
     const storeNameVal = document.getElementById("profile-input-store-name")?.value?.trim() || nameVal;
     const phoneVal = document.getElementById("profile-input-phone")?.value?.trim() || "";
     const emailVal = document.getElementById("profile-input-email")?.value?.trim() || "";
-    const regionVal = document.getElementById("profile-input-region")?.value || "solo";
+    const regionVal = document.getElementById("profile-input-region")?.value || "";
     const districtVal = document.getElementById("profile-input-district")?.value || "";
     const bioVal = document.getElementById("profile-input-bio")?.value?.trim() || "";
     const newPass = document.getElementById("profile-input-new-password")?.value || "";

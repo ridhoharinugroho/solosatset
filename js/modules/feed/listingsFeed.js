@@ -55,10 +55,21 @@ export function renderListings() {
   const sortBy = stateObj.sortBy || "newest";
 
   if (selRegion !== "all") {
-    listings = listings.filter((l) => l.regionId === selRegion);
+    const qReg = String(selRegion).toLowerCase().replace(/\./g, "");
+    listings = listings.filter((l) => {
+      const pCode = String(l.provinceCode || l.province_code || "").toLowerCase().replace(/\./g, "");
+      const rCode = String(l.regencyCode || l.regency_code || "").toLowerCase().replace(/\./g, "");
+      const rId = String(l.regionId || l.region || "").toLowerCase().replace(/\./g, "");
+      return pCode === qReg || rCode === qReg || rId === qReg;
+    });
   }
   if (selDistrict !== "all") {
-    listings = listings.filter((l) => l.district && l.district.toLowerCase() === selDistrict.toLowerCase());
+    const qDist = String(selDistrict).toLowerCase().replace(/\./g, "");
+    listings = listings.filter((l) => {
+      const dCode = String(l.districtCode || l.district_code || "").toLowerCase().replace(/\./g, "");
+      const dName = String(l.district || "").toLowerCase().replace(/\./g, "");
+      return dCode === qDist || dName === qDist;
+    });
   }
   if (selCategory !== "all") {
     listings = listings.filter((l) => l.category === selCategory);
@@ -79,11 +90,12 @@ export function renderListings() {
       const titleMatch = l.title && l.title.toLowerCase().includes(q);
       const descMatch = l.description && l.description.toLowerCase().includes(q);
       const distMatch = l.district && l.district.toLowerCase().includes(q);
+      const villageMatch = l.village && l.village.toLowerCase().includes(q);
       const sellerMatch =
         l.seller &&
         (l.seller.storeName || l.seller.name) &&
         (l.seller.storeName || l.seller.name).toLowerCase().includes(q);
-      return titleMatch || descMatch || distMatch || sellerMatch;
+      return titleMatch || descMatch || distMatch || villageMatch || sellerMatch;
     });
   }
 

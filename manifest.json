@@ -1,7 +1,7 @@
 {
-  "name": "solosatset - Pusat Jual Beli Solo Raya",
-  "short_name": "solosatset",
-  "description": "Pusat Jual Beli Barang Solo Raya - Pantau Cocok Bayar, Nego Langsung WA",
+  "name": "SOPALOKA — Pusat Jual Beli Barang Terdekat",
+  "short_name": "SOPALOKA",
+  "description": "SOPALOKA — Pusat Jual Beli Barang Terdekat. Pantau Cocok Bayar.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",

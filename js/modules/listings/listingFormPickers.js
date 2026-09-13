@@ -1,4 +1,4 @@
-import { SOLO_RAYA_REGIONS, getDistrictsByRegionId } from "../../data/regions.js";
+import { REGIONS, getDistrictsByRegionId, getRegionById } from "../../data/regions.js";
 import { refreshIcons } from "../../utils/runtime.js";
 
 export const FORM_CATEGORY_META = {
@@ -229,14 +229,14 @@ export function selectFormPaymentMethod(methodId) {
 }
 
 export function selectFormRegion(regionId) {
-  const selectedRegId = regionId || "surakarta";
+  const selectedRegId = regionId || (REGIONS[0] ? REGIONS[0].id : "");
   const inputRegion = document.getElementById("form-input-region");
   if (inputRegion) inputRegion.value = selectedRegId;
 
-  const regObj = SOLO_RAYA_REGIONS.find((r) => r.id === selectedRegId) || SOLO_RAYA_REGIONS[0];
+  const regObj = getRegionById(selectedRegId);
 
   const textEl = document.getElementById("region-trigger-text");
-  if (textEl) textEl.textContent = regObj.name;
+  if (textEl && regObj) textEl.textContent = regObj.name;
 
   const dotEl = document.getElementById("region-trigger-dot");
   if (dotEl) dotEl.style.backgroundColor = regObj.accentColor || "#be123c";

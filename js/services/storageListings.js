@@ -2,7 +2,6 @@ import { SAMPLE_LISTINGS } from "../data/sampleListings.js";
   // eslint-disable-next-line no-unused-vars
 import { getCurrentUser } from "./auth.js";
 import { supabase } from "../lib/supabase.js";
-import { formatRegionTitle, formatDistrictTitle } from "../utils/runtime.js";
    
    
   // eslint-disable-next-line no-unused-vars
@@ -97,7 +96,7 @@ export async function initializeStorage() {
         const firstText = textsData && textsData.length > 0 ? textsData[0] : null;
         window.__customTexts = firstText ? { ...DEFAULT_CUSTOM_TEXTS, ...firstText } : { ...DEFAULT_CUSTOM_TEXTS };
       }
-    } catch (tErr) {
+    } catch (_tErr) {
       window.__customTexts = { ...DEFAULT_CUSTOM_TEXTS };
     }
 
@@ -237,18 +236,22 @@ export function processAndBroadcastSupabaseListings(cloudData) {
         condition: c.condition || "good",
         negoType: c.nego_type || c.negoType || "nego_alus",
         paymentMethod: c.payment_method || c.paymentMethod || "cod",
-        regionId: c.region || c.regionId || "solo",
+        regionId: c.region || c.regionId || "",
         district: c.district || "",
-        codPoint: c.cod_point || c.codPoint || "COD " + (c.district || "Solo Raya"),
+        provinceCode: c.province_code || c.provinceCode || null,
+        regencyCode: c.regency_code || c.regencyCode || null,
+        districtCode: c.district_code || c.districtCode || null,
+        village: c.village || "",
+        codPoint: c.cod_point || c.codPoint || (c.district ? "COD " + c.district : "COD"),
         description: c.description || "",
         images: parsedImages,
         seller: {
           id: c.seller_id || "user-anon",
-          name: c.seller_name || "Penjual Solo",
-          storeName: c.seller_name || "Penjual Solo",
+          name: c.seller_name || "Penjual",
+          storeName: c.seller_name || "Penjual",
           phone: c.seller_phone || "081234567890",
           avatar: c.seller_avatar || "",
-          region: c.region || "solo",
+          region: c.region || "",
         },
         status: c.status || "active",
         isSold: c.status === "sold",
@@ -271,7 +274,7 @@ export function processAndBroadcastSupabaseListings(cloudData) {
       JSON.stringify(finalData.map((i) => `${i.id}:${i.price}:${i.status}`));
 
   inMemoryListings = finalData;
-  if (isDataChanged) {
+  if (isDataChanged && typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("listingsChanged", { detail: finalData }));
   }
   return finalData;

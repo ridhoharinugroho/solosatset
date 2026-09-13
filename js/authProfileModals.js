@@ -3,18 +3,76 @@
 // Single source of truth for loading components/modals/auth-profile.html
 // ============================================================
 
-import { getDistrictsByRegionId } from "./data/regions.js";
+import {
+  getProvinces,
+  getRegenciesByProvince,
+  getDistrictsByRegency,
+  getDistrictsByRegionId,
+} from "./data/regions.js";
 import "./services/otpAuth.js";
 import "./services/passwordChangeOtp.js";
 
 let authProfileLoadPromise = null;
 
+function populateRegistrationProvinces() {
+  const provSelect = document.getElementById("reg-select-province");
+  if (!provSelect) return;
+  const provinces = getProvinces();
+  provSelect.innerHTML = "";
+  provinces.forEach((p) => {
+    const option = document.createElement("option");
+    option.value = p.code;
+    option.textContent = p.name;
+    provSelect.appendChild(option);
+  });
+  // Default to Jawa Tengah (33) if available
+  if (provinces.some((p) => p.code === "33")) {
+    provSelect.value = "33";
+  }
+}
+
+function populateRegistrationRegencies(preferredRegency = "") {
+  const provSelect = document.getElementById("reg-select-province");
+  const regSelect = document.getElementById("reg-select-region");
+  if (!regSelect) return false;
+  const provCode = provSelect ? provSelect.value || "33" : "33";
+  const regencies = getRegenciesByProvince(provCode);
+  regSelect.innerHTML = "";
+
+  if (!regencies.length) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "Kabupaten / Kota tidak tersedia";
+    regSelect.appendChild(opt);
+    populateRegistrationDistricts("");
+    return false;
+  }
+
+  regencies.forEach((r) => {
+    const opt = document.createElement("option");
+    opt.value = r.code || r.id;
+    opt.textContent = r.name;
+    regSelect.appendChild(opt);
+  });
+
+  const matchingReg = regencies.find((r) => r.code === preferredRegency || r.id === preferredRegency);
+  regSelect.value = matchingReg ? (matchingReg.code || matchingReg.id) : (regencies[0].code || regencies[0].id);
+  populateRegistrationDistricts(regSelect.value);
+  return true;
+}
+
 function populateRegistrationDistricts(preferredDistrict = "") {
-  const regionSelect = document.getElementById("reg-select-region");
+  const regSelect = document.getElementById("reg-select-region");
   const districtSelect = document.getElementById("reg-select-district");
-  if (!regionSelect || !districtSelect) return false;
-  const regionId = regionSelect.value || "solo";
-  const districts = getDistrictsByRegionId(regionId);
+  if (!regSelect || !districtSelect) return false;
+  const regCode = regSelect.value || "";
+  
+  let districts = getDistrictsByRegency(regCode);
+  if (districts.length === 0) {
+    const legacyDist = getDistrictsByRegionId(regCode);
+    districts = legacyDist.map((d) => (typeof d === "string" ? { code: d, name: d } : d));
+  }
+
   const previousValue = preferredDistrict || districtSelect.value || "";
   districtSelect.replaceChildren();
   if (!districts.length) {
@@ -25,26 +83,36 @@ function populateRegistrationDistricts(preferredDistrict = "") {
     districtSelect.value = "";
     return false;
   }
-  districts.forEach((district) => {
+  districts.forEach((d) => {
     const option = document.createElement("option");
-    option.value = district;
-    option.textContent = district;
+    option.value = d.code || d.name;
+    option.textContent = d.name.startsWith("Kec.") ? d.name : `Kec. ${d.name}`;
     districtSelect.appendChild(option);
   });
-  const matchingDistrict = districts.find((district) => district === previousValue);
-  districtSelect.value = matchingDistrict || districts[0];
+
+  const matchingDistrict = districts.find((d) => d.code === previousValue || d.name === previousValue);
+  districtSelect.value = matchingDistrict ? (matchingDistrict.code || matchingDistrict.name) : (districts[0].code || districts[0].name);
   return true;
 }
 
 function installRegistrationDistrictHandler() {
-  const regionSelect = document.getElementById("reg-select-region");
+  const provSelect = document.getElementById("reg-select-province");
+  const regSelect = document.getElementById("reg-select-region");
   const districtSelect = document.getElementById("reg-select-district");
-  if (!regionSelect || !districtSelect) return false;
-  if (!regionSelect.dataset.districtHandlerInstalled) {
-    regionSelect.addEventListener("change", () => populateRegistrationDistricts());
-    regionSelect.dataset.districtHandlerInstalled = "true";
+  if (!regSelect || !districtSelect) return false;
+
+  if (provSelect && !provSelect.dataset.provinceHandlerInstalled) {
+    populateRegistrationProvinces();
+    provSelect.addEventListener("change", () => populateRegistrationRegencies());
+    provSelect.dataset.provinceHandlerInstalled = "true";
   }
-  populateRegistrationDistricts();
+
+  if (!regSelect.dataset.districtHandlerInstalled) {
+    regSelect.addEventListener("change", () => populateRegistrationDistricts());
+    regSelect.dataset.districtHandlerInstalled = "true";
+  }
+  
+  populateRegistrationRegencies();
   return true;
 }
 

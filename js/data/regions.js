@@ -1,11 +1,12 @@
-﻿/**
- * Data Wilayah Solo Raya (7 Kabupaten / Kota) & Daftar Kecamatan
- * Pusat Jual Beli Solo Raya
+/**
+ * Data Wilayah Indonesia & Kontrak Lokasi Nasional SOPALOKA (Phase 2)
  */
 
-export const SOLO_RAYA_REGIONS = [
+export const REGIONS = [
   {
     id: "solo",
+    code: "3372",
+    provinceCode: "33",
     name: "Kota Solo (Surakarta)",
     shortName: "Solo",
     badgeColor: "bg-red-100 text-red-800 border-red-200",
@@ -23,6 +24,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "karanganyar",
+    code: "3313",
+    provinceCode: "33",
     name: "Kab. Karanganyar",
     shortName: "Karanganyar",
     badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
@@ -50,6 +53,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "sukoharjo",
+    code: "3311",
+    provinceCode: "33",
     name: "Kab. Sukoharjo",
     shortName: "Sukoharjo",
     badgeColor: "bg-blue-100 text-blue-800 border-blue-200",
@@ -78,6 +83,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "wonogiri",
+    code: "3312",
+    provinceCode: "33",
     name: "Kab. Wonogiri",
     shortName: "Wonogiri",
     badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
@@ -114,6 +121,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "sragen",
+    code: "3314",
+    provinceCode: "33",
     name: "Kab. Sragen",
     shortName: "Sragen",
     badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
@@ -142,6 +151,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "boyolali",
+    code: "3309",
+    provinceCode: "33",
     name: "Kab. Boyolali",
     shortName: "Boyolali",
     badgeColor: "bg-teal-100 text-teal-800 border-teal-200",
@@ -177,6 +188,8 @@ export const SOLO_RAYA_REGIONS = [
   },
   {
     id: "klaten",
+    code: "3310",
+    provinceCode: "33",
     name: "Kab. Klaten",
     shortName: "Klaten",
     badgeColor: "bg-indigo-100 text-indigo-800 border-indigo-200",
@@ -205,11 +218,116 @@ export const SOLO_RAYA_REGIONS = [
   },
 ];
 
+/** Legacy alias for backward compatibility */
+export const SOLO_RAYA_REGIONS = REGIONS;
+
 export function getRegionById(id) {
-  return SOLO_RAYA_REGIONS.find((r) => r.id === id) || null;
+  if (!id) return null;
+  const cleanId = String(id).trim().toLowerCase();
+  const found = REGIONS.find((r) => r.id.toLowerCase() === cleanId || r.code === cleanId);
+  if (found) return found;
+
+  // Dynamic national region fallback
+  const formattedName = cleanId
+    .split(/[-_ ]+/)
+    .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ""))
+    .join(" ");
+
+  return {
+    id: cleanId,
+    code: "",
+    provinceCode: "",
+    name: formattedName,
+    shortName: formattedName,
+    badgeColor: "bg-slate-100 text-slate-800 border-slate-200",
+    accentColor: "#475569",
+    popularSpots: [],
+    districts: [],
+  };
 }
 
 export function getDistrictsByRegionId(regionId) {
   const region = getRegionById(regionId);
-  return region ? region.districts : [];
+  return region ? region.districts || [] : [];
+}
+
+/** National Location Master Contracts (BPS Code Standards) */
+export const PROVINCES = [
+  { code: "31", id: "31", name: "DKI Jakarta" },
+  { code: "32", id: "32", name: "Jawa Barat" },
+  { code: "33", id: "33", name: "Jawa Tengah" },
+  { code: "34", id: "34", name: "DI Yogyakarta" },
+  { code: "35", id: "35", name: "Jawa Timur" },
+  { code: "36", id: "36", name: "Banten" },
+  { code: "51", id: "51", name: "Bali" },
+  { code: "52", id: "52", name: "Nusa Tenggara Barat" },
+  { code: "53", id: "53", name: "Nusa Tenggara Timur" },
+  { code: "11", id: "11", name: "Aceh" },
+  { code: "12", id: "12", name: "Sumatera Utara" },
+  { code: "13", id: "13", name: "Sumatera Barat" },
+  { code: "14", id: "14", name: "Riau" },
+  { code: "15", id: "15", name: "Jambi" },
+  { code: "16", id: "16", name: "Sumatera Selatan" },
+  { code: "17", id: "17", name: "Bengkulu" },
+  { code: "18", id: "18", name: "Lampung" },
+  { code: "19", id: "19", name: "Kepulauan Bangka Belitung" },
+  { code: "21", id: "21", name: "Kepulauan Riau" },
+  { code: "61", id: "61", name: "Kalimantan Barat" },
+  { code: "62", id: "62", name: "Kalimantan Tengah" },
+  { code: "63", id: "63", name: "Kalimantan Selatan" },
+  { code: "64", id: "64", name: "Kalimantan Timur" },
+  { code: "65", id: "65", name: "Kalimantan Utara" },
+  { code: "71", id: "71", name: "Sulawesi Utara" },
+  { code: "72", id: "72", name: "Sulawesi Tengah" },
+  { code: "73", id: "73", name: "Sulawesi Selatan" },
+  { code: "74", id: "74", name: "Sulawesi Tenggara" },
+  { code: "75", id: "75", name: "Gorontalo" },
+  { code: "76", id: "76", name: "Sulawesi Barat" },
+  { code: "81", id: "81", name: "Maluku" },
+  { id: "82", code: "82", name: "Maluku Utara" },
+  { id: "91", code: "91", name: "Papua" },
+  { id: "92", code: "92", name: "Papua Barat" },
+];
+
+export function getProvinces() {
+  return PROVINCES;
+}
+
+export function getRegenciesByProvince(provCode) {
+  if (!provCode) return [];
+  const cleanProv = String(provCode).trim().replace(/\./g, "");
+  const matched = REGIONS.filter((r) => !r.provinceCode || r.provinceCode.replace(/\./g, "") === cleanProv);
+  return matched.map((r) => {
+    // Format code as BPS standard xx.xx (e.g. 33.72) if 4 digits
+    const rawCode = String(r.code || "").replace(/\./g, "");
+    const formattedCode = rawCode.length === 4 ? `${rawCode.slice(0, 2)}.${rawCode.slice(2)}` : r.code;
+    return {
+      ...r,
+      code: formattedCode,
+      rawCode: rawCode,
+    };
+  });
+}
+
+export function getDistrictsByRegency(regencyCode) {
+  if (!regencyCode) return [];
+  const cleanReg = String(regencyCode).trim().toLowerCase().replace(/\./g, "");
+  const region = REGIONS.find(
+    (r) =>
+      r.id.toLowerCase() === cleanReg ||
+      String(r.code || "").toLowerCase().replace(/\./g, "") === cleanReg,
+  );
+  if (!region || !Array.isArray(region.districts)) return [];
+  
+  const baseRegCode = String(region.code || "").replace(/\./g, "");
+  const formattedRegCode = baseRegCode.length === 4 ? `${baseRegCode.slice(0, 2)}.${baseRegCode.slice(2)}` : baseRegCode;
+
+  return region.districts.map((d, index) => {
+    const idxStr = String(index + 1).padStart(2, "0");
+    const distName = typeof d === "string" ? d : d.name || String(d);
+    return {
+      code: `${formattedRegCode}.${idxStr}`,
+      name: distName,
+    };
+  });
 }
