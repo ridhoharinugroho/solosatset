@@ -1,6 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import fs from "fs";
+
+import adminAuthHandler from "../../../api/admin-auth.js";
+import authLoginHandler from "../../../api/auth-login.js";
+import authLogoutHandler from "../../../api/auth-logout.js";
+import authOtpHandler from "../../../api/auth-otp.js";
+import initDbHandler from "../../../api/init-db.js";
+import pushNotifyHandler from "../../../api/push-notify.js";
+import pushSubscribeHandler from "../../../api/push-subscribe.js";
+import sendEmailHandler from "../../../api/send-email.js";
+import trackInterestHandler from "../../../api/track-interest.js";
+import uploadImageHandler from "../../../api/upload-image.js";
+import userProfileHandler from "../../../api/user-profile.js";
+
+const apiHandlers: Record<string, (req: any, res: any) => Promise<any> | any> = {
+  "admin-auth": adminAuthHandler,
+  "auth-login": authLoginHandler,
+  "auth-logout": authLogoutHandler,
+  "auth-otp": authOtpHandler,
+  "init-db": initDbHandler,
+  "push-notify": pushNotifyHandler,
+  "push-subscribe": pushSubscribeHandler,
+  "send-email": sendEmailHandler,
+  "track-interest": trackInterestHandler,
+  "upload-image": uploadImageHandler,
+  "user-profile": userProfileHandler,
+};
 
 async function handleApiRequest(
   req: NextRequest,
@@ -8,9 +32,9 @@ async function handleApiRequest(
 ) {
   const resolvedParams = await params.params;
   const apiPath = resolvedParams.path.join("-");
-  const filePath = path.join(process.cwd(), "api", `${apiPath}.js`);
+  const handler = apiHandlers[apiPath];
 
-  if (!fs.existsSync(filePath)) {
+  if (!handler || typeof handler !== "function") {
     return NextResponse.json(
       { error: `API endpoint '${apiPath}' not found` },
       { status: 404 }
@@ -18,15 +42,6 @@ async function handleApiRequest(
   }
 
   try {
-    const apiModule = await import(`file://${filePath}`);
-    const handler = apiModule.default || apiModule.handler;
-
-    if (typeof handler !== "function") {
-      return NextResponse.json(
-        { error: "Invalid API module handler" },
-        { status: 500 }
-      );
-    }
 
     // Read request body if present
     let bodyText = "";
