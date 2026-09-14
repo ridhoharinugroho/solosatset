@@ -109,15 +109,58 @@ function notifySubscribers(): void {
   });
 }
 
+export type AuthErrorCategory = "invalid_credentials" | "invalid_otp" | "expired_otp" | "network_error" | "timeout" | "server_error";
+
+export class AuthError extends Error {
+  category: AuthErrorCategory;
+  rawError?: string;
+
+  constructor(message: string, category: AuthErrorCategory = "server_error", rawError?: string) {
+    super(message);
+    this.name = "AuthError";
+    this.category = category;
+    this.rawError = rawError;
+  }
+}
+
 async function postJson(url: string, body: any): Promise<any> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 15000) : null;
+
+    response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+      signal: controller ? controller.signal : undefined,
+    });
+
+    if (timeoutId) clearTimeout(timeoutId);
+  } catch (err: any) {
+    const errStr = String(err?.message || err?.name || err).toLowerCase();
+    if (errStr.includes("abort") || errStr.includes("timeout")) {
+      throw new AuthError("Waktu koneksi ke server habis. Silakan coba beberapa saat lagi.", "timeout");
+    }
+    throw new AuthError("Koneksi terputus. Silakan periksa jaringan internet Anda.", "network_error");
+  }
+
   const payload = await response.json().catch(() => ({}));
   if (!response.ok || payload.success === false) {
-    throw new Error(payload.error || "Permintaan autentikasi gagal diproses.");
+    const rawMessage = String(payload.error || payload.message || "").trim();
+    const lower = rawMessage.toLowerCase();
+
+    if (lower.includes("otp kadaluarsa") || lower.includes("otp expired") || lower.includes("kadaluarsa")) {
+      throw new AuthError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.", "expired_otp", rawMessage);
+    }
+    if (lower.includes("otp salah") || lower.includes("invalid otp") || lower.includes("kode verifikasi salah")) {
+      throw new AuthError("Kode OTP yang Anda masukkan tidak sesuai.", "invalid_otp", rawMessage);
+    }
+    if (lower.includes("password salah") || lower.includes("kredensial") || lower.includes("tidak ditemukan") || lower.includes("salah")) {
+      throw new AuthError(rawMessage || "Kredensial login tidak sesuai.", "invalid_credentials", rawMessage);
+    }
+
+    throw new AuthError(rawMessage || "Permintaan autentikasi gagal diproses.", "server_error", rawMessage);
   }
   return payload;
 }

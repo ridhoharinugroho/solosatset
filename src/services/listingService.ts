@@ -155,9 +155,38 @@ export function processAndBroadcastSupabaseListings(cloudData: any[]): ListingIt
   return finalData;
 }
 
+export interface ListingServiceStatus {
+  isOffline: boolean;
+  errorType: "none" | "network_error" | "database_error" | "timeout";
+  errorMessage: string | null;
+  lastFetchSuccess: boolean;
+}
+
+let lastFetchState: ListingServiceStatus = {
+  isOffline: false,
+  errorType: "none",
+  errorMessage: null,
+  lastFetchSuccess: true,
+};
+
+export function getListingServiceStatus(): ListingServiceStatus {
+  return { ...lastFetchState };
+}
+
+export function classifyListingError(err: any): { type: "network_error" | "database_error" | "timeout"; isOffline: boolean; safeMessage: string } {
+  const raw = String(err?.message || err?.details || err || "").toLowerCase();
+  if (raw.includes("fetch failed") || raw.includes("network") || raw.includes("enotfound") || raw.includes("econnrefused") || raw.includes("failed to fetch")) {
+    return { type: "network_error", isOffline: true, safeMessage: "Koneksi internet terputus. Silakan periksa jaringan Anda." };
+  }
+  if (raw.includes("timeout") || raw.includes("timed out")) {
+    return { type: "timeout", isOffline: true, safeMessage: "Waktu koneksi ke server habis. Silakan coba lagi." };
+  }
+  return { type: "database_error", isOffline: false, safeMessage: "Gagal memuat data listing terbaru dari server." };
+}
+
 export async function fetchPublicListingsFromSupabase(force = false): Promise<ListingItem[]> {
   const now = Date.now();
-  if (isFetchingListingsFromSupabase || (!force && now - lastFetchListingsTime < 30000)) {
+  if (isFetchingListingsFromSupabase || (!force && now - lastFetchListingsTime < 30000 && lastFetchState.lastFetchSuccess)) {
     return getPublicListings();
   }
 
@@ -165,6 +194,12 @@ export async function fetchPublicListingsFromSupabase(force = false): Promise<Li
   lastFetchListingsTime = now;
 
   if (!supabase) {
+    lastFetchState = {
+      isOffline: true,
+      errorType: "network_error",
+      errorMessage: "Layanan database tidak terhubung.",
+      lastFetchSuccess: false,
+    };
     isFetchingListingsFromSupabase = false;
     return getPublicListings();
   }
@@ -172,11 +207,34 @@ export async function fetchPublicListingsFromSupabase(force = false): Promise<Li
   try {
     const { data, error } = await supabase.from("listings").select("*").order("created_at", { ascending: false });
 
-    if (!error && Array.isArray(data)) {
+    if (error) {
+      const errInfo = classifyListingError(error);
+      lastFetchState = {
+        isOffline: errInfo.isOffline,
+        errorType: errInfo.type,
+        errorMessage: errInfo.safeMessage,
+        lastFetchSuccess: false,
+      };
+      return inMemoryListings;
+    }
+
+    if (Array.isArray(data)) {
+      lastFetchState = {
+        isOffline: false,
+        errorType: "none",
+        errorMessage: null,
+        lastFetchSuccess: true,
+      };
       return processAndBroadcastSupabaseListings(data);
     }
-  } catch (err) {
-    console.warn("[Supabase Fetch Exception]", err);
+  } catch (err: any) {
+    const errInfo = classifyListingError(err);
+    lastFetchState = {
+      isOffline: errInfo.isOffline,
+      errorType: errInfo.type,
+      errorMessage: errInfo.safeMessage,
+      lastFetchSuccess: false,
+    };
   } finally {
     isFetchingListingsFromSupabase = false;
   }

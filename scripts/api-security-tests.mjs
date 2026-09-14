@@ -87,6 +87,14 @@ function createMockReqRes({ method = "POST", body = {}, headers = {}, query = {}
   console.log("✓ 400 Malformed OTP payload check: PASS");
 }
 
+// 3b. Malformed JSON / raw string / empty body safety check
+{
+  const { req, res, getStatus } = createMockReqRes({ method: "POST", body: "{malformed_json_str" });
+  await authLoginHandler(req, res);
+  assert.equal(getStatus(), 400, "Malformed string body must return 400 without crashing");
+  console.log("✓ 400 Malformed JSON string body check: PASS");
+}
+
 // 4. 404/401 - Unknown Action / Unauthorized action route check
 {
   const { req, res, getStatus } = createMockReqRes({

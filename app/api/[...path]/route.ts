@@ -43,17 +43,21 @@ async function handleApiRequest(
 
   try {
 
-    // Read request body if present
     let bodyText = "";
     try {
       bodyText = await req.text();
     } catch (_e) {}
 
     let bodyData: any = bodyText;
-    if (bodyText && bodyText.startsWith("{")) {
-      try {
-        bodyData = JSON.parse(bodyText);
-      } catch (_e) {}
+    if (bodyText) {
+      const trimmed = bodyText.trim();
+      if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+        try {
+          bodyData = JSON.parse(trimmed);
+        } catch (_e) {
+          bodyData = bodyText;
+        }
+      }
     }
 
     // Extract headers and query

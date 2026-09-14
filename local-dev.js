@@ -13,6 +13,22 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = 3000;
 
+function safeParseRequestBody(body) {
+  if (body === null || body === undefined) return {};
+  if (typeof body === "object" && !(body instanceof Buffer)) return body;
+  if (typeof body !== "string") return body;
+  const trimmed = body.trim();
+  if (!trimmed) return {};
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (_e) {
+      return body;
+    }
+  }
+  return body;
+}
+
 // Middleware for parsing body as text or JSON (Vercel parses bodies or gives raw strings sometimes, but we'll use text for raw parsing in endpoints)
 app.use(express.text({ type: "*/*" }));
 
@@ -26,13 +42,7 @@ app.use("/api", async (req, res) => {
       const module = await import(moduleUrl);
       const handler = module.default || module.handler;
       if (typeof handler === "function") {
-        // Vercel serverless request body is usually parsed JSON if content-type is json, or string.
-        // If it's a string that looks like JSON, some endpoints parse it. We pass the raw text as body.
-        if (req.body && typeof req.body === "string" && req.body.startsWith("{")) {
-          try {
-            req.body = JSON.parse(req.body);
-          } catch (_e) {}
-        }
+        req.body = safeParseRequestBody(req.body);
         await handler(req, res);
       } else {
         res.status(500).send("Export default not found");
