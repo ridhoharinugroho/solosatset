@@ -5,7 +5,6 @@ import { openUserProfileModal } from "../profile/userProfile.js";
 import { openAppReviewsModal } from "../reviews/appReviews.js";
 import { openUserAuthModal } from "../auth/authUI.js";
 import { isUserLoggedIn, getCurrentUser } from "../../services/auth.js";
-import { ensureTraktirModalLoaded, initTraktirModal } from "../../traktirModal.js";
 import {
   selectFormCategory,
   selectFormCondition,
@@ -78,9 +77,6 @@ export function initGlobalEventListeners(state) {
     e.preventDefault();
     if (!buCheckbox) return;
     buCheckbox.checked = true;
-    window.isDraftBu = true;
-    const uniqueCode = Math.floor(101 * Math.random());
-    window.currentBuPaymentAmount = 500 + uniqueCode;
     btnActivateBu.innerText = "Menyiapkan Iklan BU...";
     btnActivateBu.disabled = true;
     btnActivateBu.classList.add("opacity-70", "cursor-not-allowed");
@@ -327,19 +323,5 @@ export function initGlobalEventListeners(state) {
       }
       return;
     }
-
-    const traktirBtn = target.closest("#nav-btn-traktir");
-    if (traktirBtn) {
-      e.preventDefault();
-      ensureTraktirModalLoaded().then(() => {
-        openModal("modal-traktir-kopi");
-      });
-      return;
-    }
   });
-
-  const traktirBtn = document.getElementById("nav-btn-traktir");
-  if (traktirBtn) {
-    initTraktirModal();
-  }
 }

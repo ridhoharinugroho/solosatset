@@ -1,20 +1,19 @@
 /**
- * solosatset - Service Worker Engine v20260902_v215
- * Instant Cache Invalidation, Automatic Update & Network-First Fresh Code Delivery
+ * SOPALOKA — Service Worker Engine v20260902_v216
+ * Next.js App Router Compatible Service Worker
  */
 
-const CACHE_NAME = "solosatset-cache-v20260902_v215";
+const CACHE_NAME = "sopaloka-pwa-v20260902_v216";
 const PRECACHE_ASSETS = [
-  "./",
-  "./index.html",
-  "./toko-saya.html",
-  "./admin.html",
-  "./css/styles.css",
+  "/",
+  "/admin",
+  "/toko-saya",
+  "/css/styles.css",
   "/assets/img/app-logo.png",
   "/assets/img/app-splash.png",
-  "./manifest.json",
-  "./favicon.ico",
-  "./favicon.png",
+  "/manifest.json",
+  "/favicon.ico",
+  "/favicon.png",
 ];
 
 self.addEventListener("install", (event) => {
@@ -29,7 +28,7 @@ self.addEventListener("install", (event) => {
               await cache.put(url, response);
             }
           } catch (err) {
-            console.warn(`[SW Precache] Notice for ${url}:`, err.message);
+            console.warn(`[SW Precache Notice] ${url}:`, err);
           }
         }),
       );
@@ -45,7 +44,7 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           cacheNames.map((cache) => {
             if (cache !== CACHE_NAME) {
-              console.log("[Service Worker] Purging legacy cache:", cache);
+              console.log("[Service Worker] Purging obsolete cache:", cache);
               return caches.delete(cache);
             }
             return undefined;
@@ -59,6 +58,7 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const requestUrl = new URL(event.request.url);
 
+  // Exclude non-GET, APIs, Auth, Supabase, analytics, and dev hosts from caching
   if (
     requestUrl.hostname === "localhost" ||
     requestUrl.hostname === "127.0.0.1" ||
@@ -76,59 +76,57 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (
-    event.request.mode === "navigate" ||
-    requestUrl.pathname.endsWith(".html") ||
-    requestUrl.pathname.endsWith(".js") ||
-    requestUrl.pathname === "/" ||
-    requestUrl.pathname === ""
-  ) {
+  // Next.js static assets (_next/static/...) -> Cache-First Strategy
+  if (requestUrl.pathname.startsWith("/_next/static/")) {
+    event.respondWith(
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        return fetch(event.request).then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+          }
+          return networkResponse;
+        });
+      }),
+    );
+    return;
+  }
+
+  // Navigation requests -> Network-First with cached "/" App Shell offline fallback
+  if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request, { cache: "no-cache" })
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, responseClone))
-              .catch(() => {});
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
           }
           return networkResponse;
         })
         .catch(async () => {
           const cachedResponse = await caches.match(event.request);
           if (cachedResponse) return cachedResponse;
-          if (event.request.mode === "navigate") {
-            return (
-              (await caches.match("./index.html")) ||
-              (await caches.match("./")) ||
-              new Response("Offline", { status: 503 })
-            );
-          }
-          return new Response("Network connection offline", { status: 503, statusText: "Offline" });
+          return (
+            (await caches.match("/")) ||
+            new Response("Offline Shell", { status: 503, statusText: "Offline" })
+          );
         }),
     );
     return;
   }
 
+  // Generic static asset requests -> Cache-First with Network fallback
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request)
-        .then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200 && networkResponse.type === "basic") {
-            const responseClone = networkResponse.clone();
-            caches
-              .open(CACHE_NAME)
-              .then((cache) => cache.put(event.request, responseClone))
-              .catch(() => {});
-          }
-          return networkResponse;
-        })
-        .catch(
-          () => cachedResponse || new Response("Network connection offline", { status: 503, statusText: "Offline" }),
-        );
-
-      return cachedResponse || fetchPromise;
+      if (cachedResponse) return cachedResponse;
+      return fetch(event.request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          const responseClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseClone));
+        }
+        return networkResponse;
+      });
     }),
   );
 });
@@ -141,13 +139,13 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("push", (event) => {
   let data = {
-    title: "📢 Pusat Jual Beli Solo Raya",
-    body: "Ada info barang seken dan pembaruan sistem terbaru!",
-    icon: "/assets/img/app-logo.png?v=2.1",
+    title: "📢 SOPALOKA",
+    body: "Ada info barang terdekat dan pembaruan aplikasi terbaru!",
+    icon: "/assets/img/app-logo.png",
     image: null,
-    badge: "/assets/img/app-logo.png?v=2.1",
-    url: "./",
-    tag: "solosatset-notification",
+    badge: "/assets/img/app-logo.png",
+    url: "/",
+    tag: "sopaloka-notification",
   };
 
   if (event.data) {
@@ -158,24 +156,23 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  const isBu = data.tag && data.tag.includes("bu-");
   const options = {
     body: data.body || data.message,
-    icon: data.icon || "/assets/img/app-logo.png?v=2.1",
+    icon: data.icon || "/assets/img/app-logo.png",
     image: data.image || null,
-    badge: data.badge || "/assets/img/app-logo.png?v=2.1",
-    tag: data.tag || "solosatset-notification",
+    badge: data.badge || "/assets/img/app-logo.png",
+    tag: data.tag || "sopaloka-notification",
     renotify: true,
     requireInteraction: true,
-    vibrate: isBu ? [200, 100, 200, 100, 200] : [200, 100, 200],
+    vibrate: [200, 100, 200],
     dir: "auto",
     lang: "id-ID",
     data: {
-      url: data.url || "./",
+      url: data.url || "/",
       timestamp: data.timestamp || Date.now(),
     },
     actions: [
-      { action: "open", title: "Lihat Iklan 🔥" },
+      { action: "open", title: "Buka SOPALOKA 🔥" },
       { action: "close", title: "Tutup" },
     ],
   };
@@ -187,12 +184,12 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   if (event.action === "close") return;
 
-  const targetUrl = (event.notification.data && event.notification.data.url) || "./";
+  const targetUrl = (event.notification.data && event.notification.data.url) || "/";
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
       for (const client of windowClients) {
-        if ((client.url.includes("solosatset") || client.url.includes("sopaloka") || client.url.includes("localhost")) && "focus" in client) {
+        if ((client.url.includes("sopaloka") || client.url.includes("localhost")) && "focus" in client) {
           if (client.navigate) client.navigate(targetUrl);
           return client.focus();
         }

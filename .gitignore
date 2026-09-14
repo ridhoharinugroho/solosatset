@@ -36,6 +36,8 @@ node_modules/
 supabase/.temp/
 supabase/.temp/*
 # Build & Test Artifacts
+.next/
+tsconfig.tsbuildinfo
 dist/
 coverage/
 playwright-report/

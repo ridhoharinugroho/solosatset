@@ -1,6 +1,4 @@
 import { initializeStorage, getCurrentUser, syncAllUsersToCloudOnStartup, fetchFreshCurrentUserFromSupabase } from "../../services/storage.js";
-import { renderAuthHeaderModule, renderStoreShowcaseModule } from "../store/storeShowcase.js";
-import { renderStoreReviewsModule } from "./tokoStoreReviews.js";
 import { getMyListings, getDistrictsByRegionId, getAllListings } from "../../services/storage.js";
 import { SOLO_RAYA_REGIONS, getProvinces, getRegenciesByProvince, getDistrictsByRegency } from "../../data/regions.js";
 import { openCreateListingModal } from "../listings/listingFormModal.js";
@@ -11,7 +9,6 @@ import { sbGetMyListings } from "../../services/supabaseDB.js";
 import { updateListingStatus } from "../../services/storage.js";
 import { openUserProfileModal } from "../profile/userProfile.js";
 import { refreshIcons } from "../../utils/runtime.js";
-import { renderStoreListings } from "./tokoStoreListings.js";
 import { initServiceWorker } from "../app/appBootstrap.js";
 
 let isTokoSayaPageInitialized = false;
@@ -223,10 +220,6 @@ function setupEventListeners(currentUserRef, uploadedImagesRef) {
     e.preventDefault();
     if (!buCheckbox) return;
     buCheckbox.checked = true;
-    window.isDraftBu = true;
-    const basePrice = 500,
-      uniqueCode = Math.floor(101 * Math.random());
-    window.currentBuPaymentAmount = basePrice + uniqueCode;
     btnActivateBu.innerText = "Menyiapkan Iklan BU...";
     btnActivateBu.disabled = true;
     btnActivateBu.classList.add("opacity-70", "cursor-not-allowed");

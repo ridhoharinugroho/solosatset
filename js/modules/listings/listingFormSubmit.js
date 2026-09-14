@@ -201,24 +201,10 @@ export async function handleCreateListingSubmit(e, state) {
     },
   };
 
-  if (window.isDraftBu) {
-    listingPayload.payment_amount = window.currentBuPaymentAmount || 500;
-    listingPayload.payment_status = "pending";
-    listingPayload.status = "pending";
-  }
+
 
   try {
-    let savedOrUpdatedItem = null;
-    if (
-      ((savedOrUpdatedItem = editId ? updateListing(editId, listingPayload) : saveListing(listingPayload)),
-      window.isDraftBu && savedOrUpdatedItem && savedOrUpdatedItem.id)
-    ) {
-      const listingId = savedOrUpdatedItem.id,
-        finalAmount = window.currentBuPaymentAmount || 500;
-      window.isDraftBu = false;
-      window.location.href = `pembayaran-qris.html?listing_id=${listingId}&amount=${finalAmount}`;
-      return;
-    }
+    const savedOrUpdatedItem = editId ? updateListing(editId, listingPayload) : saveListing(listingPayload);
 
     if (editId) {
       if (isBuChecked) triggerBuNotification(editId, category);

@@ -63,8 +63,6 @@ export function handleUrlNavigation(state) {
     } else {
       openUserAuthModal("login", "Silakan masuk atau daftar akun terlebih dahulu untuk melihat profil Anda.");
     }
-  } else if (actionParam === "traktir" || hash === "#traktir") {
-    openModal("modal-traktir-kopi");
   } else if (
     actionParam === "notifikasi" ||
     actionParam === "notifications" ||

@@ -1,8 +1,6 @@
-import "./traktirModal.js";
 import "./notificationModal.js";
 import { getCurrentUser } from "./services/auth.js";
-import { openModal as openStoreModal, closeModal as closeStoreModal } from "./modules/toko-saya/tokoStoreModals.js";
-import { showStoreLoadingSkeleton as showStoreLoadingSkeletonModule } from "./modules/toko-saya/tokoStoreEtalase.js";
+import { openModal as openStoreModal, closeModal as closeStoreModal } from "./utils/modalRouter.js";
 import { openCreateListingModal, openEditListingModal } from "./modules/listings/listingFormModal.js";
 import {
   openUserProfileModal,
@@ -28,7 +26,7 @@ export function closeModal(modalId, fromHistory = false) {
 }
 
 export function showStoreLoadingSkeleton() {
-  return showStoreLoadingSkeletonModule();
+  return true;
 }
 
 window.syncAndRenderStoreListings = (filter, force) => syncAndRenderStoreListings(currentUserRef.value, filter, force);
