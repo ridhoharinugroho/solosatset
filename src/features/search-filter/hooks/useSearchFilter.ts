@@ -7,12 +7,20 @@ import type { SupabaseListingRowDTO } from "../../../domain/listing/listing.dto"
 
 export interface UseSearchFilterProps {
   initialListings?: SupabaseListingRowDTO[] | ListingModel[];
+  category?: string;
 }
 
-export function useSearchFilter({ initialListings = [] }: UseSearchFilterProps = {}) {
-  const [filterState, setFilterState] = useState<FilterState>(() =>
-    mapFilterDtoToDomain(null)
-  );
+export function useSearchFilter({ initialListings = [], category }: UseSearchFilterProps = {}) {
+  const [filterState, setFilterState] = useState<FilterState>(() => {
+    const base = mapFilterDtoToDomain(null);
+    if (category) {
+      base.category = category;
+    }
+    return base;
+  });
+
+  // Effective category considers prop priority over internal state
+  const effectiveCategory = category !== undefined ? category : filterState.category;
 
   // Normalize input listings into canonical ListingModel domain models
   const domainListings = useMemo(() => {
@@ -24,7 +32,7 @@ export function useSearchFilter({ initialListings = [] }: UseSearchFilterProps =
   // Pure filtering logic
   const filteredListings = useMemo(() => {
     const q = filterState.searchQuery.trim().toLowerCase();
-    const cat = filterState.category;
+    const cat = effectiveCategory;
     const regId = filterState.regionId;
     const distName = filterState.district;
     const provCode = filterState.provinceCode;
@@ -99,7 +107,7 @@ export function useSearchFilter({ initialListings = [] }: UseSearchFilterProps =
         // Default: newest
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-  }, [domainListings, filterState]);
+  }, [domainListings, filterState, effectiveCategory]);
 
   const updateSearchQuery = useCallback((keyword: string) => {
     setFilterState((prev) => ({ ...prev, searchQuery: keyword }));
@@ -114,7 +122,7 @@ export function useSearchFilter({ initialListings = [] }: UseSearchFilterProps =
   }, []);
 
   return {
-    filterState,
+    filterState: { ...filterState, category: effectiveCategory },
     filteredListings,
     totalCount: filteredListings.length,
     updateSearchQuery,

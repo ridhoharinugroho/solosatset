@@ -5,23 +5,30 @@ import { SellerListingCard } from "./SellerListingCard";
 
 export interface SellerListingGridProps {
   listings: ListingModel[];
-  activeTab: SellerTabStatus;
-  onTabChange: (tab: SellerTabStatus) => void;
-  onEditListing: (listing: ListingModel) => void;
-  onStatusChange: (id: string, status: ListingStatus) => void;
-  onDeleteListing: (id: string) => void;
+  activeTab?: SellerTabStatus;
+  onTabChange?: (tab: SellerTabStatus) => void;
+  onEditListing?: (listing: ListingModel) => void;
+  onEdit?: (listing: ListingModel) => void;
+  onStatusChange?: (id: string, status: ListingStatus) => any;
+  onDeleteListing?: (id: string) => any;
   className?: string;
 }
 
 export const SellerListingGrid: React.FC<SellerListingGridProps> = ({
   listings,
-  activeTab,
+  activeTab = "all",
   onTabChange,
   onEditListing,
+  onEdit,
   onStatusChange,
   onDeleteListing,
   className = "",
 }) => {
+  const handleEdit = onEditListing || onEdit || (() => {});
+  const handleStatusChange = (id: string, status: ListingStatus) => {
+    if (onStatusChange) onStatusChange(id, status);
+  };
+  const handleDelete = onDeleteListing || (() => {});
   const tabs: { id: SellerTabStatus; label: string }[] = [
     { id: "all", label: "Semua Barang" },
     { id: "active", label: "Aktif" },
@@ -38,7 +45,7 @@ export const SellerListingGrid: React.FC<SellerListingGridProps> = ({
           <button
             key={tab.id}
             type="button"
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => onTabChange && onTabChange(tab.id)}
             className={`px-3.5 py-2 text-xs font-bold rounded-t-lg transition-colors shrink-0 ${
               activeTab === tab.id
                 ? "bg-red-600 text-white"
@@ -61,9 +68,9 @@ export const SellerListingGrid: React.FC<SellerListingGridProps> = ({
             <SellerListingCard
               key={item.id}
               listing={item}
-              onEdit={onEditListing}
-              onStatusChange={onStatusChange}
-              onDelete={onDeleteListing}
+              onEdit={handleEdit}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDelete}
             />
           ))}
         </div>

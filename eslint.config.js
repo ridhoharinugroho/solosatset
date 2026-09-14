@@ -30,6 +30,6 @@ export default [
     },
   },
   {
-    ignores: ["dist/", "node_modules/", "brain/", "coverage/", ".gemini/"],
+    ignores: ["dist/", ".next/", "out/", "node_modules/", "brain/", "coverage/", ".gemini/", "scratch/"],
   },
 ];

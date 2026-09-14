@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  getAllListings,
-  deleteListing,
-  toggleHideListing,
-  toggleSoldStatus,
-} from "../../../../js/services/storage.js";
+  getAdminListingsData,
+  performAdminToggleHide,
+  performAdminToggleSold,
+  performAdminRemoveListing,
+} from "../services/adminService";
 
 export interface AdminListingItem {
   id: string;
@@ -43,16 +43,9 @@ export function useAdminDashboard() {
   const loadData = useCallback(() => {
     try {
       setIsLoading(true);
-      const rawListings = (getAllListings() || []) as unknown as AdminListingItem[];
-      
-      // Calculate stats
-      const total = rawListings.length;
-      const active = rawListings.filter((l) => !l.isHidden && !l.isSold).length;
-      const hidden = rawListings.filter((l) => l.isHidden).length;
-      const sold = rawListings.filter((l) => l.isSold).length;
-      setStats({ total, active, hidden, sold });
+      const { rawListings, stats: computedStats } = getAdminListingsData();
+      setStats(computedStats);
 
-      // Apply search and filtering
       let filtered = [...rawListings];
 
       if (searchQuery.trim()) {
@@ -100,19 +93,19 @@ export function useAdminDashboard() {
   }, [loadData]);
 
   const toggleHide = (id: string) => {
-    const updated = toggleHideListing(id);
+    const updated = performAdminToggleHide(id);
     loadData();
     return updated;
   };
 
   const toggleSold = (id: string) => {
-    const updated = toggleSoldStatus(id);
+    const updated = performAdminToggleSold(id);
     loadData();
     return updated;
   };
 
   const removeListing = (id: string) => {
-    const result = deleteListing(id);
+    const result = performAdminRemoveListing(id);
     loadData();
     return result;
   };

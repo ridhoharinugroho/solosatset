@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { ListingManagementFeature } from "../../src/features/listing-management/ListingManagementFeature";
+import { AppShell } from "../../src/components/layout/AppShell";
+import { TokoSayaFeature } from "../../src/features/toko-saya/TokoSayaFeature";
 
 export default function TokoSayaPage() {
   return (
-    <main className="min-h-screen bg-slate-50">
-      <ListingManagementFeature />
-    </main>
+    <AppShell>
+      <TokoSayaFeature />
+    </AppShell>
   );
 }

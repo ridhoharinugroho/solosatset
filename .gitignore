@@ -46,3 +46,5 @@ eslint_report.json
 lint_output.txt
 listeners_dump.txt
 renderAdminListings_dump.txt
+scratch/
+

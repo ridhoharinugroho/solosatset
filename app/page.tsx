@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { ListingFeature } from "../src/features/listing/ListingFeature";
+import { AppShell } from "../src/components/layout/AppShell";
+import { HomeFeature } from "../src/features/home/HomeFeature";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-white">
-      <ListingFeature />
-    </main>
+    <AppShell>
+      <HomeFeature />
+    </AppShell>
   );
 }

@@ -14,6 +14,7 @@ export interface SearchFilterFeatureProps extends UseSearchFilterProps {
 
 export const SearchFilterFeature: React.FC<SearchFilterFeatureProps> = ({
   initialListings = [],
+  category,
   onListingClick,
   className = "",
 }) => {
@@ -24,7 +25,7 @@ export const SearchFilterFeature: React.FC<SearchFilterFeatureProps> = ({
     updateSearchQuery,
     updateFilter,
     resetFilters,
-  } = useSearchFilter({ initialListings });
+  } = useSearchFilter({ initialListings, category });
 
   return (
     <div className={`space-y-4 ${className}`.trim()}>

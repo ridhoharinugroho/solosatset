@@ -12,6 +12,8 @@ import { Button } from "../../components/ui/Button";
 export interface ListingManagementFeatureProps {
   currentUser?: UserProfile | null;
   allListings?: SupabaseListingRowDTO[] | ListingModel[];
+  editingListing?: ListingModel | null;
+  onSuccess?: () => void;
   onSaveListingSubmit?: (listingData: Partial<ListingModel>) => Promise<boolean>;
   onDeleteListingSubmit?: (id: string) => Promise<boolean>;
   className?: string;
@@ -20,6 +22,8 @@ export interface ListingManagementFeatureProps {
 export const ListingManagementFeature: React.FC<ListingManagementFeatureProps> = ({
   currentUser,
   allListings = [],
+  editingListing: propEditingListing = null,
+  onSuccess,
   onSaveListingSubmit,
   onDeleteListingSubmit,
   className = "",

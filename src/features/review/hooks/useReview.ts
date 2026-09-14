@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  getSellerReviews,
-  getSellerRatingStats,
-  addSellerReview,
-  toggleHideSellerReview,
-  deleteSellerReview,
-  checkSellerVerification,
-} from "../../../../js/services/storageReviews.js";
+  fetchSellerReviews,
+  fetchSellerRatingStats,
+  fetchSellerVerificationDetails,
+  submitNewReview,
+  performToggleHideReview,
+  performDeleteReview,
+} from "../services/reviewService";
 
 export interface ReviewItem {
   id: string;
@@ -67,9 +67,9 @@ export function useReview({ sellerId, includeHidden = false }: UseReviewOptions 
       setIsLoading(true);
       setError(null);
 
-      const fetchedReviews = getSellerReviews(sellerId, includeHidden);
-      const fetchedStats = getSellerRatingStats(sellerId);
-      const fetchedVerification = checkSellerVerification(sellerId);
+      const fetchedReviews = fetchSellerReviews(sellerId, includeHidden);
+      const fetchedStats = fetchSellerRatingStats(sellerId);
+      const fetchedVerification = fetchSellerVerificationDetails(sellerId);
 
       setReviews(fetchedReviews || []);
       setStats(fetchedStats || { averageRating: 0, totalReviews: 0, ratingCounts: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } });
@@ -104,7 +104,7 @@ export function useReview({ sellerId, includeHidden = false }: UseReviewOptions 
     }
     setError(null);
     try {
-      const newReview = addSellerReview({
+      const newReview = submitNewReview({
         sellerId,
         rating: payload.rating,
         comment: payload.comment,
@@ -121,7 +121,7 @@ export function useReview({ sellerId, includeHidden = false }: UseReviewOptions 
 
   const toggleHide = (reviewId: string) => {
     try {
-      const updated = toggleHideSellerReview(reviewId);
+      const updated = performToggleHideReview(reviewId);
       loadReviews();
       return updated;
     } catch (err: unknown) {
@@ -133,7 +133,7 @@ export function useReview({ sellerId, includeHidden = false }: UseReviewOptions 
 
   const removeReview = async (reviewId: string) => {
     try {
-      const success = await deleteSellerReview(reviewId);
+      const success = await performDeleteReview(reviewId);
       loadReviews();
       return success;
     } catch (err: unknown) {

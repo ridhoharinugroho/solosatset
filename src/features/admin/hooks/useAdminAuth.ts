@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { fetchAdminSessionApi, loginAdminApi, logoutAdminApi } from "../services/adminService";
 
 export interface AdminUser {
   id: string;
@@ -18,7 +19,6 @@ export interface UseAdminAuthReturn {
 }
 
 const ADMIN_AUTH_KEY = "pusat_barkas_admin_auth";
-const SESSION_ENDPOINT = "/api/admin-auth";
 
 export function useAdminAuth(): UseAdminAuthReturn {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -40,26 +40,11 @@ export function useAdminAuth(): UseAdminAuthReturn {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${SESSION_ENDPOINT}?action=session`, {
-        method: "GET",
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
-      });
+      const res = await fetchAdminSessionApi();
 
-      if (!response.ok) {
-        setIsAuthenticated(false);
-        setUser(null);
-        if (typeof window !== "undefined") {
-          sessionStorage.removeItem(ADMIN_AUTH_KEY);
-          setSecurityValidated(false);
-        }
-        return false;
-      }
-
-      const payload = await response.json();
-      if (payload?.authenticated && payload?.user) {
+      if (res.authenticated && res.user) {
         setIsAuthenticated(true);
-        setUser(payload.user);
+        setUser(res.user);
         if (typeof window !== "undefined") {
           sessionStorage.setItem(ADMIN_AUTH_KEY, "true");
           setSecurityValidated(true);
@@ -95,17 +80,9 @@ export function useAdminAuth(): UseAdminAuthReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${SESSION_ENDPOINT}?action=login`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const payload = await response.json().catch(() => null);
-      if (!response.ok || !payload?.authenticated) {
-        const errMsg = payload?.error || "Login admin gagal. Username atau Password salah.";
-        setError(errMsg);
+      const res = await loginAdminApi(username, password);
+      if (!res.authenticated || !res.user) {
+        setError(res.error || "Login admin gagal. Username atau Password salah.");
         setIsAuthenticated(false);
         setUser(null);
         if (typeof window !== "undefined") {
@@ -116,7 +93,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
       }
 
       setIsAuthenticated(true);
-      setUser(payload.user);
+      setUser(res.user);
       if (typeof window !== "undefined") {
         sessionStorage.setItem(ADMIN_AUTH_KEY, "true");
         setSecurityValidated(true);
@@ -136,11 +113,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
   const logout = async (): Promise<void> => {
     setIsLoading(true);
     try {
-      await fetch(`${SESSION_ENDPOINT}?action=logout`, {
-        method: "POST",
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
-      });
+      await logoutAdminApi();
     } catch (_) {
       // Ignored
     } finally {
