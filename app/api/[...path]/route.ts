@@ -127,7 +127,7 @@ async function handleApiRequest(
   } catch (err: any) {
     console.error(`[Next API Route Handler Error - ${apiPath}]:`, err);
     return NextResponse.json(
-      { error: err.message || "Internal Server Error" },
+      { error: "Internal Server Error" },
       { status: 500 }
     );
   }
