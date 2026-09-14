@@ -62,7 +62,7 @@ describe("Notification Feature Component & Hook", () => {
     vi.spyOn(notificationsService, "sbGetNotifications").mockResolvedValue([
       {
         id: "notif-100",
-        title: "Diskon Khusus SoloSatSet",
+        title: "Diskon Khusus SOPALOKA",
         message: "Cek penawaran barang BU hari ini.",
         type: "bu",
         isRead: false,
@@ -77,7 +77,7 @@ describe("Notification Feature Component & Hook", () => {
       expect(screen.getByText("1 Baru")).not.toBeNull();
     });
 
-    const notifItem = screen.getByText("Diskon Khusus SoloSatSet");
+    const notifItem = screen.getByText("Diskon Khusus SOPALOKA");
     fireEvent.click(notifItem);
 
     await waitFor(() => {

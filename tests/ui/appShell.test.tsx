@@ -44,7 +44,7 @@ describe("Shared UI / App Shell Components", () => {
     render(<NavBrand />);
 
     expect(screen.getByText("SOPALOKA")).not.toBeNull();
-    expect(screen.getByText("Pusat Jual Beli Terdekat")).not.toBeNull();
+    expect(screen.getByText("Jual Beli Barang Terdekat — Pantau Cocok Bayar")).not.toBeNull();
   });
 
   it("harus me-render NavActions dengan slot dan tombol aksi default", () => {

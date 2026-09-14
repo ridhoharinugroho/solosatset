@@ -28,7 +28,7 @@ export function useAdminAuth(): UseAdminAuthReturn {
 
   const setSecurityValidated = (val: boolean) => {
     if (typeof window !== "undefined") {
-      const sec = (window as unknown as Record<string, unknown>).__solosatsetAdminSecurity as
+      const sec = (window as unknown as Record<string, unknown>).__sopalokaAdminSecurity as
         | { setValidated?: (v: boolean) => void }
         | undefined;
       sec?.setValidated?.(val);

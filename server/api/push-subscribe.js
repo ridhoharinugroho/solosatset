@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     return res
       .status(200)
       .json({
-        service: "Pusat Jual Beli Solo Raya - Web Push Subscription Engine",
+        service: "SOPALOKA - Web Push Subscription Engine",
         vapidPublicKey: VAPID_PUBLIC_KEY,
         status: "active",
       });

@@ -10,7 +10,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "SOPALOKA — Pusat Jual Beli Barang Terdekat",
+  title: "SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar",
   description:
     "Temukan barang terdekat di mana saja, pantau barangnya, cocokkan barangnya, hubungi penjualnya, bayar langsung ke orangnya, bawa pulang barang idamannya.",
   manifest: "/manifest.json",

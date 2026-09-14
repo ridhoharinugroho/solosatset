@@ -10,7 +10,7 @@ export const HeroHeader: React.FC<HeroHeaderProps> = ({ className = "" }) => {
       <div className="relative z-10 max-w-2xl space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-rose-200 border border-white/15">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          Pusat Jual Beli Barang Terdekat
+          Jual Beli Barang Terdekat — Pantau Cocok Bayar
         </div>
         <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
           SOPALOKA <span className="text-amber-300 font-medium">Indonesia</span>

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export const USER_SESSION_COOKIE = "solosatset_user_session";
+export const USER_SESSION_COOKIE = "sopaloka_user_session";
 const USER_SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 function base64url(value) {

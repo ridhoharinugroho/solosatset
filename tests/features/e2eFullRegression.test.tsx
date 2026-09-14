@@ -276,7 +276,7 @@ describe("Phase 10: Full Integration & E2E Cross-Feature Regression Suite", () =
     fireEvent.click(logoutBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("Panel Admin SoloSatSet")).not.toBeNull();
+      expect(screen.getByText("Panel Admin SOPALOKA")).not.toBeNull();
     });
   });
 });

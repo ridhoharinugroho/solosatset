@@ -50,7 +50,7 @@ export const AdminLoginForm: React.FC<AdminLoginFormProps> = ({
           <div className="w-12 h-12 rounded-2xl bg-rose-600/20 text-rose-500 flex items-center justify-center mx-auto text-xl font-black">
             🛡️
           </div>
-          <h2 className="text-xl font-extrabold text-white">Panel Admin SoloSatSet</h2>
+          <h2 className="text-xl font-extrabold text-white">Panel Admin SOPALOKA</h2>
           <p className="text-xs text-slate-400">Masuk dengan akun administrator terverifikasi server</p>
         </div>
 

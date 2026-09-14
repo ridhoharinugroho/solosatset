@@ -73,7 +73,7 @@ async function smtp() {
         : port === 465;
   const user = (process.env.SMTP_USER || c.user || "").trim();
   const pass = (process.env.SMTP_PASS || c.pass || "").replace(/\s+/g, "");
-  const fromName = (process.env.SMTP_FROM_NAME || c.senderName || c.fromName || "Pusat Jual Beli Solo Raya").trim();
+  const fromName = (process.env.SMTP_FROM_NAME || c.senderName || c.fromName || "SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar").trim();
   const fromEmail = (process.env.SMTP_FROM_EMAIL || c.senderEmail || c.from || user).trim();
   if (!user || !pass) throw new Error("SMTP server credentials are not configured.");
   return { host, port, secure, user, pass, fromName, fromEmail };
@@ -97,9 +97,9 @@ async function sendOtpEmail(email, code, purpose) {
   await t.sendMail({
     from: `"${s.fromName}" <${s.fromEmail}>`,
     to: email,
-    subject: `Kode OTP ${label} - Pusat Jual Beli Solo Raya`,
+    subject: `Kode OTP ${label} - SOPALOKA`,
     text: `Kode OTP Anda untuk ${label} adalah ${code}. Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.`,
-    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>Pusat Jual Beli Solo Raya</h2><p>Kode OTP untuk <b>${label}</b>:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:12px;text-align:center">${code}</div><p>Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto"><h2>SOPALOKA</h2><p>Kode OTP untuk <b>${label}</b>:</p><div style="font-size:32px;font-weight:800;letter-spacing:8px;padding:18px;background:#f1f5f9;border-radius:12px;text-align:center">${code}</div><p>Kode berlaku 10 menit. Jangan berikan kode ini kepada siapa pun.</p></div>`,
   });
 }
 async function getUserByEmail(db, email) {

@@ -1,7 +1,7 @@
 {
   "name": "sopaloka",
   "version": "2.2.0",
-  "description": "SOPALOKA — Pusat Jual Beli Barang Terdekat",
+  "description": "SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar",
   "type": "module",
   "scripts": {
     "dev": "node local-dev.js",

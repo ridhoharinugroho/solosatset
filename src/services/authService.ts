@@ -31,8 +31,8 @@ export interface PendingResetState {
   createdAt?: number;
 }
 
-const SESSION_KEY_USER_ID = "solosatset_session_user_id";
-const SESSION_KEY_USER_DATA = "solosatset_session_user_data";
+const SESSION_KEY_USER_ID = "sopaloka_session_user_id";
+const SESSION_KEY_USER_DATA = "sopaloka_session_user_data";
 const STORAGE_KEY_USER = "pusat_barkas_user";
 const STORAGE_KEY_REGISTERED_USERS = "pusat_barkas_registered_users";
 const STORAGE_KEY_PENDING_RESET = "pusat_barkas_pending_reset";
@@ -203,9 +203,9 @@ export function purgeLegacyDemoCache(): void {
       STORAGE_KEY_REGISTERED_USERS,
       STORAGE_KEY_USER,
       "barkas_user_session",
-      "solosatset_profile_cache",
-      "solosatset_seller_cache",
-      "solosatset_user_cache",
+      "sopaloka_profile_cache",
+      "sopaloka_seller_cache",
+      "sopaloka_user_cache",
     ]) {
       localStorage.removeItem(key);
       sessionStorage.removeItem(key);
@@ -221,8 +221,8 @@ export function setCurrentUser(user: RegisteredUser | null): void {
   try {
     if (typeof window !== "undefined") {
       if (clean) {
-        sessionStorage.removeItem("solosatset_logged_out");
-        localStorage.removeItem("solosatset_logged_out");
+        sessionStorage.removeItem("sopaloka_logged_out");
+        localStorage.removeItem("sopaloka_logged_out");
         sessionStorage.setItem(SESSION_KEY_USER_DATA, JSON.stringify(clean));
         sessionStorage.setItem(SESSION_KEY_USER_ID, clean.id || "");
       } else {
@@ -242,8 +242,8 @@ export function getCurrentUser(): RegisteredUser | null {
   if (typeof window !== "undefined") {
     try {
       if (
-        sessionStorage.getItem("solosatset_logged_out") === "true" ||
-        localStorage.getItem("solosatset_logged_out") === "true"
+        sessionStorage.getItem("sopaloka_logged_out") === "true" ||
+        localStorage.getItem("sopaloka_logged_out") === "true"
       ) {
         return null;
       }
@@ -322,16 +322,16 @@ export async function logout(): Promise<void> {
   inMemoryActiveUser = null;
   if (typeof window !== "undefined") {
     try {
-      localStorage.setItem("solosatset_logged_out", "true");
-      sessionStorage.setItem("solosatset_logged_out", "true");
+      localStorage.setItem("sopaloka_logged_out", "true");
+      sessionStorage.setItem("sopaloka_logged_out", "true");
       [
         SESSION_KEY_USER_DATA,
         SESSION_KEY_USER_ID,
         STORAGE_KEY_USER,
         "barkas_user_session",
-        "solosatset_profile_cache",
-        "solosatset_seller_cache",
-        "solosatset_user_cache",
+        "sopaloka_profile_cache",
+        "sopaloka_seller_cache",
+        "sopaloka_user_cache",
       ].forEach((key) => {
         localStorage.removeItem(key);
         sessionStorage.removeItem(key);

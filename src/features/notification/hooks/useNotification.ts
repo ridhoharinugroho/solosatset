@@ -70,7 +70,7 @@ export function useNotification({ userId, autoSubscribe = true }: UseNotificatio
     setIsPushSupported(isPushNotificationSupported());
     setPushPermissionStatus(getNotificationPermissionStatus());
     if (typeof window !== "undefined") {
-      setIsPushSubscribed(Boolean((window as unknown as Record<string, unknown>).__solosatset_push_enabled));
+      setIsPushSubscribed(Boolean((window as unknown as Record<string, unknown>).__sopaloka_push_enabled));
     }
   }, []);
 

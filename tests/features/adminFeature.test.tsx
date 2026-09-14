@@ -101,7 +101,7 @@ describe("Admin Feature Component & Security Suite", () => {
     render(<AdminFeature />);
 
     await waitFor(() => {
-      expect(screen.getByText("Panel Admin SoloSatSet")).not.toBeNull();
+      expect(screen.getByText("Panel Admin SOPALOKA")).not.toBeNull();
       expect(screen.getByPlaceholderText(/Contoh: admin/i)).not.toBeNull();
     });
   });
@@ -110,7 +110,7 @@ describe("Admin Feature Component & Security Suite", () => {
     render(<AdminFeature />);
 
     await waitFor(() => {
-      expect(screen.getByText("Panel Admin SoloSatSet")).not.toBeNull();
+      expect(screen.getByText("Panel Admin SOPALOKA")).not.toBeNull();
     });
 
     fireEvent.change(screen.getByPlaceholderText(/Contoh: admin/i), { target: { value: "admin" } });
@@ -127,7 +127,7 @@ describe("Admin Feature Component & Security Suite", () => {
     render(<AdminFeature />);
 
     await waitFor(() => {
-      expect(screen.getByText("Panel Admin SoloSatSet")).not.toBeNull();
+      expect(screen.getByText("Panel Admin SOPALOKA")).not.toBeNull();
     });
 
     fireEvent.change(screen.getByPlaceholderText(/Contoh: admin/i), { target: { value: "admin" } });
@@ -202,7 +202,7 @@ describe("Admin Feature Component & Security Suite", () => {
     fireEvent.click(logoutBtn);
 
     await waitFor(() => {
-      expect(screen.getByText("Panel Admin SoloSatSet")).not.toBeNull();
+      expect(screen.getByText("Panel Admin SOPALOKA")).not.toBeNull();
     });
   });
 });

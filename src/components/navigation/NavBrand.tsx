@@ -9,7 +9,7 @@ export interface NavBrandProps {
 
 export const NavBrand: React.FC<NavBrandProps> = ({
   title = "SOPALOKA",
-  subtitle = "Pusat Jual Beli Terdekat",
+  subtitle = "Jual Beli Barang Terdekat — Pantau Cocok Bayar",
   logoSrc,
   href = "#",
 }) => {

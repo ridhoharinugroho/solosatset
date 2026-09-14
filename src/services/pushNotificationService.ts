@@ -80,8 +80,8 @@ export async function subscribeUserToPush(): Promise<PushSubscription | null> {
       });
 
       if (response.ok) {
-        (window as any).__solosatset_push_enabled = true;
-        console.log("[Web Push] Perangkat berhasil terdaftar untuk notifikasi push SoloSatSet.");
+        (window as any).__sopaloka_push_enabled = true;
+        console.log("[Web Push] Perangkat berhasil terdaftar untuk notifikasi push SOPALOKA.");
       }
       return subscription;
     }
@@ -110,7 +110,7 @@ export async function unsubscribeUserFromPush(): Promise<boolean> {
       });
 
       await subscription.unsubscribe();
-      (window as any).__solosatset_push_enabled = false;
+      (window as any).__sopaloka_push_enabled = false;
       console.log("[Web Push] Perangkat berhasil berhenti berlangganan notifikasi push.");
       return true;
     }
@@ -140,10 +140,10 @@ export async function sendPushBroadcast({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: title || "📢 Pusat Jual Beli Solo Raya",
+        title: title || "📢 SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar",
         body: body || "Pembaruan sistem & info barang terbaru!",
         url: url || "https://solosatset.vercel.app/",
-        tag: tag || "solosatset-update",
+        tag: tag || "sopaloka-update",
         targetUserId,
         targetEmail,
       }),
@@ -184,7 +184,7 @@ export async function initPushNotification(): Promise<void> {
 export function showPushNotificationBanner(): void {
   if (!isPushNotificationSupported()) return;
   if (Notification.permission !== "default") return;
-  if (sessionStorage.getItem("solosatset_push_prompt_dismissed")) return;
+  if (sessionStorage.getItem("sopaloka_push_prompt_dismissed")) return;
   if (document.getElementById("push-notification-floating-banner")) return;
 
   const banner = document.createElement("div");
@@ -198,7 +198,7 @@ export function showPushNotificationBanner(): void {
         <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       </div>
       <div class="min-w-0">
-        <div class="text-xs font-black text-white leading-tight">Aktifkan Notifikasi SoloSatSet?</div>
+        <div class="text-xs font-black text-white leading-tight">Aktifkan Notifikasi SOPALOKA?</div>
         <div class="text-[10px] text-slate-300 line-clamp-1 mt-0.5">Dapatkan info pesan pembeli & iklan terbaru di HP Anda</div>
       </div>
     </div>
@@ -229,12 +229,12 @@ export function showPushNotificationBanner(): void {
       if (sub) {
         try {
           const reg = await navigator.serviceWorker.ready;
-          reg.showNotification("🎉 Notifikasi SoloSatSet Aktif!", {
+          reg.showNotification("🎉 Notifikasi SOPALOKA Aktif!", {
             body: "Selamat! Anda akan menerima info barang seken dan pesan pembeli langsung di perangkat ini.",
             icon: "./assets/img/app-logo.png?v=2.1",
             badge: "./assets/img/app-logo.png?v=2.1",
             vibrate: [200, 100, 200],
-            tag: "solosatset-welcome",
+            tag: "sopaloka-welcome",
           } as any);
         } catch (_e) {}
       }
@@ -246,7 +246,7 @@ export function showPushNotificationBanner(): void {
   });
 
   document.getElementById("btn-banner-dismiss-push")?.addEventListener("click", () => {
-    sessionStorage.setItem("solosatset_push_prompt_dismissed", "true");
+    sessionStorage.setItem("sopaloka_push_prompt_dismissed", "true");
     banner.remove();
   });
 }

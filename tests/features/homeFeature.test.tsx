@@ -68,7 +68,7 @@ describe("HomeFeature (Modular Home Browsing)", () => {
   it("renders hero header, promo banner, category pills, search bar, and listing grid", () => {
     render(<HomeFeature initialListings={mockListings} />);
 
-    expect(screen.getByText(/Pusat Jual Beli Barang Terdekat/i)).not.toBeNull();
+    expect(screen.getByText(/Jual Beli Barang Terdekat — Pantau Cocok Bayar/i)).not.toBeNull();
     expect(screen.getByText(/SOPALOKA/i)).not.toBeNull();
     expect(screen.getByText(/Transaksi Langsung COD/i)).not.toBeNull();
     expect(screen.getAllByText("Semua Kategori")[0]).not.toBeNull();

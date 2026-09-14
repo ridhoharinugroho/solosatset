@@ -247,7 +247,7 @@ export default async function handler(req, res) {
     return res
       .status(200)
       .json({
-        service: "Pusat Jual Beli Solo Raya - Web Push Notification Dispatcher",
+        service: "SOPALOKA - Web Push Notification Dispatcher",
         status: "active",
         vapidPublicKey: VAPID_PUBLIC_KEY,
       });
@@ -275,17 +275,17 @@ export default async function handler(req, res) {
 
   try {
     const itemPayload = body;
-    const title = clean(itemPayload.title || "📢 Pusat Jual Beli Solo Raya", 200);
+    const title = clean(itemPayload.title || "📢 SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar", 200);
     const message = clean(
       itemPayload.body ||
         itemPayload.message ||
-        "Ada pembaruan sistem dan barang seken terbaru di Solo Raya! Buka aplikasi sekarang.",
+        "Ada pembaruan sistem dan barang terbaru di SOPALOKA! Buka aplikasi sekarang.",
       2000,
     );
     const url = clean(itemPayload.url || "/", 1000);
     const icon = clean(itemPayload.icon || itemPayload.image || "/assets/img/app-logo.png?v=2.1", 500);
     const badge = clean(itemPayload.badge || "/assets/img/app-logo.png?v=2.1", 500);
-    const tag = clean(itemPayload.tag || "solosatset-update", 100);
+    const tag = clean(itemPayload.tag || "sopaloka-update", 100);
 
     const cleanIds = Array.isArray(itemPayload.targetUserIds)
       ? itemPayload.targetUserIds

@@ -53,7 +53,7 @@ async function getDynamicSmtpConfig() {
     process.env.SMTP_FROM_NAME ||
     config.senderName ||
     config.fromName ||
-    "Pusat Jual Beli Solo Raya"
+    "SOPALOKA — Jual Beli Barang Terdekat — Pantau Cocok Bayar"
   ).trim();
   const fromEmail = (process.env.SMTP_FROM_EMAIL || config.senderEmail || config.from || user).trim();
 
@@ -76,7 +76,7 @@ export default async function handler(req, res) {
 
   if (req.method === "GET") {
     return res.status(200).json({
-      service: "Pusat Jual Beli Solo Raya - SMTP Mail Engine",
+      service: "SOPALOKA - SMTP Mail Engine",
       status: "active",
       timestamp: new Date().toISOString(),
     });
@@ -136,7 +136,7 @@ export default async function handler(req, res) {
     const info = await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: to.trim(),
-      subject: subject || "Pemberitahuan Akun - Pusat Jual Beli Solo Raya",
+      subject: subject || "Pemberitahuan Akun - SOPALOKA",
       text: text || "",
       html: html || text,
     });

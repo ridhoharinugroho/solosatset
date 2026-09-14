@@ -29,7 +29,7 @@ export const NotificationFeature: React.FC<NotificationFeatureProps> = ({ userId
           </div>
           <div>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-white">Pusat Notifikasi</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Informasi aktivitas & pesan di SoloSatSet</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Informasi aktivitas & pesan di SOPALOKA</p>
           </div>
         </div>
 
