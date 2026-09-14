@@ -10,7 +10,8 @@ import { supabase } from "../lib/supabase.ts";
 export { SAMPLE_LISTINGS };
 export type { ListingItem };
 
-let inMemoryListings: ListingItem[] = [...SAMPLE_LISTINGS];
+const isProduction = typeof process !== "undefined" && process.env.NODE_ENV === "production";
+let inMemoryListings: ListingItem[] = isProduction ? [] : [...SAMPLE_LISTINGS];
 let isStorageInitialized = false;
 let isFetchingListingsFromSupabase = false;
 let lastFetchListingsTime = 0;
@@ -58,17 +59,17 @@ export function getAllListings(): ListingItem[] {
   if (typeof window !== "undefined" && Array.isArray((window as any).__listings)) {
     return (window as any).__listings;
   }
-  if (!Array.isArray(inMemoryListings) || inMemoryListings.length === 0) {
+  if (!isProduction && (!Array.isArray(inMemoryListings) || inMemoryListings.length === 0)) {
     inMemoryListings = [...SAMPLE_LISTINGS];
   }
-  return inMemoryListings;
+  return inMemoryListings || [];
 }
 
 export function getPublicListings(): ListingItem[] {
   const all = getAllListings();
-  let localListings = all.filter((item) => !item.isHidden && item.status !== "deleted");
-  if (localListings.length === 0 && Array.isArray(SAMPLE_LISTINGS) && SAMPLE_LISTINGS.length > 0) {
-    localListings = [...SAMPLE_LISTINGS];
+  const localListings = all.filter((item) => !item.isHidden && item.status !== "deleted");
+  if (!isProduction && localListings.length === 0 && Array.isArray(SAMPLE_LISTINGS) && SAMPLE_LISTINGS.length > 0) {
+    return [...SAMPLE_LISTINGS];
   }
   return localListings;
 }
