@@ -1,9 +1,8 @@
 import fs from "node:fs";
 
 const migration = fs.readFileSync("supabase/migrations/20260908_lock_notifications_to_server.sql", "utf8");
-const client = fs.readFileSync("js/services/notifications.js", "utf8");
+const client = fs.readFileSync("src/services/notificationService.ts", "utf8");
 const api = fs.readFileSync("server/api/push-notify.js", "utf8");
-const legacy = fs.readFileSync("js/services/supabaseDB.js", "utf8");
 
 const requiredMigration = [
   "REVOKE ALL ON TABLE public.notifications FROM anon, authenticated",
@@ -38,10 +37,5 @@ for (const required of [
   if (!api.includes(required)) throw new Error(`Missing server notification action: ${required}`);
 }
 
-if (legacy.includes("export async function sbGetNotifications")) {
-  console.log(
-    "legacy notification implementation retained only for compatibility archive; active client must use js/services/notifications.js",
-  );
-}
-
 console.log("Notification security audit passed.");
+

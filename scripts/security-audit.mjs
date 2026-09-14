@@ -2,9 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 
 const root = process.cwd();
-const runtimeRoots = ["api", "js"];
-const extensions = new Set([".js", ".mjs", ".html"]);
-const ignored = new Set([path.normalize("api/call-exec-sql.js")]);
+const runtimeRoots = ["server", "src"];
+const extensions = new Set([".js", ".mjs", ".ts", ".tsx"]);
+const ignored = new Set([path.normalize("server/api/call-exec-sql.js")]);
 
 const findings = [];
 
@@ -23,17 +23,17 @@ function addFinding(file, name) {
   findings.push(`${file}: ${name}`);
 }
 
-const supabaseClientPath = path.join(root, "js", "lib", "supabase.js");
+const supabaseClientPath = path.join(root, "src", "lib", "supabase.ts");
 if (!fs.existsSync(supabaseClientPath)) {
-  addFinding("js/lib/supabase.js", "browser Supabase client boundary is missing");
+  addFinding("src/lib/supabase.ts", "browser Supabase client boundary is missing");
 } else {
   const supabaseClient = fs.readFileSync(supabaseClientPath, "utf8");
   const guardRegex = /String\(\s*table\s*\|\|\s*['"]['"]\s*\)\s*\.trim\(\)\s*\.toLowerCase\(\)\s*===\s*['"]users['"]/g;
   if (!guardRegex.test(supabaseClient)) {
-    addFinding("js/lib/supabase.js", `missing users-table browser guard: String(table || '').trim().toLowerCase() === 'users'`);
+    addFinding("src/lib/supabase.ts", `missing users-table browser guard: String(table || '').trim().toLowerCase() === 'users'`);
   }
   if (!supabaseClient.includes("Direct browser access to the users table is disabled.")) {
-    addFinding("js/lib/supabase.js", `missing users-table browser guard: Direct browser access to the users table is disabled.`);
+    addFinding("src/lib/supabase.ts", `missing users-table browser guard: Direct browser access to the users table is disabled.`);
   }
 }
 

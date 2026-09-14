@@ -1,6 +1,6 @@
 // scripts/sync-default-users.js – sync default users to Supabase using existing client
-import supabase from "../js/lib/supabase.js";
-import { DEFAULT_REGISTERED_USERS } from "../js/services/auth.js";
+import supabase from "../src/lib/supabase.ts";
+import { DEFAULT_REGISTERED_USERS } from "../src/services/authService.ts";
 
 (async () => {
   try {

@@ -4,7 +4,7 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 const SKIP = new Set(["node_modules", ".git", ".vercel"]);
-const ROOTS = ["js", "scripts", "api"];
+const ROOTS = ["server", "scripts"];
 const EXTENSIONS = new Set([".js", ".mjs", ".cjs"]);
 
 function walk(dir) {

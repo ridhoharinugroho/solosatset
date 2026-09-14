@@ -3,9 +3,9 @@
  * Seller & App Reviews Engine with Supabase Sync
  */
 
-import { getCurrentUser, getUserById, getUserByReviewAuthor, formatRegionTitle, formatDistrictTitle } from "./authService";
-import { getListingsBySellerId } from "./listingService";
-import { supabase } from "../lib/supabase";
+import { getCurrentUser, getUserById, getUserByReviewAuthor, formatRegionTitle, formatDistrictTitle } from "./authService.ts";
+import { getListingsBySellerId } from "./listingService.ts";
+import { supabase } from "../lib/supabase.ts";
 
 export interface SellerReview {
   id: string;

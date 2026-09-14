@@ -129,14 +129,14 @@ export function isDemoUser(userOrId?: string | RegisteredUser | null): boolean {
   return ["user-102", "user-103", "user-104", "user-105", "user-106", "user-107"].includes(id);
 }
 
-export function formatRegionTitle(rawRegion?: string | null): string {
+export function formatRegionTitle(rawRegion?: string | null, fallback: string = "Semua Wilayah"): string {
   const reg = String(rawRegion || "")
     .trim()
     .toLowerCase();
-  if (!reg) return "";
+  if (!reg) return fallback;
   const map: Record<string, string> = {
     solo: "Solo",
-    surakarta: "Surakarta",
+    surakarta: "Solo",
     karanganyar: "Karanganyar",
     sukoharjo: "Sukoharjo",
     wonogiri: "Wonogiri",

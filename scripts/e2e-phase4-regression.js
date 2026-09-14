@@ -40,9 +40,9 @@ global.fetch = async (_url, _opts) => {
 const results = [];
 
 async function runE2E() {
-  const { setCurrentUser, getCurrentUser, logout } = await import("../js/services/auth.js");
-  const { saveListing, updateListing, getAllListings, processAndBroadcastSupabaseListings } = await import("../js/services/storageListings.js");
-  const { getProvinces, getRegenciesByProvince, getDistrictsByRegency, getRegionById, getDistrictsByRegionId } = await import("../js/data/regions.js");
+  const { setCurrentUser, getCurrentUser, logout } = await import("../src/services/authService.ts");
+  const { saveListing, updateListing, getAllListings, processAndBroadcastSupabaseListings } = await import("../src/services/listingService.ts");
+  const { getProvinces, getRegenciesByProvince, getDistrictsByRegency, getRegionById, getDistrictsByRegionId } = await import("../src/lib/regions.ts");
 
   // --------------------------------------------------------------------------
   // Skenario 1: Register user

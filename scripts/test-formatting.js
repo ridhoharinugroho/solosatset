@@ -3,8 +3,8 @@ import {
   formatRegionTitle,
   formatDistrictTitle,
   formatJoinedDate,
-  FALLBACK_JOINED_DATE,
-} from "../js/utils/formatting.js";
+} from "../src/services/authService.ts";
+const FALLBACK_JOINED_DATE = "01 Agustus 2026";
 
 assert.equal(formatRegionTitle("surakarta"), "Solo");
 assert.equal(formatRegionTitle(" SOLO RAYA "), "Solo Raya");

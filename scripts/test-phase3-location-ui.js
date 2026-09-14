@@ -5,8 +5,8 @@ import {
   getDistrictsByRegency,
   getRegionById,
   getDistrictsByRegionId,
-} from "../js/data/regions.js";
-import { processAndBroadcastSupabaseListings } from "../js/services/storageListings.js";
+} from "../src/lib/regions.ts";
+import { processAndBroadcastSupabaseListings } from "../src/services/listingService.ts";
 
 // Test 1: Cascading Location Selection (Provinsi -> Kabupaten/Kota -> Kecamatan)
 const provinces = getProvinces();

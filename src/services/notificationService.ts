@@ -3,7 +3,7 @@
  * Server-authoritative notification client facade
  */
 
-import { getCurrentUser } from "./authService";
+import { getCurrentUser } from "./authService.ts";
 
 export interface NotificationItem {
   id: string;

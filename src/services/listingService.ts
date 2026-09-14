@@ -3,9 +3,9 @@
  * SOPALOKA Pure Next.js / React / TypeScript Listing Engine
  */
 
-import { SAMPLE_LISTINGS, ListingItem } from "../lib/sampleListings";
-import { getCurrentUser } from "./authService";
-import { supabase } from "../lib/supabase";
+import { SAMPLE_LISTINGS, type ListingItem } from "../lib/sampleListings.ts";
+import { getCurrentUser } from "./authService.ts";
+import { supabase } from "../lib/supabase.ts";
 
 export { SAMPLE_LISTINGS };
 export type { ListingItem };
