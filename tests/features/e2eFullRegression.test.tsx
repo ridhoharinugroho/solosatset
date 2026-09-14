@@ -15,10 +15,10 @@ import { NotificationFeature } from "../../src/features/notification/Notificatio
 import { AdminFeature } from "../../src/features/admin/AdminFeature";
 
 // Service & domain imports
-import * as authService from "../../js/services/auth.js";
-import * as storage from "../../js/services/storage.js";
-import * as storageReviews from "../../js/services/storageReviews.js";
-import * as notificationsService from "../../js/services/notifications.js";
+import * as authService from "../../src/services/authService";
+import * as storage from "../../src/services/listingService";
+import * as storageReviews from "../../src/services/reviewService";
+import * as notificationsService from "../../src/services/notificationService";
 import type { SupabaseListingRowDTO } from "../../src/domain/listing/listing.dto";
 import type { ListingModel } from "../../src/domain/listing/listing.contract";
 import type { UserProfile } from "../../src/domain/user/user.contract";
@@ -223,7 +223,7 @@ describe("Phase 10: Full Integration & E2E Cross-Feature Regression Suite", () =
         id: "notif-e2e-1",
         title: "Iklan Baru Terpasang",
         message: "Iklan Laptop Asus Anda telah aktif di marketplace.",
-        is_read: false,
+        isRead: false,
         created_at: "2026-09-12T10:00:00Z",
       },
     ]);

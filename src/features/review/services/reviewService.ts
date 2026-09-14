@@ -1,4 +1,3 @@
-// @ts-ignore
 import {
   getSellerReviews,
   getSellerRatingStats,
@@ -6,7 +5,7 @@ import {
   toggleHideSellerReview,
   deleteSellerReview,
   checkSellerVerification,
-} from "../../../../js/services/storageReviews.js";
+} from "../../../services/reviewService";
 import type { ReviewItem, RatingStats, VerificationDetails } from "../hooks/useReview";
 
 export function fetchSellerReviews(sellerId: string, includeHidden = false): ReviewItem[] {

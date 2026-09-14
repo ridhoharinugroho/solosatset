@@ -4,8 +4,8 @@ import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { NotificationFeature } from "../../src/features/notification/NotificationFeature";
-import * as notificationsService from "../../js/services/notifications.js";
-import * as pushService from "../../js/services/pushNotification.js";
+import * as notificationsService from "../../src/services/notificationService";
+import * as pushService from "../../src/services/pushNotificationService";
 
 describe("Notification Feature Component & Hook", () => {
   const mockUserId = "usr-test-123";
@@ -36,7 +36,7 @@ describe("Notification Feature Component & Hook", () => {
         title: "Iklan Disetujui",
         message: "Iklan HP Samsung Anda telah aktif.",
         type: "system",
-        is_read: false,
+        isRead: false,
         created_at: "2026-09-12T10:00:00Z",
       },
       {
@@ -44,7 +44,7 @@ describe("Notification Feature Component & Hook", () => {
         title: "Pesan Baru",
         message: "Budi mengirim pesan pada barang Anda.",
         type: "info",
-        is_read: true,
+        isRead: true,
         created_at: "2026-09-11T10:00:00Z",
       },
     ]);
@@ -65,7 +65,7 @@ describe("Notification Feature Component & Hook", () => {
         title: "Diskon Khusus SoloSatSet",
         message: "Cek penawaran barang BU hari ini.",
         type: "bu",
-        is_read: false,
+        isRead: false,
         created_at: "2026-09-12T10:00:00Z",
       },
     ]);
@@ -92,14 +92,14 @@ describe("Notification Feature Component & Hook", () => {
         id: "notif-201",
         title: "Notif 1",
         message: "Pesan 1",
-        is_read: false,
+        isRead: false,
         created_at: "2026-09-12T10:00:00Z",
       },
       {
         id: "notif-202",
         title: "Notif 2",
         message: "Pesan 2",
-        is_read: false,
+        isRead: false,
         created_at: "2026-09-12T11:00:00Z",
       },
     ]);

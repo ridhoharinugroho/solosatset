@@ -5,13 +5,13 @@ import {
   sbMarkAllNotificationsAsRead,
   sbSubscribeNotifications,
   sbUnsubscribeNotifications,
-} from "../../../../js/services/notifications.js";
+} from "../../../services/notificationService";
 import {
   isPushNotificationSupported,
   getNotificationPermissionStatus,
   subscribeUserToPush,
   unsubscribeUserFromPush,
-} from "../../../../js/services/pushNotification.js";
+} from "../../../services/pushNotificationService";
 
 export interface NotificationItem {
   id: string;
@@ -48,7 +48,7 @@ export function useNotification({ userId, autoSubscribe = true }: UseNotificatio
     try {
       setIsLoading(true);
       const data = await sbGetNotifications(userId as any);
-      const mapped = (data || []).map((item: Record<string, unknown>) => ({
+      const mapped = (data || []).map((item: any) => ({
         id: String(item.id || item.notification_id || Math.random()),
         userId: item.user_id ? String(item.user_id) : userId,
         title: String(item.title || "Notifikasi"),
@@ -79,7 +79,7 @@ export function useNotification({ userId, autoSubscribe = true }: UseNotificatio
 
     if (!userId || !autoSubscribe) return;
 
-    const sub = sbSubscribeNotifications(userId, (newNotif: Record<string, unknown>) => {
+    const sub = sbSubscribeNotifications(userId, (newNotif: any) => {
       setNotifications((prev) => [
         {
           id: String(newNotif.id || Math.random()),

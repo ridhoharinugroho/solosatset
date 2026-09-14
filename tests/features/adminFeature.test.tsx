@@ -4,7 +4,7 @@ import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { AdminFeature } from "../../src/features/admin/AdminFeature";
-import * as storage from "../../js/services/storage.js";
+import * as storage from "../../src/services/listingService";
 
 describe("Admin Feature Component & Security Suite", () => {
   const mockListings = [

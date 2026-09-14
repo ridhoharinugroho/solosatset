@@ -1,5 +1,4 @@
-// @ts-ignore
-import { getAllListings, deleteListing, toggleHideListing, toggleSoldStatus } from "../../../../js/services/storage.js";
+import { getAllListings, deleteListing, toggleHideListing, toggleSoldStatus } from "../../../services/listingService";
 import type { AdminListingItem, AdminStats } from "../hooks/useAdminDashboard";
 import type { AdminUser } from "../hooks/useAdminAuth";
 

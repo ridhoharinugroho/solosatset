@@ -1,5 +1,4 @@
-// @ts-ignore
-import { saveListing, updateListing } from "../../../../js/services/storageListings.js";
+import { saveListing, updateListing } from "../../../services/listingService";
 import { mapListingDtoToDomain } from "../../../domain/listing/listing.mapper";
 import type { ListingModel } from "../../../domain/listing/listing.contract";
 import type { ListingCreateDTO } from "../../../domain/listing/listing.dto";

@@ -1,5 +1,5 @@
 import React from "react";
-import { PROVINCES, getRegenciesByProvince } from "../../../../js/data/regions.js";
+import { PROVINCES, getRegenciesByProvince } from "../../../lib/regions";
 
 export interface LocationPickerProps {
   provinceCode?: string | null;

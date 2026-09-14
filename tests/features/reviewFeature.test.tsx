@@ -4,7 +4,7 @@ import React from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { ReviewFeature } from "../../src/features/review/ReviewFeature";
-import * as storageReviews from "../../js/services/storageReviews.js";
+import * as storageReviews from "../../src/services/reviewService";
 
 describe("Review Feature Component", () => {
   const mockSellerId = "seller-123";

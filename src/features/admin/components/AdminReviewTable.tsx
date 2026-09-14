@@ -3,12 +3,10 @@ import {
   getAllReviews,
   toggleHideSellerReview,
   deleteSellerReview,
-} from "../../../../js/services/storageReviews.js";
-import {
   getAppReviews,
   toggleHideAppReview,
   deleteAppReview,
-} from "../../../../js/services/storageAppReviews.js";
+} from "../../../services/reviewService";
 
 export interface ReviewItemData {
   id: string;
@@ -31,7 +29,7 @@ export const AdminReviewTable: React.FC = () => {
   const loadReviews = () => {
     try {
       if (activeTab === "seller") {
-        const data = (getAllReviews() || []).map((r: Record<string, unknown>) => ({
+        const data = (getAllReviews() || []).map((r: any) => ({
           ...r,
           id: String(r.id),
           buyerName: String(r.buyerName || "Pengguna"),
@@ -43,7 +41,7 @@ export const AdminReviewTable: React.FC = () => {
         }));
         setReviews(data);
       } else {
-        const data = (getAppReviews(true) || []).map((r: Record<string, unknown>) => ({
+        const data = (getAppReviews(true) || []).map((r: any) => ({
           ...r,
           id: String(r.id),
           userName: String(r.userName || "Pengguna"),

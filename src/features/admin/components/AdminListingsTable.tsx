@@ -1,6 +1,6 @@
 import React from "react";
 import { AdminListingItem } from "../hooks/useAdminDashboard";
-import { SOLO_RAYA_REGIONS } from "../../../../js/data/regions.js";
+import { SOLO_RAYA_REGIONS } from "../../../lib/regions";
 
 export interface AdminListingsTableProps {
   listings: AdminListingItem[];

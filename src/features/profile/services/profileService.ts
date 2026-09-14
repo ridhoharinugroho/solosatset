@@ -1,11 +1,10 @@
-// @ts-ignore
-import { getCurrentUser, saveUserProfile } from "../../../../js/services/auth.js";
+import { getCurrentUser, updateProfile } from "../../../services/authService";
 import { mapUserDtoToDomain } from "../../../domain/user/user.mapper";
 import type { UserProfile } from "../../../domain/user/user.contract";
 
 export async function fetchUserProfile(): Promise<UserProfile | null> {
   try {
-    const user = await getCurrentUser();
+    const user = getCurrentUser();
     if (!user) return null;
     return mapUserDtoToDomain(user);
   } catch (error) {
@@ -16,18 +15,18 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
 
 export async function updateUserProfile(data: Partial<UserProfile>): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
   try {
-    const res = await saveUserProfile({
+    const res = await updateProfile({
       name: data.name,
       email: data.email,
       phone: data.phone,
-      province_code: data.provinceCode,
-      regency_code: data.regencyCode,
-      district_code: data.districtCode,
+      provinceCode: data.provinceCode,
+      regencyCode: data.regencyCode,
+      districtCode: data.districtCode,
     });
-    if (!res || !res.success) {
-      return { success: false, error: res?.error || "Gagal memperbarui profil" };
+    if (!res) {
+      return { success: false, error: "Gagal memperbarui profil" };
     }
-    return { success: true, user: mapUserDtoToDomain(res.user) };
+    return { success: true, user: mapUserDtoToDomain(res) };
   } catch (error: any) {
     return { success: false, error: error.message || "Terjadi kesalahan saat menyimpan profil" };
   }

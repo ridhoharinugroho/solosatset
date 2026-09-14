@@ -1,5 +1,4 @@
-// @ts-ignore
-import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../../../js/services/notifications.js";
+import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../../services/notificationService";
 
 export async function fetchNotifications(): Promise<any[]> {
   try {
