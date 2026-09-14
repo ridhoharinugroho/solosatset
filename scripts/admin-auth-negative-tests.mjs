@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
-import handler, { SESSION_COOKIE, getAdminSessionFromRequest } from "../api/admin-auth.js";
+import handler, { SESSION_COOKIE, getAdminSessionFromRequest } from "../server/api/admin-auth.js";
 
 const username = "admin-test";
 const password = "TestPassword-123!";

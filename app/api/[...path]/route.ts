@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import adminAuthHandler from "../../../api/admin-auth.js";
-import authLoginHandler from "../../../api/auth-login.js";
-import authLogoutHandler from "../../../api/auth-logout.js";
-import authOtpHandler from "../../../api/auth-otp.js";
-import initDbHandler from "../../../api/init-db.js";
-import pushNotifyHandler from "../../../api/push-notify.js";
-import pushSubscribeHandler from "../../../api/push-subscribe.js";
-import sendEmailHandler from "../../../api/send-email.js";
-import trackInterestHandler from "../../../api/track-interest.js";
-import uploadImageHandler from "../../../api/upload-image.js";
-import userProfileHandler from "../../../api/user-profile.js";
+import adminAuthHandler from "../../../server/api/admin-auth.js";
+import authLoginHandler from "../../../server/api/auth-login.js";
+import authLogoutHandler from "../../../server/api/auth-logout.js";
+import authOtpHandler from "../../../server/api/auth-otp.js";
+import initDbHandler from "../../../server/api/init-db.js";
+import pushNotifyHandler from "../../../server/api/push-notify.js";
+import pushSubscribeHandler from "../../../server/api/push-subscribe.js";
+import sendEmailHandler from "../../../server/api/send-email.js";
+import trackInterestHandler from "../../../server/api/track-interest.js";
+import uploadImageHandler from "../../../server/api/upload-image.js";
+import userProfileHandler from "../../../server/api/user-profile.js";
 
 const apiHandlers: Record<string, (req: any, res: any) => Promise<any> | any> = {
   "admin-auth": adminAuthHandler,

@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
-import { getUserSessionFromRequest } from "../server/user-session.js";
+import { getUserSessionFromRequest } from "../user-session.js";
 import { isAdminRequest } from "./admin-auth.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;

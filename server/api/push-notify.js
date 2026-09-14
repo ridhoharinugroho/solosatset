@@ -1,7 +1,7 @@
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
 import { isAdminRequest } from "./admin-auth.js";
-import { getUserSessionFromRequest } from "../server/user-session.js";
+import { getUserSessionFromRequest } from "../user-session.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;

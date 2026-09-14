@@ -2,7 +2,7 @@ import fs from "node:fs";
 
 const migration = fs.readFileSync("supabase/migrations/20260908_lock_notifications_to_server.sql", "utf8");
 const client = fs.readFileSync("js/services/notifications.js", "utf8");
-const api = fs.readFileSync("api/push-notify.js", "utf8");
+const api = fs.readFileSync("server/api/push-notify.js", "utf8");
 const legacy = fs.readFileSync("js/services/supabaseDB.js", "utf8");
 
 const requiredMigration = [

@@ -85,7 +85,7 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const apiPath = path.join(__dirname, "../api/push-notify.js");
+const apiPath = path.join(__dirname, "../server/api/push-notify.js");
 
 const code = fs.readFileSync(apiPath, "utf8");
 assert.ok(code.includes(".from('users')"), "API must query users table");
