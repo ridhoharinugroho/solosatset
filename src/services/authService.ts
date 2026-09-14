@@ -149,14 +149,23 @@ async function postJson(url: string, body: any): Promise<any> {
   if (!response.ok || payload.success === false) {
     const rawMessage = String(payload.error || payload.message || "").trim();
     const lower = rawMessage.toLowerCase();
+    const code = String(payload.code || "").toUpperCase();
 
-    if (lower.includes("otp kadaluarsa") || lower.includes("otp expired") || lower.includes("kadaluarsa")) {
+    if (code === "EXPIRED_OTP" || lower.includes("otp kadaluarsa") || lower.includes("otp expired")) {
       throw new AuthError("Kode OTP sudah kadaluarsa. Silakan minta kode baru.", "expired_otp", rawMessage);
     }
-    if (lower.includes("otp salah") || lower.includes("invalid otp") || lower.includes("kode verifikasi salah")) {
+    if (code === "INVALID_OTP" || lower.includes("otp salah") || lower.includes("invalid otp") || lower.includes("kode verifikasi salah")) {
       throw new AuthError("Kode OTP yang Anda masukkan tidak sesuai.", "invalid_otp", rawMessage);
     }
-    if (lower.includes("password salah") || lower.includes("kredensial") || lower.includes("tidak ditemukan") || lower.includes("salah")) {
+    if (
+      code === "INVALID_CREDENTIALS" ||
+      lower.includes("password salah") ||
+      lower.includes("kredensial salah") ||
+      lower.includes("kredensial login") ||
+      lower.includes("kredensial tidak ditemukan") ||
+      lower.includes("email atau password salah") ||
+      lower.includes("user tidak ditemukan")
+    ) {
       throw new AuthError(rawMessage || "Kredensial login tidak sesuai.", "invalid_credentials", rawMessage);
     }
 

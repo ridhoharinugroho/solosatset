@@ -31,7 +31,7 @@ function startEphemeralServer() {
     localServer.listen(0, "127.0.0.1", () => {
       const address = localServer.address();
       targetPort = address.port;
-      console.log(`[Stress Test Runner] Ephemeral test server running on http://127.0.0.1:${targetPort}`);
+      console.warn(`[Stress Test Warning] Local port 3000 unavailable. Falling back to Ephemeral Test Server on http://127.0.0.1:${targetPort}`);
       resolve(`http://127.0.0.1:${targetPort}${targetPath}`);
     });
   });
