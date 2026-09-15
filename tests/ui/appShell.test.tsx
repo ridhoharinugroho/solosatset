@@ -44,19 +44,20 @@ describe("Shared UI / App Shell Components", () => {
     render(<NavBrand />);
 
     expect(screen.getByText("SOPALOKA")).not.toBeNull();
-    expect(screen.getByText("Jual Beli Barang Terdekat — Pantau Cocok Bayar")).not.toBeNull();
+    expect(screen.getByText("Pantau Cocok Bayar • Nego Langsung WA")).not.toBeNull();
   });
 
-  it("harus me-render NavActions dengan slot dan tombol aksi default", () => {
+  it("harus me-render NavActions dengan tombol aksi notifikasi, filter, dan pasang iklan", () => {
     render(
       <NavActions
-        searchSlot={<input data-testid="search-input" placeholder="Cari..." />}
+        notificationCount={3}
       />
     );
 
-    expect(screen.getByTestId("search-input")).not.toBeNull();
-    expect(screen.getByText("Masuk")).not.toBeNull();
-    expect(screen.getByText("Daftar")).not.toBeNull();
+    expect(screen.getByTitle("Pusat Notifikasi")).not.toBeNull();
+    expect(screen.getByTitle("Filter Wilayah & Kategori")).not.toBeNull();
+    expect(screen.getByText("Pasang Iklan")).not.toBeNull();
+    expect(screen.getByText("3")).not.toBeNull();
   });
 
   it("harus me-render AppShell lengkap dengan header, main content, dan footer slot", () => {
@@ -74,3 +75,4 @@ describe("Shared UI / App Shell Components", () => {
     expect(screen.getByTestId("footer-content")).not.toBeNull();
   });
 });
+

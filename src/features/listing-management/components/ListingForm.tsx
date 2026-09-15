@@ -202,7 +202,7 @@ export const ListingForm: React.FC<ListingFormProps> = ({
       {/* BPS Location & COD Point */}
       <div className="space-y-2">
         <label className="block text-xs font-semibold text-gray-700">
-          Lokasi COD & Wilayah (BPS / Solo Raya)
+          Lokasi COD & Wilayah Terdekat
         </label>
         <LocationPicker
           provinceCode={provinceCode}

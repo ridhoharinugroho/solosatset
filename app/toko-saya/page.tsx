@@ -6,7 +6,7 @@ import { TokoSayaFeature } from "../../src/features/toko-saya/TokoSayaFeature";
 
 export default function TokoSayaPage() {
   return (
-    <AppShell>
+    <AppShell activeTab="toko-saya">
       <TokoSayaFeature />
     </AppShell>
   );

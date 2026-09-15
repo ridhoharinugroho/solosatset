@@ -1,16 +1,22 @@
 import { useState, useEffect, useCallback } from "react";
 import type { ListingModel } from "../../../domain/listing/listing.contract";
 import { fetchHomeListings } from "../services/homeService";
+import { getPublicListings } from "../../../services/listingService";
+import { mapListingDtoToDomain } from "../../../domain/listing/listing.mapper";
 
 export interface UseHomeFeedProps {
   initialListings?: ListingModel[];
 }
 
 export function useHomeFeed({ initialListings = [] }: UseHomeFeedProps = {}) {
-  const [listings, setListings] = useState<ListingModel[]>(initialListings);
+  const [listings, setListings] = useState<ListingModel[]>(() => {
+    if (initialListings && initialListings.length > 0) return initialListings;
+    const local = getPublicListings();
+    return local.map((item: any) => mapListingDtoToDomain(item));
+  });
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [selectedListing, setSelectedListing] = useState<ListingModel | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(initialListings.length === 0);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const hasInitial = initialListings && initialListings.length > 0;
 

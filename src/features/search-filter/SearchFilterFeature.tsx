@@ -1,14 +1,17 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useSearchFilter, UseSearchFilterProps } from "./hooks/useSearchFilter";
 import { SearchBar } from "./components/SearchBar";
 import { FilterBar } from "./components/FilterBar";
+import { RegionFilterPills } from "./components/RegionFilterPills";
+import { SortBar } from "./components/SortBar";
 import { ListingGrid } from "./components/ListingGrid";
 import type { ListingModel } from "../../domain/listing/listing.contract";
 
 export interface SearchFilterFeatureProps extends UseSearchFilterProps {
   onListingClick?: (listing: ListingModel) => void;
+  categorySlot?: React.ReactNode;
   className?: string;
 }
 
@@ -16,8 +19,12 @@ export const SearchFilterFeature: React.FC<SearchFilterFeatureProps> = ({
   initialListings = [],
   category,
   onListingClick,
+  categorySlot,
   className = "",
 }) => {
+  const [selectedRegion, setSelectedRegion] = useState("all");
+  const [selectedSort, setSelectedSort] = useState("newest");
+
   const {
     filterState,
     filteredListings,
@@ -28,24 +35,21 @@ export const SearchFilterFeature: React.FC<SearchFilterFeatureProps> = ({
   } = useSearchFilter({ initialListings, category });
 
   return (
-    <div className={`space-y-4 ${className}`.trim()}>
-      {/* Search Bar Header */}
-      <SearchBar
-        value={filterState.searchQuery}
-        onChange={updateSearchQuery}
+    <div className={`space-y-1 sm:space-y-1.5 ${className}`.trim()}>
+      {/* 7 Regions Filter Pills */}
+      <RegionFilterPills
+        selectedRegion={selectedRegion}
+        onSelectRegion={setSelectedRegion}
       />
 
-      {/* Filter Controls Bar */}
-      <FilterBar
-        filterState={filterState}
-        onFilterChange={updateFilter}
-        onReset={resetFilters}
+      {/* Sort Options Bar */}
+      <SortBar
+        selectedSort={selectedSort}
+        onSelectSort={setSelectedSort}
       />
 
-      {/* Result Meta Bar */}
-      <div className="flex items-center justify-between text-xs text-gray-500 font-medium px-1">
-        <span>Menampilkan <strong className="text-gray-900">{totalCount}</strong> barang</span>
-      </div>
+      {/* Category Pills (Placed directly below Sort Bar, matching baseline 8463f32) */}
+      {categorySlot}
 
       {/* Listing Grid Result */}
       <ListingGrid
@@ -55,3 +59,4 @@ export const SearchFilterFeature: React.FC<SearchFilterFeatureProps> = ({
     </div>
   );
 };
+

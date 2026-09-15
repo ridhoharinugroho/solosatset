@@ -10,11 +10,13 @@ import { ListingDetail } from "../listing/components/ListingDetail";
 import type { ListingModel } from "../../domain/listing/listing.contract";
 
 export interface HomeFeatureProps extends UseHomeFeedProps {
+  onCreateListingClick?: () => void;
   className?: string;
 }
 
 export const HomeFeature: React.FC<HomeFeatureProps> = ({
   initialListings = [],
+  onCreateListingClick,
   className = "",
 }) => {
   const {
@@ -34,29 +36,21 @@ export const HomeFeature: React.FC<HomeFeatureProps> = ({
   }, [openListingDetail]);
 
   return (
-    <div className={`space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-6 ${className}`.trim()}>
+    <div className={`w-full ${className}`.trim()}>
       {/* 1. Hero Header Banner */}
-      <HeroHeader />
+      <HeroHeader onCreateListingClick={onCreateListingClick} />
 
-      {/* 2. Platform Value Highlights */}
-      <PromoBanner />
-
-      {/* 3. Category Feed Pills Navigation */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider px-1">
-          Jelajahi Kategori
-        </h3>
-        <FeedPills
-          activeCategory={activeCategory}
-          onSelectCategory={selectCategory}
-        />
-      </div>
-
-      {/* 4. Search, Filter, and Listing Grid */}
+      {/* 2. Search, Region Filter, Sort Bar, Category Icon Pills, and Listing Grid */}
       <SearchFilterFeature
         initialListings={listings}
         category={activeCategory}
         onListingClick={handleListingClick}
+        categorySlot={
+          <FeedPills
+            activeCategory={activeCategory}
+            onSelectCategory={selectCategory}
+          />
+        }
       />
 
       {/* 5. Listing Detail Overlay / Modal View */}

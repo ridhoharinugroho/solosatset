@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "../css/styles.css";
 import { ServiceWorkerRegister } from "../src/components/pwa/ServiceWorkerRegister";
+import { AppSplashScreen } from "../src/components/pwa/AppSplashScreen";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -35,9 +36,11 @@ export default function RootLayout({
         style={{ backgroundColor: "#ffffff", margin: 0 }}
         className="bg-[#ffffff] text-slate-900 pb-24 md:pb-24 min-h-screen flex flex-col antialiased selection:bg-rose-900 selection:text-white font-sans"
       >
+        <AppSplashScreen />
         <ServiceWorkerRegister />
         {children}
       </body>
     </html>
   );
 }
+

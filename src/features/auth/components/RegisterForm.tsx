@@ -35,7 +35,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       <div>
         <h2 className="text-xl font-bold text-gray-900">Daftar Akun Baru</h2>
         <p className="text-xs text-gray-500 mt-1">
-          Mulai jual beli barang terdekat di Solo Raya
+          Mulai jual beli barang terdekat di SOPALOKA
         </p>
       </div>
 
