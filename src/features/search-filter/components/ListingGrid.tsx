@@ -43,7 +43,7 @@ export const ListingGrid: React.FC<ListingGridProps> = ({
             <PackageSearch className="w-8 h-8" />
           </div>
           <h3 className="text-base font-bold text-slate-800 mb-1.5">
-            Tidak ada barang ditemukan
+            Barang Tidak Ditemukan
           </h3>
           <p className="text-xs text-slate-500 leading-relaxed mb-4">
             Coba ganti kata kunci pencarian, ubah pilihan wilayah, atau atur ulang filter Anda.

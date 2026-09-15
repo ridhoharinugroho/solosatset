@@ -3,11 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageSquareHeart, Coffee, Store, User } from "lucide-react";
+import { Home, SlidersHorizontal, Coffee, Store, User } from "lucide-react";
 
 export interface BottomNavigationProps {
-  activeTab?: "home" | "reviews" | "toko-saya" | "profile";
-  onTabChange?: (tab: "home" | "reviews" | "toko-saya" | "profile") => void;
+  activeTab?: "home" | "favorites" | "filters" | "reviews" | "toko-saya" | "profile";
+  onTabChange?: (tab: "home" | "favorites" | "filters" | "reviews" | "toko-saya" | "profile") => void;
   onProfileClick?: () => void;
   onTraktirKopiClick?: () => void;
 }
@@ -31,7 +31,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
   }
 
   const isHome = currentTab === "home";
-  const isReviews = currentTab === "reviews";
+  const isFilters = currentTab === "filters";
   const isTokoSaya = currentTab === "toko-saya";
   const isProfile = currentTab === "profile";
 
@@ -41,7 +41,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
       className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-3 py-1.5 shadow-2xl"
     >
       <div className="max-w-md md:max-w-xl mx-auto flex items-center justify-around">
-        {/* 1. Beranda */}
+        {/* 1. Home */}
         <Link
           href="/"
           onClick={() => onTabChange?.("home")}
@@ -53,27 +53,27 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
           } text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all`}
         >
           <Home className={`w-5 h-5 pointer-events-none ${isHome ? "text-rose-900 stroke-[2.2]" : "text-slate-600 stroke-[1.8]"}`} />
-          <span className="pointer-events-none">Beranda</span>
+          <span className="pointer-events-none">Home</span>
         </Link>
 
-        {/* 2. Ulasan */}
+        {/* 2. Filter */}
         <button
           type="button"
-          onClick={() => onTabChange?.("reviews")}
-          id="nav-btn-reviews"
+          onClick={() => onTabChange?.("filters")}
+          id="nav-btn-filters"
           className={`flex flex-col items-center gap-0.5 py-1 px-3 ${
-            isReviews
+            isFilters
               ? "text-rose-900 font-black"
               : "text-slate-600 hover:text-rose-900 font-bold"
           } text-[10px] sm:text-xs cursor-pointer hover:scale-105 transition-all`}
-          title="Buka Halaman & Kolom Ulasan"
+          title="Filter Wilayah & Kategori"
         >
-          <MessageSquareHeart
+          <SlidersHorizontal
             className={`w-5 h-5 pointer-events-none ${
-              isReviews ? "text-rose-900 stroke-[2.2]" : "text-slate-600 stroke-[1.8]"
+              isFilters ? "text-rose-900 stroke-[2.2]" : "text-slate-600 stroke-[1.8]"
             }`}
           />
-          <span className="pointer-events-none">Ulasan</span>
+          <span className="pointer-events-none">Filter</span>
         </button>
 
         {/* 3. Traktir Kopi (Center Floating Action Button) */}
@@ -91,6 +91,12 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
         {/* 4. Toko Saya */}
         <Link
           href="/toko-saya"
+          onClick={(e) => {
+            if (onTabChange) {
+              e.preventDefault();
+              onTabChange("toko-saya");
+            }
+          }}
           id="nav-btn-my-listings"
           className={`flex flex-col items-center gap-0.5 py-1 px-3 ${
             isTokoSaya

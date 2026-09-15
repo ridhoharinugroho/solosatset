@@ -32,6 +32,11 @@ export function useTokoSaya({ initialListings = [], sellerId }: UseTokoSayaProps
 
   const filteredListings = useMemo(() => {
     if (statusFilter === "all") return listings;
+    if (statusFilter === "available" || statusFilter === "active") {
+      return listings.filter(
+        (l) => l.status.toLowerCase() === "active" || l.status.toLowerCase() === "available"
+      );
+    }
     return listings.filter((l) => l.status.toLowerCase() === statusFilter.toLowerCase());
   }, [listings, statusFilter]);
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Coffee, HeartHandshake, QrCode, MessageCircle, X } from "lucide-react";
+import { Coffee, HeartHandshake, QrCode, MessageCircle } from "lucide-react";
 
 export interface TraktirKopiModalProps {
   isOpen: boolean;
@@ -32,14 +32,6 @@ export const TraktirKopiModal: React.FC<TraktirKopiModalProps> = ({ isOpen, onCl
               <p className="text-[10px] sm:text-xs text-rose-200 font-medium">SOPALOKA</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer"
-            aria-label="Tutup Modal"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* Body */}
@@ -81,23 +73,16 @@ export const TraktirKopiModal: React.FC<TraktirKopiModalProps> = ({ isOpen, onCl
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-2 pt-0.5 flex-shrink-0">
+          <div className="pt-0.5 flex-shrink-0">
             <a
               href="https://wa.me/6281228198765?text=Halo%20Admin%20SOPALOKA,%20saya%20sudah%20traktir%20kopi%20lewat%20QRIS.%20Semoga%20platform%20ini%20semakin%20maju!"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-md"
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-colors shadow-md"
             >
               <MessageCircle className="w-4 h-4" />
               <span>Konfirmasi Admin</span>
             </a>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer shadow-sm"
-            >
-              Tutup
-            </button>
           </div>
         </div>
       </div>

@@ -511,15 +511,30 @@ export function incrementListingViews(id: string): void {
 // ─── FAVORIT & STATISTIK ──────────────────────────────────────────────────────
 
 export async function getFavoriteIds(): Promise<string[]> {
-  if (typeof window !== "undefined" && Array.isArray((window as any).__favorites)) {
-    return (window as any).__favorites;
+  if (typeof window !== "undefined") {
+    if (Array.isArray((window as any).__favorites)) {
+      return (window as any).__favorites;
+    }
+    const stored = localStorage.getItem("sopaloka_favorites");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          (window as any).__favorites = parsed;
+          return parsed;
+        }
+      } catch (e) {}
+    }
   }
   if (!supabase) return [];
   try {
     const { data, error } = await supabase.from("favorites").select("listing_id");
     if (!error && Array.isArray(data)) {
       const favs = data.map((row: any) => row.listing_id);
-      if (typeof window !== "undefined") (window as any).__favorites = favs;
+      if (typeof window !== "undefined") {
+        (window as any).__favorites = favs;
+        localStorage.setItem("sopaloka_favorites", JSON.stringify(favs));
+      }
       return favs;
     }
   } catch (e) {}
@@ -537,13 +552,29 @@ export async function toggleFavorite(listingId: string): Promise<boolean> {
     updated = [...favs, listingId];
     if (supabase) await supabase.from("favorites").insert({ listing_id: listingId });
   }
-  if (typeof window !== "undefined") (window as any).__favorites = updated;
+  if (typeof window !== "undefined") {
+    (window as any).__favorites = updated;
+    localStorage.setItem("sopaloka_favorites", JSON.stringify(updated));
+    window.dispatchEvent(new CustomEvent("sopaloka:favorites_changed", { detail: updated }));
+  }
   return !exists;
 }
 
 export function isFavorite(listingId: string): boolean {
-  if (typeof window !== "undefined" && Array.isArray((window as any).__favorites)) {
-    return (window as any).__favorites.includes(listingId);
+  if (typeof window !== "undefined") {
+    if (Array.isArray((window as any).__favorites)) {
+      return (window as any).__favorites.includes(listingId);
+    }
+    const stored = localStorage.getItem("sopaloka_favorites");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          (window as any).__favorites = parsed;
+          return parsed.includes(listingId);
+        }
+      } catch (e) {}
+    }
   }
   return false;
 }

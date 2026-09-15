@@ -51,17 +51,24 @@ describe("TokoSayaFeature Component & Hooks", () => {
   it("filters seller listings by status tab click (Aktif vs Terjual)", () => {
     render(<TokoSayaFeature initialListings={mockListings} sellerId="seller-123" />);
 
-    const buttons = screen.getAllByRole("button");
-    act(() => {
-      fireEvent.click(buttons[2]);
-    });
+    // Click on "Tersedia" filter tab
+    const availableTab = screen.getAllByRole("button").find(b => b.textContent?.includes("Tersedia"));
+    if (availableTab) {
+      act(() => {
+        fireEvent.click(availableTab);
+      });
+    }
 
     expect(screen.getByText("Kamera Canon EOS 80D")).not.toBeNull();
     expect(screen.queryByText("Lensa Canon 50mm f1.8")).toBeNull();
 
-    act(() => {
-      fireEvent.click(buttons[3]);
-    });
+    // Click on "Terjual" filter tab
+    const soldTab = screen.getAllByRole("button").find(b => b.textContent?.includes("Terjual"));
+    if (soldTab) {
+      act(() => {
+        fireEvent.click(soldTab);
+      });
+    }
 
     expect(screen.queryByText("Kamera Canon EOS 80D")).toBeNull();
     expect(screen.getByText("Lensa Canon 50mm f1.8")).not.toBeNull();
@@ -70,10 +77,11 @@ describe("TokoSayaFeature Component & Hooks", () => {
   it("triggers create listing form modal on header button click", () => {
     render(<TokoSayaFeature initialListings={mockListings} sellerId="seller-123" />);
 
-    const createBtn = screen.getAllByText(/Buat Listing Baru/i)[0];
+    const createBtn = screen.getByRole("button", { name: /Pasang Iklan/i });
     fireEvent.click(createBtn);
 
-    expect(screen.getByText(/Batal/i)).not.toBeNull();
+    expect(screen.getByText("Pasang Iklan Barang Baru")).not.toBeNull();
+    expect(screen.getByText("Batal")).not.toBeNull();
   });
 });
 

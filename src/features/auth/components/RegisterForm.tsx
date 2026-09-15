@@ -55,6 +55,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           onChange={(e) => setName(e.target.value)}
           placeholder="Budi Santoso"
           required
+          autoComplete="name"
           className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
@@ -69,6 +70,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           onChange={(e) => setIdentifier(e.target.value)}
           placeholder="08123456789"
           required
+          autoComplete="username"
           className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
@@ -82,6 +84,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           value={storeName}
           onChange={(e) => setStoreName(e.target.value)}
           placeholder="Toko Barokah Solo"
+          autoComplete="organization"
           className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
@@ -95,6 +98,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Minimal 6 karakter"
+          autoComplete="new-password"
           className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>

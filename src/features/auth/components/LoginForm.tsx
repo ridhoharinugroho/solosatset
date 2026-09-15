@@ -52,6 +52,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           onChange={(e) => setIdentifier(e.target.value)}
           placeholder="08123456789 / email@example.com"
           required
+          autoComplete="username"
           className="w-full px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
@@ -74,6 +75,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
+          autoComplete="current-password"
           className="w-full px-3.5 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>

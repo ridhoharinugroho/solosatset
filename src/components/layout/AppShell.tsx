@@ -8,15 +8,16 @@ export interface AppShellProps {
   footerSlot?: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
-  activeTab?: "home" | "reviews" | "toko-saya" | "profile";
+  activeTab?: "home" | "favorites" | "filters" | "reviews" | "toko-saya" | "profile";
   notificationCount?: number;
   onNotificationClick?: () => void;
+  onFavoritesClick?: () => void;
   onFilterClick?: () => void;
   onCreateListingClick?: () => void;
   onSearchSubmit?: (query: string) => void;
   onProfileClick?: () => void;
   onTraktirKopiClick?: () => void;
-  onTabChange?: (tab: "home" | "reviews" | "toko-saya" | "profile") => void;
+  onTabChange?: (tab: "home" | "favorites" | "filters" | "reviews" | "toko-saya" | "profile") => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -27,6 +28,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   activeTab,
   notificationCount = 0,
   onNotificationClick,
+  onFavoritesClick,
   onFilterClick,
   onCreateListingClick,
   onSearchSubmit,
@@ -42,6 +44,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         <HeaderNav
           notificationCount={notificationCount}
           onNotificationClick={onNotificationClick}
+          onFavoritesClick={onFavoritesClick}
           onFilterClick={onFilterClick}
           onCreateListingClick={onCreateListingClick}
           onSearchSubmit={onSearchSubmit}

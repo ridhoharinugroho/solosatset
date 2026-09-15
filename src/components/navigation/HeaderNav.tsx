@@ -6,6 +6,7 @@ import { NavActions } from "./NavActions";
 export interface HeaderNavProps {
   notificationCount?: number;
   onNotificationClick?: () => void;
+  onFavoritesClick?: () => void;
   onFilterClick?: () => void;
   onCreateListingClick?: () => void;
   onSearchSubmit?: (query: string) => void;
@@ -16,6 +17,7 @@ export interface HeaderNavProps {
 export const HeaderNav: React.FC<HeaderNavProps> = ({
   notificationCount = 0,
   onNotificationClick,
+  onFavoritesClick,
   onFilterClick,
   onCreateListingClick,
   onSearchSubmit,
@@ -82,6 +84,7 @@ export const HeaderNav: React.FC<HeaderNavProps> = ({
             <NavActions
               notificationCount={notificationCount}
               onNotificationClick={onNotificationClick}
+              onFavoritesClick={onFavoritesClick}
               onFilterClick={onFilterClick}
               onCreateListingClick={onCreateListingClick}
             />

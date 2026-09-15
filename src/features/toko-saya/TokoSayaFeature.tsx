@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useTokoSaya, UseTokoSayaProps } from "./hooks/useTokoSaya";
 import { TokoHeader } from "./components/TokoHeader";
-import { TokoStats } from "./components/TokoStats";
-import { SellerListingGrid } from "../seller/components/SellerListingGrid";
-import { ListingManagementFeature } from "../listing-management/ListingManagementFeature";
-import type { ListingModel } from "../../domain/listing/listing.contract";
+import { TokoReviewsSection } from "./components/TokoReviewsSection";
+import { TokoEtalase } from "./components/TokoEtalase";
+import { ListingForm } from "../listing-management/components/ListingForm";
+import { getCurrentUser, type RegisteredUser } from "../../services/authService";
+import { updateListingStatus, deleteListing } from "../../services/listingService";
+import type { ListingModel, ListingStatus } from "../../domain/listing/listing.contract";
+import { X } from "lucide-react";
 
 export interface TokoSayaFeatureProps extends UseTokoSayaProps {
   className?: string;
@@ -17,14 +20,26 @@ export const TokoSayaFeature: React.FC<TokoSayaFeatureProps> = ({
   sellerId,
   className = "",
 }) => {
+  const [currentUser, setCurrentUser] = useState<RegisteredUser | null>(null);
+
+  useEffect(() => {
+    setCurrentUser(getCurrentUser());
+    const handleUserUpdate = () => setCurrentUser(getCurrentUser());
+    window.addEventListener("userProfileUpdated", handleUserUpdate);
+    return () => window.removeEventListener("userProfileUpdated", handleUserUpdate);
+  }, []);
+
+  const effectiveSellerId = sellerId || currentUser?.id;
+
   const {
     listings,
+    allListings,
     statusFilter,
     setStatusFilter,
     stats,
     isLoading,
     refreshToko,
-  } = useTokoSaya({ initialListings, sellerId });
+  } = useTokoSaya({ initialListings, sellerId: effectiveSellerId });
 
   const [isCreatingListing, setIsCreatingListing] = useState<boolean>(false);
   const [editingListing, setEditingListing] = useState<ListingModel | null>(null);
@@ -45,60 +60,73 @@ export const TokoSayaFeature: React.FC<TokoSayaFeatureProps> = ({
     refreshToko();
   }, [refreshToko]);
 
-  return (
-    <div className={`space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-6 ${className}`.trim()}>
-      {/* Toko Header */}
-      <TokoHeader onCreateListingClick={handleCreateNew} />
+  const handleStatusChange = useCallback(
+    async (id: string, status: ListingStatus) => {
+      await updateListingStatus(id, status);
+      refreshToko();
+    },
+    [refreshToko]
+  );
 
-      {/* Toko Stats */}
-      <TokoStats
-        total={stats.total}
-        active={stats.active}
-        sold={stats.sold}
-        totalViews={stats.totalViews}
+  const handleDelete = useCallback(
+    async (id: string) => {
+      await deleteListing(id);
+      refreshToko();
+    },
+    [refreshToko]
+  );
+
+  return (
+    <div className={`space-y-4 sm:space-y-5 max-w-5xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 ${className}`.trim()}>
+      {/* Section 1: Top Showcase Banner & Store Profile */}
+      <TokoHeader
+        user={currentUser}
+        soldCount={stats.sold}
+        onCreateListingClick={handleCreateNew}
       />
 
-      {/* Filter Tabs */}
-      <div className="flex items-center justify-between border-b border-gray-200 pb-3">
-        <div className="flex items-center gap-2">
-          {["all", "active", "sold"].map((status) => (
-            <button
-              key={status}
-              type="button"
-              onClick={() => setStatusFilter(status)}
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-lg capitalize transition-colors cursor-pointer ${
-                statusFilter === status
-                  ? "bg-rose-900 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {status === "all" ? "Semua Status" : status === "active" ? "Aktif" : "Terjual"}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Section 2: Rating & Ulasan Toko */}
+      <TokoReviewsSection
+        rating={5.0}
+        reviewCount={0}
+        reviews={[]}
+      />
 
-      {/* Listing Form Modal or Grid */}
-      {isCreatingListing ? (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
-          <button
-            type="button"
-            onClick={handleCloseForm}
-            className="absolute top-4 right-4 text-xs font-bold text-gray-400 hover:text-gray-600"
+      {/* Section 3: Etalase Barang Jualan */}
+      <TokoEtalase
+        listings={listings}
+        allListings={allListings}
+        statusFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+        onEdit={handleEdit}
+        onStatusChange={handleStatusChange}
+        onDelete={handleDelete}
+      />
+
+      {/* Create / Edit Listing Modal */}
+      {isCreatingListing && (
+        <div
+          className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto animate-fade-in"
+          onClick={handleCloseForm}
+        >
+          <div
+            className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 border border-gray-100 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
           >
-            ✕ Batal
-          </button>
-          <ListingManagementFeature
-            editingListing={editingListing}
-            onSuccess={handleCloseForm}
-          />
+            <button
+              type="button"
+              onClick={handleCloseForm}
+              className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold flex items-center justify-center transition-colors cursor-pointer"
+              aria-label="Tutup Form"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <ListingForm
+              initialListing={editingListing || undefined}
+              onClose={handleCloseForm}
+            />
+          </div>
         </div>
-      ) : (
-        <SellerListingGrid
-          listings={listings}
-          onEdit={handleEdit}
-          onStatusChange={refreshToko}
-        />
       )}
     </div>
   );

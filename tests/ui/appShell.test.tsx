@@ -47,7 +47,7 @@ describe("Shared UI / App Shell Components", () => {
     expect(screen.getByText("Pantau Cocok Bayar • Nego Langsung WA")).not.toBeNull();
   });
 
-  it("harus me-render NavActions dengan tombol aksi notifikasi, filter, dan pasang iklan", () => {
+  it("harus me-render NavActions dengan tombol aksi notifikasi, favorit, dan pasang iklan", () => {
     render(
       <NavActions
         notificationCount={3}
@@ -55,7 +55,7 @@ describe("Shared UI / App Shell Components", () => {
     );
 
     expect(screen.getByTitle("Pusat Notifikasi")).not.toBeNull();
-    expect(screen.getByTitle("Filter Wilayah & Kategori")).not.toBeNull();
+    expect(screen.getByTitle("Daftar Barang Favorit")).not.toBeNull();
     expect(screen.getByText("Pasang Iklan")).not.toBeNull();
     expect(screen.getByText("3")).not.toBeNull();
   });

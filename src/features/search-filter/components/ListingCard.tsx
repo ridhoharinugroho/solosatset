@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import type { ListingModel } from "../../../domain/listing/listing.contract";
 import { Heart, MapPin, CheckCircle, MessageCircle, Eye, Tag } from "lucide-react";
+import { isFavorite as checkIsFavorite, toggleFavorite } from "../../../services/listingService";
 
 export interface ListingCardProps {
   listing: ListingModel;
@@ -16,9 +17,20 @@ export const ListingCard: React.FC<ListingCardProps> = ({
   onCardClick,
   onFavoriteToggle,
   onChatWaClick,
-  isFavorite = false,
+  isFavorite: propIsFavorite,
   className = "",
 }) => {
+  const [isFav, setIsFav] = useState<boolean>(() => {
+    if (propIsFavorite !== undefined) return propIsFavorite;
+    return checkIsFavorite(listing.id);
+  });
+
+  useEffect(() => {
+    if (propIsFavorite !== undefined) {
+      setIsFav(propIsFavorite);
+    }
+  }, [propIsFavorite]);
+
   const formattedPrice = new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
@@ -38,6 +50,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
 
   const isNego = listing.negoType !== "pass";
   const sellerName = listing.seller?.name || "Danang";
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextState = await toggleFavorite(listing.id);
+    setIsFav(nextState);
+    onFavoriteToggle?.(listing.id, e);
+  };
 
   return (
     <div
@@ -65,16 +84,13 @@ export const ListingCard: React.FC<ListingCardProps> = ({
           {/* Top Right: Favorite Heart Button */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle?.(listing.id, e);
-            }}
+            onClick={handleFavoriteClick}
             className={`absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/90 shadow-sm transition-all cursor-pointer ${
-              isFavorite ? "text-rose-600 fill-rose-600" : "text-slate-400 hover:text-rose-600 hover:scale-110"
+              isFav ? "text-rose-600 fill-rose-600" : "text-slate-400 hover:text-rose-600 hover:scale-110"
             }`}
             title="Simpan ke favorit"
           >
-            <Heart className={`w-4 h-4 ${isFavorite ? "fill-rose-600 text-rose-600" : ""}`} />
+            <Heart className={`w-4 h-4 ${isFav ? "fill-rose-600 text-rose-600" : ""}`} />
           </button>
 
           {/* Bottom Left: Location Pill */}

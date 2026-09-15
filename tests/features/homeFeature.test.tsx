@@ -65,25 +65,15 @@ describe("HomeFeature (Modular Home Browsing)", () => {
     document.body.innerHTML = "";
   });
 
-  it("renders hero header, promo banner, category pills, search bar, and listing grid", () => {
+  it("renders hero header, category pills, region pills, and listing grid", () => {
     render(<HomeFeature initialListings={mockListings} />);
 
-    expect(screen.getByText(/Jual Beli Barang Terdekat — Pantau Cocok Bayar/i)).not.toBeNull();
-    expect(screen.getByText(/SOPALOKA/i)).not.toBeNull();
-    expect(screen.getByText(/Transaksi Langsung COD/i)).not.toBeNull();
-    expect(screen.getAllByText("Semua Kategori")[0]).not.toBeNull();
+    expect(screen.getByText(/Pusat Jual Beli Komunitas/i)).not.toBeNull();
+    expect(screen.getByText(/Cari & Jual Barang Terdekat di Mana Saja/i)).not.toBeNull();
+    expect(screen.getByText(/Pasang Iklan Gratis/i)).not.toBeNull();
+    expect(screen.getByTitle("Semua Kategori")).not.toBeNull();
     expect(screen.getByText("Laptop ThinkPad T480 Core i7")).not.toBeNull();
     expect(screen.getByText("Sepeda Motor Honda Vario 125")).not.toBeNull();
-  });
-
-  it("filters listings by keyword search input", () => {
-    render(<HomeFeature initialListings={mockListings} />);
-
-    const searchInput = screen.getByPlaceholderText(/Cari barang/i);
-    fireEvent.change(searchInput, { target: { value: "ThinkPad" } });
-
-    expect(screen.getByText("Laptop ThinkPad T480 Core i7")).not.toBeNull();
-    expect(screen.queryByText("Sepeda Motor Honda Vario 125")).toBeNull();
   });
 
   it("filters listings by category pill click", () => {

@@ -1,9 +1,10 @@
 import React from "react";
-import { Bell, SlidersHorizontal, PlusCircle } from "lucide-react";
+import { Bell, Heart, PlusCircle } from "lucide-react";
 
 export interface NavActionsProps {
   notificationCount?: number;
   onNotificationClick?: () => void;
+  onFavoritesClick?: () => void;
   onFilterClick?: () => void;
   onCreateListingClick?: () => void;
 }
@@ -11,6 +12,7 @@ export interface NavActionsProps {
 export const NavActions: React.FC<NavActionsProps> = ({
   notificationCount = 0,
   onNotificationClick,
+  onFavoritesClick,
   onFilterClick,
   onCreateListingClick,
 }) => {
@@ -35,17 +37,17 @@ export const NavActions: React.FC<NavActionsProps> = ({
         )}
       </button>
 
-      {/* Filter Button */}
+      {/* Favorit Button (Top Header Action) */}
       <button
         type="button"
-        id="btn-open-filter-modal"
-        onClick={onFilterClick}
-        className="p-1.5 sm:p-2 text-rose-900 bg-white/50 hover:bg-white/80 rounded-xl border border-rose-200/50 flex items-center justify-center gap-1 text-xs font-semibold flex-shrink-0 cursor-pointer backdrop-blur-sm transition-all shadow-sm"
-        title="Filter Wilayah & Kategori"
+        id="btn-open-favorites"
+        onClick={onFavoritesClick || onFilterClick}
+        className="p-1.5 sm:p-2 text-rose-900 bg-white/50 hover:bg-white/80 rounded-xl border border-rose-200/50 flex items-center justify-center gap-1 text-xs font-semibold flex-shrink-0 cursor-pointer backdrop-blur-sm transition-all shadow-sm group hover:scale-105"
+        title="Daftar Barang Favorit"
       >
-        <SlidersHorizontal className="w-4 h-4 text-rose-600" />
-        <span data-text-key="btn_filter" className="hidden sm:inline font-bold text-rose-950">
-          Filter
+        <Heart className="w-4 h-4 text-rose-600 group-hover:fill-rose-600 transition-colors" />
+        <span data-text-key="btn_favorit" className="hidden sm:inline font-bold text-rose-950">
+          Favorit
         </span>
       </button>
 
